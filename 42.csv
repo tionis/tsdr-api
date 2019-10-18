@@ -1,0 +1,65 @@
+datum,tag,warengruppe,name,kennz,preis,stud,bed,gast
+14.10.2019,Mo,Suppe,Blumenkohlsuppe (3;A;AA;G;I),V,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+14.10.2019,Mo,HG1,Mediterraner Gemüsegulasch; Räuchertofu und Weizen (3;A;AA;F;I),VG;MV,0;00 / 0;00 / 0;00,0;00,0;00,0;00
+14.10.2019,Mo,HG2,Tortiglioni Romana (3;A;AA;G;I),V,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+14.10.2019,Mo,HG3,Röstischnitzel mit Rahmsoße und Kartoffelbrei (3;A;AA;G;I;L),S,2;80 / 3;40 / 4;40,2;80,3;40,4;40
+14.10.2019,Mo,HG4,Hähnchenschnitzel mit Kräuterrahmsoße und Kartoffelbrei (3;A;AA;G),G,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+14.10.2019,Mo,B1,Erbsen-Karotten-Lauchgemüse (3;A;AA;G;I),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+14.10.2019,Mo,B2,Bio-Nudeln (AA),B;VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+14.10.2019,Mo,B3,Salatmix (3)TomatensalatG (3;16)Blaukraut-ApfelrohkostG (16)Creme Fraiche Kräuterdressing (16;G;I)Balsamico DressingG (1;3;16;I),V;VG;VG;V;VG,0;90 / 1;10 / 1;60,0;90,1;10,1;60
+14.10.2019,Mo,B4,Pommes frites (8),VG,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+14.10.2019,Mo,B5,Salat Buffet (1;3;6;9;16;C;G;J;L),V,3;00 / 3;50 / 4;20,3;00,3;50,4;20
+14.10.2019,Mo,N1,Mango Joghurt (G),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+14.10.2019,Mo,N2,Eierlikor Pudding (G),V;A,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+14.10.2019,Mo,N3,Schokopudding mit Kokosmilch - vegan,VG,0;90 / 1;10 / 1;50,0;90,1;10,1;50
+15.10.2019,Di,Suppe,Legierte Grießsuppe (3;AA;C;I),V,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+15.10.2019,Di,HG1,Currywurst mit Pommes Frites (2;3;8;16;A;AA;I;J),S;R,0;00 / 0;00 / 0;00,0;00,0;00,0;00
+15.10.2019,Di,HG2,veganes Tomaten-Basilikum Risotto (3;F;I),VG,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+15.10.2019,Di,HG3,Bulgarische Paprikapfanne mit Schafskäse (3;G;I),V,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+15.10.2019,Di,HG4,Chili con Carne vom Juradistlrind mit Baguette (3;A;AA;I),R;J,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+15.10.2019,Di,B1,Petersilienkartoffeln,VG,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+15.10.2019,Di,B2,Gartengemüse (3;I),VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+15.10.2019,Di,B3,Salatmix (3)Weißkrautsalat bayerisch (2;3;8)Salat RustikaG (16)Cesar Dressing (3;C;G;I;J)Balsamico DressingG (1;3;16;I),V;S;VG;V;VG,0;90 / 1;10 / 1;60,0;90,1;10,1;60
+15.10.2019,Di,B4,Pommes frites (8),VG,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+15.10.2019,Di,B5,Salat Buffet (1;3;6;9;16;C;G;J;L),V,3;00 / 3;50 / 4;20,3;00,3;50,4;20
+15.10.2019,Di,N1,Bananenquark (3;G),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+15.10.2019,Di,N2,Bio-Schokoladenpudding (G),B;V,0;90 / 1;10 / 1;50,0;90,1;10,1;50
+16.10.2019,Mi,Suppe,Leberknödelsuppe (3;AA;C;I),R;S,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+16.10.2019,Mi,HG1,Jägerschnitzel mit Kartoffelspätzle (3;A;AA;C;G;I),S,0;00 / 0;00 / 0;00,0;00,0;00,0;00
+16.10.2019,Mi,HG2,Kichererbsen-Tomatentopf (3),VG;MV,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+16.10.2019,Mi,HG3,Bunte Spätzlepfanne (3;A;AA;C;G),V,2;80 / 3;40 / 4;40,2;80,3;40,4;40
+16.10.2019,Mi,HG4,Rabas Epanadas mit Tzaziki und Fladenbrot (3;8;AA;G;K;N),F,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+16.10.2019,Mi,B1,Gemüsereis (3;I),VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+16.10.2019,Mi,B2,Feuerbohnen (3;I),VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+16.10.2019,Mi,B3,Salatmix (3)GurkensalatG (3;16)Karottenrohkost mit Äpfeln und Sesam (3;G;K)Sylter Dressing (G;I;J;L)Balsamico DressingG (1;3;16;I),V;VG;V;V;VG,0;90 / 1;10 / 1;60,0;90,1;10,1;60
+16.10.2019,Mi,B4,Kartoffelspätzle (A;AA;C),V,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+16.10.2019,Mi,B5,Salat Buffet (1;3;6;9;16;C;G;J;L),V,3;00 / 3;50 / 4;20,3;00,3;50,4;20
+16.10.2019,Mi,N1,Tutti-Frutti Pudding (1;3;G),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+16.10.2019,Mi,N2,Ananasjoghurt - vegan (3;F),VG,0;90 / 1;10 / 1;50,0;90,1;10,1;50
+16.10.2019,Mi,N3,Milchreis mit Erdbeeren (1;G),V,1;10 / 1;40 / 1;60,1;10,1;40,1;60
+17.10.2019,Do,HG1,Hähnchenbrust Hawaii mit Kokosreis (2;3;8;G;I),G,0;00 / 0;00 / 0;00,0;00,0;00,0;00
+17.10.2019,Do,HG2,Penne Rigatte mit Bärlauchsoße (3;A;AA;C;G;I),V,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+17.10.2019,Do,HG3,Knusprige Ofenkartoffeln mit Ratatouillegemüse (3;A;I),VG,2;50 / 3;10 / 4;20,2;50,3;10,4;20
+17.10.2019,Do,HG4,Rahmgulasch vom Schwein mit Bio-Nudeln (3;A;AA;G),S,2;80 / 3;40 / 4;40,2;80,3;40,4;40
+17.10.2019,Do,B1,Petersilienkartoffeln,VG,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+17.10.2019,Do,B2,Feuerbohnen (3;I),VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+17.10.2019,Do,B3,Salatmix (3)GurkensalatG (3;16)Karottenrohkost mit Äpfeln und Sesam (3;G;K)Sylter Dressing (G;I;J;L)Balsamico DressingG (1;3;16;I),V;VG;V;V;VG,0;90 / 1;10 / 1;60,0;90,1;10,1;60
+17.10.2019,Do,B4,Pommes Dauphine (C;G),V,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+17.10.2019,Do,B5,Salat Buffet (1;3;6;9;16;C;G;J;L),V,3;00 / 3;50 / 4;20,3;00,3;50,4;20
+17.10.2019,Do,N1,Ananasquark (3;G),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+17.10.2019,Do,N2,Himbeerpudding - vegan (F),VG,0;90 / 1;10 / 1;50,0;90,1;10,1;50
+17.10.2019,Do,N3,Fruchtzauber (1;3;F;G),V,1;10 / 1;40 / 1;60,1;10,1;40,1;60
+18.10.2019,Fr,Suppe,Paprika-Creme-Suppe (3;A;AA;G;I),V,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+18.10.2019,Fr,HG1,Bannanenbrot mit Apfelgemüse(3;AA;HB),V,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+18.10.2019,Fr,HG2,Maultaschen mit Specksoße auf Sauerkraut (2;3;8;A;AA;C;G;I),S,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+18.10.2019,Fr,HG3,Hähnchenbrust Hawaii mit Reis (2;3;8;G;I),VG,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+18.10.2019,Fr,HG4,Gemüsesteak auf buntem Glasnudelsalat (16;A;F;J;K),VG;,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+18.10.2019,Fr,HG5,Seelachs mediterran mit Rosmarinkartoffeln (3;AA),F,3;70 / 4;70 / 5;20,3;70,4;70,5;20
+18.10.2019,Fr,B1,Reis Risi Bisi (3;I),VG,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+18.10.2019,Fr,B2,Karotten-Zucchinigemüse (3;I),VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+18.10.2019,Fr,B3,Salatmix (3)Salat RioG (3;16)ZucchinisalatG (3;16)Joghurt-Zitronen-Dressing (3;16;G;I)Balsamico DressingG (1;3;16;I),V;VG;VG;V;VG,0;90 / 1;10 / 1;60,0;90,1;10,1;60
+18.10.2019,Fr,B4,Pommes-frites,VG,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+18.10.2019,Fr,B5,Salat Buffet (1;3;6;9;16;C;G;J;L),V,3;00 / 3;50 / 4;20,3;00,3;50,4;20
+18.10.2019,Fr,N1,Fruchtzauber (1;3;F;G),V,1;10 / 1;40 / 1;60,1;10,1;40,1;60
+18.10.2019,Fr,N2,Cheescake-Creme (3;8;AA;C;F;G),V,1;10 / 1;40 / 1;60,1;10,1;40,1;60
+18.10.2019,Fr,N3,Frischer Apfel-Ananas-Gurkensaft,,1;60 / 1;60 / 1;60,1;60,1;60,1;60
