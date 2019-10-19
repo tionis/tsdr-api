@@ -17,6 +17,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/heroku/x/hmetrics/onload"
 	"golang.org/x/text/encoding/charmap"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
