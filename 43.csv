@@ -1,0 +1,69 @@
+datum,tag,warengruppe,name,kennz,preis,stud,bed,gast
+21.10.2019,Mo,Suppe,Bio-Tomatensuppe,B;VG,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+21.10.2019,Mo,HG1,Entenviertel gebraten mit Reiberknödel (2;3;5;A;AA;L),G,0;00 / 0;00 / 0;00,0;00,0;00,0;00
+21.10.2019,Mo,HG2,Grüne Nudeln mit Gorgonzolasoße (3;A;AA;C;G;I),V,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+21.10.2019,Mo,HG3,Ebly mit Zucchini; Paprika; Karotten und frischem Rosmarin (3;A;AA;F),VG,2;30 / 3;00 / 4;00,2;30,3;00,4;00
+21.10.2019,Mo,HG4,Schupfnudel-Gemüsepfanne mit Putenbruststreifen (3;A;AA;C;I),G,2;80 / 3;40 / 4;40,2;80,3;40,4;40
+21.10.2019,Mo,B1,Grüne Nudeln (A;AA),V,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+21.10.2019,Mo,B2,Blaukraut (3;16;I),V;A,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+21.10.2019,Mo,B3,Salatmix (3)Zucchinirohkost (3;9;C;G;H;HA;J)Blaukraut-PreiselbeerrohkostG (3;16)Creme Fraiche Kräuterdressing (16;G;I)Balsamico DressingG (1;3;16;I),V;V;VG;V;VG,0;90 / 1;10 / 1;60,0;90,1;10,1;60
+21.10.2019,Mo,B4,Reiberknödel (2;3;5;A;AA;L),VG,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+21.10.2019,Mo,B5,Schupfnudeln (3;A;AA;C;I),V,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+21.10.2019,Mo,B6,Salat Buffet (1;3;6;9;16;C;G;J;L),V,3;00 / 3;50 / 4;20,3;00,3;50,4;20
+21.10.2019,Mo,N1,Pudding mit Vanillegeschmack (1;G),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+21.10.2019,Mo,N2,Erdbeerjoghurt - vegan (3;F),VG,0;90 / 1;10 / 1;50,0;90,1;10,1;50
+21.10.2019,Mo,N3,Mousse Schokolade (G),V,1;10 / 1;40 / 1;60,1;10,1;40,1;60
+22.10.2019,Di,Suppe,Bihunsuppe (3;A;F;J),G,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+22.10.2019,Di,HG1,Homestyle Burger (3;AA;C;J;K),R,0;00 / 0;00 / 0;00,0;00,0;00,0;00
+22.10.2019,Di,HG2,Pikante Sesamnudeln mit asiatischem Pfannengemüse (3;A;AA;F;I;K),VG,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+22.10.2019,Di,HG3,Apfel- und Blaubeerpfannkuchen (8;AA;C;G),V,2;30 / 3;00 / 4;00,2;30,3;00,4;00
+22.10.2019,Di,HG4,Schlemmerfilet mit Gemüsereis (3;16;A;AA;G;I),F;A,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+22.10.2019,Di,B1,Butterkartoffeln (G),V,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+22.10.2019,Di,B2,Gemüsereis (3;I),VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+22.10.2019,Di,B3,Salatmix (3)Salat RioG (3;16)Weißkrautsalat mit Äpfeln (3;9;C;G;J)Curry Dressing (2;3;9;C;G;I;J)Balsamico DressingG (1;3;16;I),V;VG;V;V;VG,0;90 / 1;10 / 1;60,0;90,1;10,1;60
+22.10.2019,Di,B4,Gemüsecocktail Sombrero (3;I),VG,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+22.10.2019,Di,B5,Homestyle Fries,V,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+22.10.2019,Di,B6,Salat Buffet (1;3;6;9;16;C;G;J;L),V,3;00 / 3;50 / 4;20,3;00,3;50,4;20
+22.10.2019,Di,N1,Ananasquark (3;G),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+22.10.2019,Di,N2,Beerenjoghurt - vegan (3;F),VG,0;90 / 1;10 / 1;50,0;90,1;10,1;50
+22.10.2019,Di,N3,Schokopudding mit Kokosmilch - vegan,VG,0;90 / 1;10 / 1;50,0;90,1;10,1;50
+22.10.2019,Di,N4,Himbeer Fromage (C;G),V,1;10 / 1;40 / 1;60,1;10,1;40,1;60
+23.10.2019,Mi,Suppe,Kartoffelrahmsuppe (3;G;I),V,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+23.10.2019,Mi,HG1,Blumenkohleintopf indische Art mit Kokosnußmilch und Nannbrot (3;AA;F;G),VG;V,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+23.10.2019,Mi,HG2,Schaschlickpfanne mit Reis (2;3;8;16;A;AA;I),S,2;50 / 3;10 / 4;20,2;50,3;10,4;20
+23.10.2019,Mi,HG3,Piccata alla Milanese mit Bio-Spaghetti (3;A;AA;G;I),G,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+23.10.2019,Mi,HG4,Rösti Lasagne (2;3;A;AA;C;G;HD;I),V,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+23.10.2019,Mi,B1,Italienisches Bohnengemüse (3;AA;I),VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+23.10.2019,Mi,B2,Kräuterreis (3;I),VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+23.10.2019,Mi,B3,Salatmix (3)TomatensalatG (3;16)Rettichrohkost (16;G)Sesam Dressing (9;A;C;F;G;I;J;K;L)Balsamico DressingG (1;3;16;I),V;VG;V;V;VG,0;90 / 1;10 / 1;60,0;90,1;10,1;60
+23.10.2019,Mi,B4,Pommes Dauphine (C;G),V,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+23.10.2019,Mi,B5,Salat Buffet (1;3;6;9;16;C;G;J;L),V,3;00 / 3;50 / 4;20,3;00,3;50,4;20
+23.10.2019,Mi,N1,Birnenpudding (3;G),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+23.10.2019,Mi,N2,Sauerkirschjoghurt - vegan (3;F),VG,0;90 / 1;10 / 1;50,0;90,1;10,1;50
+23.10.2019,Mi,N3,Schmankerlcreme (1;F;G),V;A,1;10 / 1;40 / 1;60,1;10,1;40,1;60
+24.10.2019,Do,Suppe,Brühe mit Tiroler Suppenknödel (2;3;AA;C;G;I;P),R;S,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+24.10.2019,Do,HG1,Hähnchen-Kürbisschnitzel mit Kartoffel-Vogerlsalat (3;AA;C;J),G,0;00 / 0;00 / 0;00,0;00,0;00,0;00
+24.10.2019,Do,HG2,Spiegeleier mit Spinat und Kartoffeln (3;A;AA;G;I),V,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+24.10.2019,Do,HG3,Veganer Lahmacun (1;3;AA;F;L),VG,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+24.10.2019,Do,HG4,Biftekis Griechische Art; Paprikareis und Krautsalat (3;6;16;AA;C;G;I;J),S;R,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+24.10.2019,Do,B1,Karotten-Kohlrabi-Gemüse (3;A;AA;G;I),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+24.10.2019,Do,B2,Bio-Nudeln (AA),B;VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+24.10.2019,Do,B3,Bio-Paprikareis (3),B;VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+24.10.2019,Do,B4,Kartoffel-Vogerlsalat (3;J),VG,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+24.10.2019,Do,B5,Potato Dips Onion-Pepper (8),VG,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+24.10.2019,Do,B6,Salat Buffet (1;3;6;9;16;C;G;J;L),V,3;00 / 3;50 / 4;20,3;00,3;50,4;20
+24.10.2019,Do,N1,Mango Joghurt (G),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+24.10.2019,Do,N2,Kokos-Sahnepudding - vegan,VG,0;90 / 1;10 / 1;50,0;90,1;10,1;50
+24.10.2019,Do,N3,Cheescake-Creme (3;8;AA;C;F;G),V,1;10 / 1;40 / 1;60,1;10,1;40,1;60
+25.10.2019,Fr,Suppe,Brühe mit Eifäden (C;I),G,0;70 / 0;90 / 1;40,0;70,0;90,1;40
+25.10.2019,Fr,HG1,Bio-Sauerbraten mit Spätzle (3;AA;C;G;I),R;BL;B,0;00 / 0;00 / 0;00,0;00,0;00,0;00
+25.10.2019,Fr,HG2,Pasta Ratatouille (3;AA),VG,2;00 / 2;80 / 3;60,2;00,2;80,3;60
+25.10.2019,Fr,HG3,Kaiserschmarrn mit Apfelmus (3;A;AA;C;G;H;HA),V,2;50 / 3;10 / 4;20,2;50,3;10,4;20
+25.10.2019,Fr,HG4,Fisch und Chips (3;8;9;A;AA;C;D;F;G;J),F,3;10 / 3;90 / 4;60,3;10,3;90,4;60
+25.10.2019,Fr,B1,Rosenkohl mit Semmelbröseln (3;AA;I),VG,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+25.10.2019,Fr,B2,Salatmix (3),V,0;90 / 1;10 / 1;60,0;90,1;10,1;60
+25.10.2019,Fr,B3,Country Kartoffeln (8;A;AA),VG,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+25.10.2019,Fr,B4,Spätzle (AA;C),V,1;00 / 1;10 / 1;60,1;00,1;10,1;60
+25.10.2019,Fr,B5,Salat Buffet (1;3;6;9;16;C;G;J;L),V,3;00 / 3;50 / 4;20,3;00,3;50,4;20
+25.10.2019,Fr,N1,Beerenjoghurt (G),V,0;80 / 1;00 / 1;50,0;80,1;00,1;50
+25.10.2019,Fr,N2,Schoko-Trüffel Creme (AC;F;G;HB),V,1;10 / 1;40 / 1;60,1;10,1;40,1;60
