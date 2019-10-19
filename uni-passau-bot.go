@@ -37,7 +37,7 @@ func uniPassauBot() {
 		sig := <-signalChannel
 		switch sig {
 		case os.Interrupt:
-			fmt.Println("Interruption Signal received, shutting down...")
+			fmt.Println("[UniPassauBot] " + "Interruption Signal received, shutting down...")
 			exit(botquit)
 		case syscall.SIGTERM:
 			botquit <- true
@@ -97,7 +97,7 @@ func uniPassauBot() {
 	b.Handle("/food", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = b.Send(m.Chat, foodtoday())
-			fmt.Println("Group Message:")
+			fmt.Println("[UniPassauBot] " + "Group Message:")
 		} else {
 			_, _ = b.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		}
@@ -106,7 +106,7 @@ func uniPassauBot() {
 	b.Handle("/foodtomorrow", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = b.Send(m.Chat, foodtomorrow())
-			fmt.Println("Group Message:")
+			fmt.Println("[UniPassauBot] " + "Group Message:")
 		} else {
 			_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		}
@@ -116,7 +116,7 @@ func uniPassauBot() {
 		if !m.Private() {
 			//_, _ = b.Send(m.Chat, foodweek())
 			_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
-			fmt.Println("Group Message:")
+			fmt.Println("[UniPassauBot] " + "Group Message:")
 		} else {
 			//_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 			_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
@@ -159,14 +159,14 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
-		fmt.Println("Group Message:")
+		fmt.Println("[UniPassauBot] " + "Group Message:")
 		printInfo(m)
 	})
 	b.Handle(tb.OnText, func(m *tb.Message) {
 		if !m.Private() {
 			// No Code here for privacy purposes
 			// Added test logging - to be removed later
-			fmt.Println("Message from Group:")
+			fmt.Println("[UniPassauBot] " + "Message from Group:")
 			printInfo(m)
 		} else {
 			_, _ = b.Send(m.Sender, "Unknown Command - use help to get a list of available commands")
@@ -178,7 +178,7 @@ func uniPassauBot() {
 	go func() {
 		<-botquit
 		b.Stop()
-		fmt.Println("Bot was stopped")
+		fmt.Println("[UniPassauBot] " + "Bot was stopped")
 		os.Exit(3)
 	}()
 
@@ -186,7 +186,7 @@ func uniPassauBot() {
 	initArray()
 
 	// print startup message
-	fmt.Println("Starting Uni-Passau-Bot...")
+	fmt.Println("[UniPassauBot] " + "Starting Uni-Passau-Bot...")
 	b.Start()
 }
 
@@ -291,7 +291,7 @@ func foodtomorrow() string {
 	case 5:
 		day = day + "Freitag:* 😋\n"
 	case 6, 7:
-		day = "_Kein Essen heute!_ 😩"
+		day = "_Kein Essen morgen!_ 😩"
 	default:
 		day = "An error occurred, please contact the administrator"
 	}
@@ -416,7 +416,7 @@ func isoToUTF(path string) {
 	err = out.Close()
 	err = f.Close()
 	if err != nil {
-		fmt.Println("Error converting csv file to UTF-8")
+		fmt.Println("[UniPassauBot] " + "Error converting csv file to UTF-8")
 	}
 }
 
@@ -462,7 +462,7 @@ func downloadFile(week string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Finished Downloading")
+	fmt.Println("[UniPassauBot] " + "Finished Downloading")
 	isoToUTF(filepath)
 	transformFile(filepath)
 	go func() {
@@ -473,7 +473,7 @@ func downloadFile(week string) error {
 		}
 		//fmt.Println("Deleted Temporary File")
 	}()
-	fmt.Println("File Transformed")
+	fmt.Println("[UniPassauBot] " + "File Transformed")
 	initArray()
 	err = out.Close()
 	checkmsg("Error closing body for creting file: ", err)
@@ -498,7 +498,7 @@ func updateFile() {
 	if _, err := os.Stat(weekstring + ".csv"); os.IsNotExist(err) {
 
 		// No actual file found
-		fmt.Print("No File for this week found - starting download --- ")
+		fmt.Print("[UniPassauBot] " + "No File for this week found - starting download --- ")
 		err := downloadFile(weekstring)
 		if err != nil {
 			panic(err)
@@ -508,10 +508,10 @@ func updateFile() {
 		if _, err = os.Stat(prevweekstring + ".csv"); err == nil {
 			err = os.Remove(prevweekstring + ".csv")
 			if err != nil {
-				fmt.Println("Error deleting Old File")
+				fmt.Println("[UniPassauBot] " + "Error deleting Old File")
 			}
 		} else {
-			fmt.Println("No File from previous week to delete")
+			fmt.Println("[UniPassauBot] " + "No File from previous week to delete")
 		}
 	} else {
 		// fmt.Println("Up-to-date CSV-File found!")
@@ -527,7 +527,7 @@ func exit(quit chan bool) {
 
 func simpleExit() {
 	// Exit without using graceful shutdown channels
-	fmt.Print("Bye!")
+	fmt.Print("[UniPassauBot] " + "Bye!")
 	os.Exit(3)
 }
 
@@ -539,7 +539,7 @@ func checkmsg(message string, e error) {
 
 func printInfo(m *tb.Message) {
 	loc, _ := time.LoadLocation("Europe/Berlin")
-	fmt.Println("[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
-	fmt.Println(m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID))
-	fmt.Println("Message: " + m.Text + "\n")
+	fmt.Println("[UniPassauBot] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
+	fmt.Println("[UniPassauBot] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID))
+	fmt.Println("[UniPassauBot] " + "Message: " + m.Text + "\n")
 }
