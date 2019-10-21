@@ -40,6 +40,8 @@ func alphaDiscordBot() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
 
+	dg.UpdateStatus(0, "Manager of Tasadar Stuff")
+
 	// Cleanly close down the Discord session.
 	dg.Close()
 }
