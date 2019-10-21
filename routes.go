@@ -17,7 +17,7 @@ func routes(router *gin.Engine) {
 	router.GET("/favicon.ico", favicon)
 	router.GET("/", index)
 	router.GET("/echo", httpecho)
-	router.POST("/whatsapp", whatsapp)
+	router.POST("/twilio/uni-passau-bot/whatsapp", whatsapp)
 	router.GET("/mensa/today", retFoodToday)
 	router.GET("/mensa/tommorow", retFoodTomorow)
 	router.POST("/dialogflow/alpha", retFoodToday)
