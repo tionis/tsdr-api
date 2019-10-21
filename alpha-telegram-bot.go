@@ -47,7 +47,7 @@ func alphaTelegramBot() {
 	// init reply keyboard
 	replyBtn := tb.ReplyButton{Text: "Food for today"}
 	replyBtn2 := tb.ReplyButton{Text: "Food for tomorrow"}
-	//replyBtn3 := tb.ReplyButton{Text: "Food for the week"}
+	replyBtn3 := tb.ReplyButton{Text: "Food for the week"}
 	replyKeys := [][]tb.ReplyButton{
 		{replyBtn, replyBtn2} /*, {replyBtn3}*/}
 
@@ -61,10 +61,10 @@ func alphaTelegramBot() {
 		_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		printInfoAlpha(m)
 	})
-	/*b.Handle(&replyBtn3, func(m *tb.Message) {
+	b.Handle(&replyBtn3, func(m *tb.Message) {
 		_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		printInfoAlpha(m)
-	})*/
+	})
 	// handle standard text commands
 	b.Handle("/hello", func(m *tb.Message) {
 		_, _ = b.Send(m.Sender, "Hi! How are you?", tb.ModeMarkdown)
@@ -98,12 +98,12 @@ func alphaTelegramBot() {
 	})
 	b.Handle("/foodweek", func(m *tb.Message) {
 		if !m.Private() {
-			//_, _ = b.Send(m.Chat, foodweek())
-			_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
+			_, _ = b.Send(m.Chat, foodweek())
+			//_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
 			fmt.Println("[AlphaTelegramBot] " + "Group Message:")
 		} else {
-			//_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
-			_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
+			_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+			//_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
 		}
 		printInfoAlpha(m)
 	})

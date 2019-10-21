@@ -115,12 +115,12 @@ func uniPassauBot() {
 	})
 	b.Handle("/foodweek", func(m *tb.Message) {
 		if !m.Private() {
-			//_, _ = b.Send(m.Chat, foodweek())
-			_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
+			_, _ = b.Send(m.Chat, foodweek())
+			//_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
 			fmt.Println("[UniPassauBot] " + "Group Message:")
 		} else {
-			//_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
-			_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
+			_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+			//_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
 		}
 		printInfo(m)
 	})
@@ -378,7 +378,7 @@ func transcor(input string) string {
 	return output
 }
 
-/*func foodweek() string {
+func foodweek() string {
 	// returns the string to print to user who requested the mensa plan
 	// reads actual file
 	updateFile()
@@ -432,7 +432,7 @@ func transcor(input string) string {
 
 	s := []string{Mo, Di, Mi, Do, Fr}
 	return strings.Join(s, "\n")
-}*/
+}
 
 // WeekDate returns the date for an specific day
 func weekDate(day int) string {
