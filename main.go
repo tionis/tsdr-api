@@ -5,18 +5,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
-	"github.com/hetznercloud/hcloud-go/hcloud"
 )
-
-// Global Variable
-var hetznerClient *hcloud.Client
 
 // Main and Init
 func main() {
-	// Init APIs
-	//hetznerClient := hcloud.NewClient(hcloud.WithToken(os.Getenv("HetznerApiToken")))
-	//center, _ := hetznerClient
-
 	// Start Uni-Passau-Bot
 	go uniPassauBot()
 
