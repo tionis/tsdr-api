@@ -13,16 +13,57 @@ import (
 
 // Main and Init
 func routes(router *gin.Engine) {
-	// Start and init Webhook Component
+	// Default Stuff
 	router.GET("/favicon.ico", favicon)
 	router.GET("/", index)
 	router.GET("/echo", httpecho)
+
+	// WhatsApp Bot
 	router.POST("/twilio/uni-passau-bot/whatsapp", whatsapp)
+
+	// CURL API
 	router.GET("/mensa/today", retFoodToday)
 	router.GET("/mensa/tommorow", retFoodTomorow)
+
+	// Google Assitant API - WIP
 	router.POST("/dialogflow/alpha", retFoodToday)
+
+	// MC Handling
+	/*router.POST("/mc/started", mcSetIP)
+	router.POST("/mc/stop", mcStop)*/
+
+	router.GET("/tg/:message", func(c *gin.Context) {
+		message := c.Param("message")
+		msgAlpha <- message
+		c.String(200, message)
+	})
 }
 
+/*func mcSetIP(c *gin.Context) {
+	// Set IP from request and check it with api
+}
+
+func mcStop(c *gin.Context) {
+	go mcStopChecker()
+	c.JSON(200, gin.H{"message": "Check will be executed in 2 Minutes"})
+}
+
+func mcStopChecker() {
+	time.Sleep(2 * time.Minute)
+	// check api for vms
+	// Stop VM, after 2 min check for active VMs (ignore those specified in VMsToIgnore) if still exists write message on alpha to "TG_ADMIN"
+	CheckError := true
+	if CheckError {
+		tionis := tb.Chat{ID: 248533143}
+		alpha.Send(&tionis, "There are more VMs than there should be!")
+	} else {
+		log.Println("[MC] Shutdown successfull")
+		mcOnline = false
+		mcIP = "0.0.0.0"
+	}
+}*/
+
+// handle simple GET requests
 func retFoodToday(c *gin.Context) {
 	c.String(200, foodtoday())
 }
@@ -31,6 +72,7 @@ func retFoodTomorow(c *gin.Context) {
 	c.String(200, foodtomorrow())
 }
 
+// handle test case
 func httpecho(c *gin.Context) {
 	// Test Code
 	requestDump, err := httputil.DumpRequest(c.Request, true)
