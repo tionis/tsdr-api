@@ -48,11 +48,25 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	switch m.Content {
+	case "/help":
+		s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - General Tasadar Network - /tn help")
+	case "/unip help":
+		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
+	case "/tn help":
+		s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
 	case "/food":
 		s.ChannelMessageSend(m.ChannelID, foodtoday())
 	case "/food tomorrow":
 		s.ChannelMessageSend(m.ChannelID, foodtomorrow())
 	case "/ping":
 		s.ChannelMessageSend(m.ChannelID, "Pong!")
+	case "/mc start":
+		s.ChannelMessageSend(m.ChannelID, "I cant do that yet, please wait until @Tionis#4459 implemens this!")
+	case "/mc stop":
+		s.ChannelMessageSend(m.ChannelID, "I cant do that yet, please wait until @Tionis#4459 implemens this!")
+	case "/mc status":
+		s.ChannelMessageSend(m.ChannelID, "I cant do that yet, please wait until @Tionis#4459 implemens this!")
+	case "/mc help":
+		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
 	}
 }

@@ -165,8 +165,6 @@ func uniPassauBot() {
 	})
 	b.Handle(tb.OnText, func(m *tb.Message) {
 		if !m.Private() {
-			// No Code here for privacy purposes
-			// Added test logging - to be removed later
 			fmt.Println("[UniPassauBot] " + "Message from Group:")
 			printInfo(m)
 		} else {

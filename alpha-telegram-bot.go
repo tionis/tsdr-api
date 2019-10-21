@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -49,7 +48,7 @@ func alphaTelegramBot() {
 	replyBtn2 := tb.ReplyButton{Text: "Food for tomorrow"}
 	replyBtn3 := tb.ReplyButton{Text: "Food for the week"}
 	replyKeys := [][]tb.ReplyButton{
-		{replyBtn, replyBtn2} /*, {replyBtn3}*/}
+		{replyBtn, replyBtn2}, {replyBtn3}}
 
 	// Command Handlers
 	// handle special keyboard commands
@@ -67,15 +66,15 @@ func alphaTelegramBot() {
 	})
 	// handle standard text commands
 	b.Handle("/hello", func(m *tb.Message) {
-		_, _ = b.Send(m.Sender, "Hi! How are you?", tb.ModeMarkdown)
+		_, _ = b.Send(m.Sender, "What do you want?", tb.ModeMarkdown)
 		printInfoAlpha(m)
 	})
 	b.Handle("/start", func(m *tb.Message) {
-		_, _ = b.Send(m.Sender, "Hallo! Ich bin der inoffizielle ChatBot der Uni Passau! Was kann ich dir Gutes tun?\nWenn du Hilfe benötigst benutze einfach /help!\nSolltest du den Mensa- und Stundenplan in einer App wollen, schreibe /app für mehr Informationen", &tb.ReplyMarkup{ReplyKeyboard: replyKeys})
+		_, _ = b.Send(m.Sender, "Hello.", &tb.ReplyMarkup{ReplyKeyboard: replyKeys})
 		printInfoAlpha(m)
 	})
 	b.Handle("/help", func(m *tb.Message) {
-		_, _ = b.Send(m.Sender, "Information about the Bot is in the Description\nAvailable Commands are:\n*/help* - Show this help\n*/food* - Get Information for the food TODAY in the Uni Passau\n*/foodtomorrow* - Get Information for the food TOMORROW in the Uni Passau\n*/foodweek* - Get Information for the wood this WEEK in the Uni Passau\n*/contact* - Contact the bot maintainer for requests and bug reports\n*/app* - More Information for an useful Android-App for studip", tb.ModeMarkdown)
+		_, _ = b.Send(m.Sender, "There is no help!", tb.ModeMarkdown)
 		printInfoAlpha(m)
 	})
 	b.Handle("/food", func(m *tb.Message) {
@@ -99,39 +98,10 @@ func alphaTelegramBot() {
 	b.Handle("/foodweek", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = b.Send(m.Chat, foodweek())
-			//_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
 			fmt.Println("[AlphaTelegramBot] " + "Group Message:")
 		} else {
 			_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
-			//_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
 		}
-		printInfoAlpha(m)
-	})
-	b.Handle("/contact", func(m *tb.Message) {
-		if m.Text == "/contact" {
-			_, _ = b.Send(m.Sender, "For requests and bug reports just add your message to the _/contact_ command.", tb.ModeMarkdown)
-		} else {
-			_, _ = b.Send(m.Sender, "Sending Message to the Bot Maintainer...")
-			tionis := tb.Chat{ID: 248533143}
-			sendstring := "Message by " + m.Sender.FirstName + " " + m.Sender.LastName + "\nID: " + strconv.Itoa(m.Sender.ID) + " Username: " + m.Sender.Username + "\n- - - - -\n" + strings.TrimPrefix(m.Text, "/contact ")
-			_, _ = b.Send(&tionis, sendstring)
-		}
-		printInfoAlpha(m)
-	})
-	b.Handle("/send", func(m *tb.Message) {
-		if m.Sender.ID == 248533143 {
-			s1 := strings.TrimPrefix(m.Text, "/send ")
-			s := strings.Split(s1, "$")
-			recID, _ := strconv.ParseInt(s[0], 10, 64)
-			rec := tb.Chat{ID: recID}
-			_, _ = b.Send(&rec, s[1])
-		} else {
-			_, _ = b.Send(m.Sender, "You are not authorized to execute this command!")
-			printInfoAlpha(m)
-		}
-	})
-	b.Handle("Danke", func(m *tb.Message) {
-		_, _ = b.Send(m.Sender, "_Gern geschehen!_", tb.ModeMarkdown)
 		printInfoAlpha(m)
 	})
 	b.Handle("Thanks", func(m *tb.Message) {
@@ -148,8 +118,6 @@ func alphaTelegramBot() {
 	})
 	b.Handle(tb.OnText, func(m *tb.Message) {
 		if !m.Private() {
-			// No Code here for privacy purposes
-			// Added test logging - to be removed later
 			fmt.Println("[AlphaTelegramBot] " + "Message from Group:")
 			printInfoAlpha(m)
 		} else {

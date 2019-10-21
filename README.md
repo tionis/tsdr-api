@@ -1,3 +1,2 @@
-# Tasadar-Webhook
-Webhook Managment System for Tasadar Network
-Designed to be run on heroku, can be easily modified to be run on normal server behind proxy for https
+# Tasadar-Heroku
+Tasadar API and Bot network, designed to be run on Heroku Platform, but should run on any Linux Platform, where an https load balancer is loaded, the dns record of api.tasadar.net points to the load balancer and the load balancers addressed port is specified on $PORT together with the tokens.
