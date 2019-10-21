@@ -23,12 +23,12 @@ func alphaDiscordBot() {
 	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {
-		fmt.Println("error opening connection,", err)
+		fmt.Println("[AlphaDiscordBot] Error opening connection,", err)
 		return
 	}
 
 	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("Bot is now running.  Press CTRL-C to exit.")
+	fmt.Println("[AlphaDiscordBot] Bot is now running.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
@@ -46,13 +46,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-	// If the message is "ping" reply with "Pong!"
-	if m.Content == "ping" {
-		s.ChannelMessageSend(m.ChannelID, "Pong!")
-	}
 
-	// If the message is "pong" reply with "Ping!"
-	if m.Content == "pong" {
-		s.ChannelMessageSend(m.ChannelID, "Ping!")
+	switch m.Content {
+	case "/food":
+		s.ChannelMessageSend(m.ChannelID, foodtoday())
+	case "/food tomorrow":
+		s.ChannelMessageSend(m.ChannelID, foodtomorrow())
+	case "/ping":
+		s.ChannelMessageSend(m.ChannelID, "Pong!")
 	}
 }

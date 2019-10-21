@@ -15,6 +15,9 @@ func main() {
 	// Start Alpha Discord Bot
 	go alphaDiscordBot()
 
+	// Start Alpha Telegram Bot
+	go alphaTelegramBot()
+
 	// Creates a gin router with default middleware:
 	// logger and recovery (crash-free) middleware
 	// passes it to routes for setting of the routes
