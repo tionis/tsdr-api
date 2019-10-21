@@ -10,7 +10,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${fileDirname}",
-            "env": {"PORT":"8080","UNIPASSAUBOT_TOKEN":"932055496:AAH3uJQlLAu5Fw7ZVMcyCIW11mUJNpNo4oA"},
+            "env": {"PORT":"8080","UNIPASSAUBOT_TOKEN":"932055496:AAH3uJQlLAu5Fw7ZVMcyCIW11mUJNpNo4oA","AlphaDiscordBot":"NjM1ODYwNTAzMDQxODAyMjUz.Xa3O8g.uQ5cTLCkfhv7AkcaCES0N6UuzgA"},
             "args": []
         }
     ]

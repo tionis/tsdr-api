@@ -13,6 +13,9 @@
 *.out
 /.idea/*
 \.idea/
+/.vscode/*
+\.vscode/
 
 # Project Specific
 tasadar-heroku
+*.csv

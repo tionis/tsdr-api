@@ -19,14 +19,15 @@ func routes(router *gin.Engine) {
 	router.GET("/echo", httpecho)
 	router.POST("/whatsapp", whatsapp)
 	router.GET("/mensa/today", retFoodToday)
-	router.GET("/mensa/tommorow", retFoodTommorow)
+	router.GET("/mensa/tommorow", retFoodTomorow)
+	router.POST("/dialogflow/alpha", retFoodToday)
 }
 
 func retFoodToday(c *gin.Context) {
 	c.String(200, foodtoday())
 }
 
-func retFoodTommorow(c *gin.Context) {
+func retFoodTomorow(c *gin.Context) {
 	c.String(200, foodtomorrow())
 }
 

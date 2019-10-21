@@ -12,6 +12,9 @@ func main() {
 	// Start Uni-Passau-Bot
 	go uniPassauBot()
 
+	// Start Alpha Discord Bot
+	go alphaDiscordBot()
+
 	// Creates a gin router with default middleware:
 	// logger and recovery (crash-free) middleware
 	// passes it to routes for setting of the routes
