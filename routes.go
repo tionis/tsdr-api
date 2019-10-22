@@ -28,6 +28,7 @@ func routes(router *gin.Engine) {
 	router.POST("/dialogflow/alpha", retFoodToday)
 
 	// Send Alpha Message to configured Admin
+	// TODO: Change this to full blown REST API (JSON TOKENS WITH SSO SOLUTION?)
 	router.GET("/tg/:message", func(c *gin.Context) {
 		message := c.Param("message")
 		msgAlpha <- message
@@ -68,19 +69,29 @@ func whatsapp(c *gin.Context) {
 	num, _ := c.Request.Body.Read(buf)
 	params, err := url.ParseQuery(string(buf[0:num]))
 	if err != nil {
-		log.Print(c.Error(err))
+		log.Print("[UniPassauBot-WA] ",c.Error(err))
 		return
 	}
+	
+	loc, _ := time.LoadLocation("Europe/Berlin")
+	fmt.Println("[UniPassauBot-WA] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
+	//fmt.Println("[UniPassauBot-WA] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - Number: " + strconv.Itoa(m.Sender.ID))
+	fmt.Println("[UniPassauBot-WA] " + "Message: " + params["Body"] + "\n")
+
 	text := strings.Join(params["Body"], " ")
 	if strings.Contains(text, "tommorow") || strings.Contains(text, "morgen") || strings.Contains(text, "Tommorow") || strings.Contains(text, "Morgen") {
 		c.String(200, foodtomorrow())
 	} else if strings.Contains(text, "food") || strings.Contains(text, "essen") || strings.Contains(text, "Food") || strings.Contains(text, "Essen") {
 		c.String(200, foodtoday())
 	} else if strings.Contains(text, "Hallo") || strings.Contains(text, "hallo") {
-		c.String(200, "Hallo wie gehts? - Schreibe mir food oder essen morgen um loszulegen!")
+		c.String(200, "Hallo wie gehts? - Schreibe mir food oder essen morgen um loszulegen!\nMit hilfe kannst du alle Befehle sehen!")
 	} else if strings.Contains(text, "danke") || strings.Contains(text, "Danke") {
 		c.String(200, "Gern geschehen!")
-	} else {
+	} else if strings.Contains(text, "hilfe") || strings.Contains(text, "Hilfe") || strings.Contains(text, "help") || strings.Contains(text, "Help") {
+		c.String(200, "Verfügbare Befehle:\nEssen - Essen heute\nEssen morgen - Essen für morgen\nEssen Woche - Essen für die Woche\nAlle Befehle funktionieren auch auf Englisch!")
+	}else{ if strings.Contains(text, "woche") || strings.Contains(text, "Woche") || strings.Contains(text, "week") || strings.Contains(text, "Week") {
+		c.String(200, foodweek())
+	}else{
 		c.String(200, "Befehl nicht erkannt - versuche es mal mit einem Hallo!")
 	}
 }
