@@ -70,20 +70,17 @@ func whatsapp(c *gin.Context) {
 	num, _ := c.Request.Body.Read(buf)
 	params, err := url.ParseQuery(string(buf[0:num]))
 	if err != nil {
-		log.Print("[UniPassauBot-WA] ", c.Error(err))
+		log.Println("[UniPassauBot-WA] ", c.Error(err))
 		return
 	}
 	text := strings.Join(params["Body"], " ")
+	from := strings.Join(params["From"], " ")
+	messageID := strings.Join(params["MessageSid"], " ")
 
-	requestDump, err := httputil.DumpRequest(c.Request, true)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println("[Debug] - " + string(requestDump))
 	loc, _ := time.LoadLocation("Europe/Berlin")
-	fmt.Println("[UniPassauBot-WA] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
-	//fmt.Println("[UniPassauBot-WA] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - Number: " + strconv.Itoa(m.Sender.ID))
-	fmt.Println("[UniPassauBot-WA] " + "Message: " + text + "\n")
+	log.Println("[UniPassauBot-WA] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
+	log.Println("[UniPassauBot-WA] Number: " + from + " - MessageID: " + messageID)
+	log.Println("[UniPassauBot-WA] " + "Message: " + text + "\n")
 
 	if strings.Contains(text, "tommorow") || strings.Contains(text, "morgen") || strings.Contains(text, "Tommorow") || strings.Contains(text, "Morgen") {
 		c.String(200, foodtomorrow())
