@@ -6,6 +6,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
@@ -69,10 +70,10 @@ func whatsapp(c *gin.Context) {
 	num, _ := c.Request.Body.Read(buf)
 	params, err := url.ParseQuery(string(buf[0:num]))
 	if err != nil {
-		log.Print("[UniPassauBot-WA] ",c.Error(err))
+		log.Print("[UniPassauBot-WA] ", c.Error(err))
 		return
 	}
-	
+
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	fmt.Println("[UniPassauBot-WA] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
 	//fmt.Println("[UniPassauBot-WA] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - Number: " + strconv.Itoa(m.Sender.ID))
@@ -89,9 +90,11 @@ func whatsapp(c *gin.Context) {
 		c.String(200, "Gern geschehen!")
 	} else if strings.Contains(text, "hilfe") || strings.Contains(text, "Hilfe") || strings.Contains(text, "help") || strings.Contains(text, "Help") {
 		c.String(200, "Verfügbare Befehle:\nEssen - Essen heute\nEssen morgen - Essen für morgen\nEssen Woche - Essen für die Woche\nAlle Befehle funktionieren auch auf Englisch!")
-	}else{ if strings.Contains(text, "woche") || strings.Contains(text, "Woche") || strings.Contains(text, "week") || strings.Contains(text, "Week") {
-		c.String(200, foodweek())
-	}else{
-		c.String(200, "Befehl nicht erkannt - versuche es mal mit einem Hallo!")
+	} else {
+		if strings.Contains(text, "woche") || strings.Contains(text, "Woche") || strings.Contains(text, "week") || strings.Contains(text, "Week") {
+			c.String(200, foodweek())
+		} else {
+			c.String(200, "Befehl nicht erkannt - versuche es mal mit einem Hallo!")
+		}
 	}
 }
