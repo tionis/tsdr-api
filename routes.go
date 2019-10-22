@@ -73,13 +73,18 @@ func whatsapp(c *gin.Context) {
 		log.Print("[UniPassauBot-WA] ", c.Error(err))
 		return
 	}
+	text := strings.Join(params["Body"], " ")
 
+	requestDump, err := httputil.DumpRequest(c.Request, true)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("[Debug] - " + string(requestDump))
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	fmt.Println("[UniPassauBot-WA] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
 	//fmt.Println("[UniPassauBot-WA] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - Number: " + strconv.Itoa(m.Sender.ID))
-	fmt.Println("[UniPassauBot-WA] " + "Message: " + params["Body"] + "\n")
+	fmt.Println("[UniPassauBot-WA] " + "Message: " + text + "\n")
 
-	text := strings.Join(params["Body"], " ")
 	if strings.Contains(text, "tommorow") || strings.Contains(text, "morgen") || strings.Contains(text, "Tommorow") || strings.Contains(text, "Morgen") {
 		c.String(200, foodtomorrow())
 	} else if strings.Contains(text, "food") || strings.Contains(text, "essen") || strings.Contains(text, "Food") || strings.Contains(text, "Essen") {
