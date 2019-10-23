@@ -6,14 +6,15 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/heroku/x/hmetrics/onload"
 )
 
 // Global Variables
-var mcIP string
-var mcOnline bool
+var mcStopping bool
+var mcRunning bool
 
 // Main and Init
 func alphaDiscordBot() {
@@ -30,6 +31,10 @@ func alphaDiscordBot() {
 		fmt.Println("[AlphaDiscordBot] Error opening connection,", err)
 		return
 	}
+
+	// Init Server Stuff
+	// Get Server State
+	mcRunning, mcStopping = true, false
 
 	// Set some StartUp Stuff
 	dg.UpdateStatus(0, "Manager of Tasadar Stuff")
@@ -71,21 +76,36 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, "I cant do that yet, please wait until the developer implements this!")
 		//mcStart()
 	case "/mc stop":
-		s.ChannelMessageSend(m.ChannelID, "If nobody says /mc cancel in the next 7 Minutes I will shut down the server!")
-		//wait 7 Minutes, if no signal received
-		// user rcon to trigger stop, which will trigger automatic stop
+		go mcShutdownDiscord(s, m)
+	case "/mc cancel":
+		if mcStopping {
+			mcStopping = false
+			s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped!")
+		} else if mcRunning {
+			s.ChannelMessageSend(m.ChannelID, "There is currently no Server Shutdown scheduled!")
+		} else {
+			s.ChannelMessageSend(m.ChannelID, "Server is currently not running!")
+		}
 	case "/mc status":
+		// Send query
+		// Answer
 		s.ChannelMessageSend(m.ChannelID, "I cant do that yet, please wait until the developer implements this!")
 	case "/mc help":
 		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
 	}
 }
 
-func mcStart() {
-	// Make call to hetzner api to create vm from snapshot or file
-	// wait and check regularily for global variable
-	// if mcOnline gets true
-	// check mcIP and set it on digitalocean dns with a ttl of 60
-	// wait till server is started
-	// init online checker in goroutine
+func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate) {
+	if !mcRunning {
+		s.ChannelMessageSend(m.ChannelID, "The Server is currently not running!")
+		return
+	}
+	mcStopping = true
+	s.ChannelMessageSend(m.ChannelID, "If nobody says /mc cancel in the next 7 Minutes I will shut down the server!")
+	time.Sleep(7 * time.Minute)
+	if mcStopping {
+		//Send rcon command
+		//if no error send message
+		s.ChannelMessageSend(m.ChannelID, "Shutting down Server...")
+	}
 }

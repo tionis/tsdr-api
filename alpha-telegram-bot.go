@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -114,6 +115,62 @@ func alphaTelegramBot() {
 	alpha.Handle("/ping", func(m *tb.Message) {
 		_, _ = alpha.Send(m.Sender, "_pong_", tb.ModeMarkdown)
 		printInfoAlpha(m)
+	})
+	alpha.Handle("/redis", func(m *tb.Message) {
+		if m.Sender.ID == 248533143 {
+			alpha.Send(m.Sender, "Available Commands:\n/redisSet - Set Redis Record like this key$value\n/redisGet - Get value for key\n/redisPing - Ping/Pong")
+		} else {
+			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
+		}
+		printInfo(m)
+	})
+	alpha.Handle("/redisSet", func(m *tb.Message) {
+		if m.Sender.ID == 248533143 {
+			if !strings.Contains(m.Text, "$") {
+				alpha.Send(m.Sender, "Error in Syntax!")
+			} else {
+				s1 := strings.TrimPrefix(m.Text, "/redisSet ")
+				s := strings.Split(s1, "$")
+				err := redclient.Set(s[0], s[1], 0).Err()
+				if err != nil {
+					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
+					_, _ = alpha.Send(m.Sender, "There was an error! Check the logs!")
+				} else {
+					alpha.Send(m.Sender, s[0]+" was set to "+s[1])
+				}
+			}
+		} else {
+			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
+		}
+		printInfo(m)
+	})
+	alpha.Handle("/redisGet", func(m *tb.Message) {
+		if m.Sender.ID == 248533143 {
+			s1 := strings.TrimPrefix(m.Text, "/redisGet ")
+			val, err := redclient.Get(s1).Result()
+			if err != nil {
+				log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
+				_, _ = alpha.Send(m.Sender, "Error! Maybe the value does not exist?")
+			} else {
+				_, _ = alpha.Send(m.Sender, "Value "+s1+" is set to "+val)
+			}
+		} else {
+			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
+		}
+		printInfo(m)
+	})
+	alpha.Handle("/redisPing", func(m *tb.Message) {
+		if m.Sender.ID == 248533143 {
+			pong, err := redclient.Ping().Result()
+			if err != nil {
+				alpha.Send(m.Sender, "An Error occurred!")
+			} else {
+				alpha.Send(m.Sender, "Everything normal: "+pong)
+			}
+		} else {
+			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
+		}
+		printInfo(m)
 	})
 	alpha.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		fmt.Println("[AlphaTelegramBot] " + "Group Message:")

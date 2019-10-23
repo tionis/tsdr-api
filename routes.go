@@ -18,12 +18,25 @@ func routes(router *gin.Engine) {
 	router.GET("/", index)
 	router.GET("/echo", httpecho)
 
+	/*authorized := router.Group("/admin", gin.BasicAuth(gin.Accounts{
+		"foo":    "bar",
+		"austin": "1234",
+		"lena":   "hello2",
+		"manu":   "4321",
+	}))
+
+	authorized.GET("/", httpecho)*/
+
 	// WhatsApp Bot
 	router.POST("/twilio/uni-passau-bot/whatsapp", whatsapp)
 
 	// CURL API
 	router.GET("/mensa/today", retFoodToday)
 	router.GET("/mensa/tommorow", retFoodTomorow)
+
+	// Auth API
+	router.GET("/auth", authGin)
+	router.POST("/auth", authGin)
 
 	// Google Assitant API - WIP
 	router.POST("/dialogflow/alpha", retFoodToday)
