@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v7"
@@ -29,14 +30,17 @@ func main() {
 	go alphaTelegramBot()
 
 	// Init redis
+	redisURL := os.Getenv("REDIS_URL")
+	redisS1 := strings.Split(redisURL, "@")
+	redisS2 := strings.Split(redisS1[0], ":")
 	redclient = redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_URL"),
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Addr:     redisS1[1],
+		Password: redisS2[1],
+		DB:       0, // use default DB
 	})
 
 	if _, err := redclient.Ping().Result(); err != nil {
-		log.Println("[FATAL] - Error connecting to redis database!")
+		log.Println("[FATAL] - Error connecting to redis database! err: ", err)
 	}
 
 	// Creates a gin router with default middleware:
