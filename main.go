@@ -45,6 +45,7 @@ func main() {
 	// Cron Job Definitions
 	c := cron.New()
 	c.AddFunc("*/15 * * * *", func() { updateAuth() })
+	c.Start()
 
 	// Creates a gin router with default middleware:
 	// logger and recovery (crash-free) middleware

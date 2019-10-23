@@ -91,7 +91,7 @@ func updateAuth() {
 			log.Println("[TasadarAuth] Error updating database: ", err)
 		}
 	}
-
+	log.Println("[TasadarAuth] Finished Updating the database")
 }
 
 func hashPassword(password string) (string, error) {
