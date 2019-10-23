@@ -4,11 +4,15 @@
 package main
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func auth(user string, pass string) (bool, error) {
@@ -42,25 +46,60 @@ func authGin(c *gin.Context) {
 }
 
 func updateAuth() {
-	// read file
-	// update the key value store
-	/*err := client.Set("key", "value", 0).Err()
-	if err != nil {
-		panic(err)
+	// Download newest File
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", "https://dev.tasadar.net/api/users.auth.php", nil)
+	req.SetBasicAuth("glyph-copy-user", "QFT7PEYDX4M76EqmbGRFMnU6sWtbCLbd")
+	resp, _ := client.Do(req)
+	if resp.StatusCode == http.StatusOK {
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatal(err)
+		}
+		bodyString := string(bodyBytes)
+		wholearray := strings.Split(bodyString, "\n")
+		var accounts []string
+		for _, txt := range wholearray {
+			if !strings.Contains(txt, "#") && txt != "" {
+				accounts = append(accounts, txt)
+			}
+		}
+		var userlist []string
+		for _, txt := range accounts {
+			user := strings.Split(txt, ":")
+			err := redclient.Set("auth|"+user[0]+"|hash", user[1], 0).Err()
+			if err != nil {
+				log.Println("[TasadarAuth] Error updating database: ", err)
+			}
+			err = redclient.Set("auth|"+user[0]+"|name", user[2], 0).Err()
+			if err != nil {
+				log.Println("[TasadarAuth] Error updating database: ", err)
+			}
+			err = redclient.Set("auth|"+user[0]+"|email", user[3], 0).Err()
+			if err != nil {
+				log.Println("[TasadarAuth] Error updating database: ", err)
+			}
+			err = redclient.Set("auth|"+user[0]+"|groups", user[4], 0).Err()
+			if err != nil {
+				log.Println("[TasadarAuth] Error updating database: ", err)
+			}
+			userlist = append(userlist, user[0])
+		}
+		userlistJSON, _ := json.Marshal(userlist)
+		err = redclient.Set("userlist", string(userlistJSON), 0).Err()
+		if err != nil {
+			log.Println("[TasadarAuth] Error updating database: ", err)
+		}
 	}
 
-	val, err := client.Get("key").Result()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println("key", val)
+}
 
-	val2, err := client.Get("key2").Result()
-	if err == redis.Nil {
-		fmt.Println("key2 does not exist")
-	} else if err != nil {
-		panic(err)
-	} else {
-		fmt.Println("key2", val2)
-	}*/
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func checkPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }

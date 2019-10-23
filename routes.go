@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http/httputil"
@@ -26,6 +27,8 @@ func routes(router *gin.Engine) {
 	}))
 
 	authorized.GET("/", httpecho)*/
+	authorized := router.Group("/auth", basicAuth())
+	authorized.GET("/", retFoodToday)
 
 	// WhatsApp Bot
 	router.POST("/twilio/uni-passau-bot/whatsapp", whatsapp)
@@ -35,8 +38,8 @@ func routes(router *gin.Engine) {
 	router.GET("/mensa/tommorow", retFoodTomorow)
 
 	// Auth API
-	router.GET("/auth", authGin)
-	router.POST("/auth", authGin)
+	//router.GET("/auth", authGin)
+	//router.POST("/auth", authGin)
 
 	// Google Assitant API - WIP
 	router.POST("/dialogflow/alpha", retFoodToday)
@@ -110,4 +113,40 @@ func whatsapp(c *gin.Context) {
 	} else {
 		c.String(200, "Befehl nicht erkannt - versuche es mal mit einem Hallo!")
 	}
+}
+
+func basicAuth() gin.HandlerFunc {
+
+	return func(c *gin.Context) {
+		auth := strings.SplitN(c.Request.Header.Get("Authorization"), " ", 2)
+
+		if len(auth) != 2 || auth[0] != "Basic" {
+			respondWithError(401, "Unauthorized", c)
+			return
+		}
+		payload, _ := base64.StdEncoding.DecodeString(auth[1])
+		pair := strings.SplitN(string(payload), ":", 2)
+
+		if len(pair) != 2 || !authenticateUser(pair[0], pair[1]) {
+			respondWithError(401, "Unauthorized", c)
+			return
+		}
+
+		c.Next()
+	}
+}
+
+func authenticateUser(username, password string) bool {
+	val, err := redclient.Get("auth|" + username + "|hash").Result()
+	if err != nil {
+		return false
+	}
+	return checkPasswordHash(password, val)
+}
+
+func respondWithError(code int, message string, c *gin.Context) {
+	resp := map[string]string{"error": message}
+
+	c.JSON(code, resp)
+	c.Abort()
 }

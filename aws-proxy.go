@@ -70,7 +70,7 @@ var (
 func awsProxy(router *gin.Engine) {
 	c = configFromEnvironmentVariables()
 
-	router.GET("/s3/", gin.WrapF(awss3))
+	//router.GET("/s3/", gin.WrapF(awss3))
 
 	http.Handle("/", wrapper(awss3))
 
@@ -94,13 +94,13 @@ func awsProxy(router *gin.Engine) {
 
 func configFromEnvironmentVariables() *config {
 	if len(os.Getenv("AWS_ACCESS_KEY_ID")) == 0 {
-		log.Print("Not defined environment variable: AWS_ACCESS_KEY_ID")
+		log.Print("[AWS-Proxy] Not defined environment variable: AWS_ACCESS_KEY_ID")
 	}
 	if len(os.Getenv("AWS_SECRET_ACCESS_KEY")) == 0 {
-		log.Print("Not defined environment variable: AWS_SECRET_ACCESS_KEY")
+		log.Print("[AWS-Proxy] Not defined environment variable: AWS_SECRET_ACCESS_KEY")
 	}
 	if len(os.Getenv("AWS_S3_BUCKET")) == 0 {
-		log.Fatal("Missing required environment variable: AWS_S3_BUCKET")
+		log.Fatal("[AWS-Proxy] Missing required environment variable: AWS_S3_BUCKET")
 	}
 	region := os.Getenv("AWS_REGION")
 	if len(region) == 0 {
@@ -168,20 +168,20 @@ func configFromEnvironmentVariables() *config {
 		allPagesInDir:    allPagesInDir,
 	}
 	// Proxy
-	log.Printf("[config] Proxy to %v", conf.s3Bucket)
-	log.Printf("[config] AWS Region: %v", conf.awsRegion)
+	log.Printf("[AWS-Proxy] Proxy to %v", conf.s3Bucket)
+	log.Printf("[AWS-Proxy] AWS Region: %v", conf.awsRegion)
 
 	// TLS pem files
 	if (len(conf.sslCert) > 0) && (len(conf.sslKey) > 0) {
-		log.Print("[config] TLS enabled.")
+		log.Print("[AWS-Proxy] TLS enabled.")
 	}
 	// Basic authentication
 	if (len(conf.basicAuthUser) > 0) && (len(conf.basicAuthPass) > 0) {
-		log.Printf("[config] Basic authentication: %s", conf.basicAuthUser)
+		log.Printf("[AWS-Proxy] Basic authentication: %s", conf.basicAuthUser)
 	}
 	// CORS
 	if (len(conf.corsAllowOrigin) > 0) && (conf.corsMaxAge > 0) {
-		log.Printf("[config] CORS enabled: %s", conf.corsAllowOrigin)
+		log.Printf("[AWS-Proxy] CORS enabled: %s", conf.corsAllowOrigin)
 	}
 	return conf
 }
@@ -254,11 +254,11 @@ func wrapper(f func(w http.ResponseWriter, r *http.Request)) http.Handler {
 
 func proxyauth(r *http.Request) bool {
 	usr := c.basicAuthUser
-	val, _ := redclient.Get("AWS-Proxy|" + usr).Result()
+	val, _ := redclient.Get("auth|" + usr + "|hash").Result()
 	if _, password, ok := r.BasicAuth(); ok {
 		//return username == c.basicAuthUser &&
 		//	password == c.basicAuthPass
-		return password == val
+		return checkPasswordHash(password, val)
 	}
 	return false
 }

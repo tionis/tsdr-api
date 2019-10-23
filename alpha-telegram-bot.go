@@ -118,7 +118,7 @@ func alphaTelegramBot() {
 	})
 	alpha.Handle("/redis", func(m *tb.Message) {
 		if m.Sender.ID == 248533143 {
-			alpha.Send(m.Sender, "Available Commands:\n/redisSet - Set Redis Record like this key$value\n/redisGet - Get value for key\n/redisPing - Ping/Pong")
+			alpha.Send(m.Sender, "Available Commands:\n/redisSet - Set Redis Record like this key value\n/redisGet - Get value for key\n/redisPing - Ping/Pong\n/redisBcryptSet - Same as set but with bcrypt\n/redisBcryptGet - Same as Get but with Verify")
 		} else {
 			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
@@ -126,11 +126,11 @@ func alphaTelegramBot() {
 	})
 	alpha.Handle("/redisSet", func(m *tb.Message) {
 		if m.Sender.ID == 248533143 {
-			if !strings.Contains(m.Text, "$") {
+			if !strings.Contains(m.Text, " ") {
 				alpha.Send(m.Sender, "Error in Syntax!")
 			} else {
 				s1 := strings.TrimPrefix(m.Text, "/redisSet ")
-				s := strings.Split(s1, "$")
+				s := strings.Split(s1, " ")
 				err := redclient.Set(s[0], s[1], 0).Err()
 				if err != nil {
 					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
@@ -171,6 +171,68 @@ func alphaTelegramBot() {
 			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
 		printInfo(m)
+	})
+	alpha.Handle("/redisBcryptSet", func(m *tb.Message) {
+		if m.Sender.ID == 248533143 {
+			if !strings.Contains(m.Text, " ") {
+				alpha.Send(m.Sender, "Error in Syntax!")
+			} else {
+				s1 := strings.TrimPrefix(m.Text, "/redisBcryptSet ")
+				s := strings.Split(s1, " ")
+				hash, err := hashPassword(s[1])
+				err = redclient.Set(s[0], hash, 0).Err()
+				if err != nil {
+					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
+					_, _ = alpha.Send(m.Sender, "There was an error! Check the logs!")
+				} else {
+					alpha.Send(m.Sender, s[0]+" now has the hash "+hash)
+				}
+			}
+		} else {
+			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
+		}
+		printInfo(m)
+	})
+	alpha.Handle("/redisBcryptGet", func(m *tb.Message) {
+		if m.Sender.ID == 248533143 {
+			if !strings.Contains(m.Text, " ") {
+				alpha.Send(m.Sender, "Error in Syntax!")
+			} else {
+				s1 := strings.TrimPrefix(m.Text, "/redisBcryptGet ")
+				s := strings.Split(s1, " ")
+				val, err := redclient.Get("auth|" + s[0] + "|hash").Result()
+				if err != nil {
+					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
+					_, _ = alpha.Send(m.Sender, "Error! Maybe the value does not exist?")
+				} else {
+					if checkPasswordHash(s[1], val) {
+						alpha.Send(m.Sender, "Password matches!")
+					} else {
+						alpha.Send(m.Sender, "Password doesn't match!")
+						alpha.Send(m.Sender, "Just to bes sure, I checked:\n"+s[0]+"\n"+s[1])
+					}
+				}
+			}
+		} else {
+			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
+		}
+		printInfoAlpha(m)
+	})
+	alpha.Handle("/bcryptVerify", func(m *tb.Message) {
+		s1 := strings.TrimPrefix(m.Text, "/bcryptVerify ")
+		s := strings.Split(s1, " ")
+		if checkPasswordHash(s[0], s[1]) {
+			alpha.Send(m.Sender, "Hash"+s[1]+" matches the password!")
+		} else {
+			alpha.Send(m.Sender, "Error: Hash"+s[1]+"doesn't match the password!")
+		}
+		printInfoAlpha(m)
+	})
+	alpha.Handle("/updateAuth", func(m *tb.Message) {
+		_, _ = alpha.Send(m.Sender, "_Updating Auth Database ...._", tb.ModeMarkdown)
+		updateAuth()
+		_, _ = alpha.Send(m.Sender, "_I Updated the Auth Database_", tb.ModeMarkdown)
+		printInfoAlpha(m)
 	})
 	alpha.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		fmt.Println("[AlphaTelegramBot] " + "Group Message:")

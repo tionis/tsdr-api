@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v7"
 	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/robfig/cron"
 )
 
 var redclient *redis.Client
@@ -37,10 +38,13 @@ func main() {
 		Password: redisS2[1],
 		DB:       0, // use default DB
 	})
-
 	if _, err := redclient.Ping().Result(); err != nil {
 		log.Println("[FATAL] - Error connecting to redis database! err: ", err)
 	}
+
+	// Cron Job Definitions
+	c := cron.New()
+	c.AddFunc("30 * * * *", func() { updateAuth() })
 
 	// Creates a gin router with default middleware:
 	// logger and recovery (crash-free) middleware
@@ -49,4 +53,5 @@ func main() {
 	routes(router) // Setup standard Routes and WA API
 	//awsProxy(router)        // Setup AWS Proxy Routes
 	log.Fatal(router.Run()) // Start WebServer
+	c.Stop()
 }
