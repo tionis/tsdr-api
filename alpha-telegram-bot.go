@@ -231,7 +231,7 @@ func alphaTelegramBot() {
 	alpha.Handle("/updateAuth", func(m *tb.Message) {
 		_, _ = alpha.Send(m.Sender, "_Updating Auth Database ...._", tb.ModeMarkdown)
 		updateAuth()
-		_, _ = alpha.Send(m.Sender, "_I Updated the Auth Database_", tb.ModeMarkdown)
+		_, _ = alpha.Send(m.Sender, "_Updated the Auth Database_", tb.ModeMarkdown)
 		printInfoAlpha(m)
 	})
 	alpha.Handle(tb.OnAddedToGroup, func(m *tb.Message) {

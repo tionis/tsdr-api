@@ -86,9 +86,45 @@ func updateAuth() {
 			userlist = append(userlist, user[0])
 		}
 		userlistJSON, _ := json.Marshal(userlist)
+		var oldlist []string
+		oldval, err := redclient.Get("userlist").Result()
+		if err != nil {
+			log.Println("[TasadarAuth] An error occurred! ", err)
+			msgAlpha <- "Error in TasadarAuth!"
+		}
+		err = json.Unmarshal([]byte(oldval), &oldlist)
+		if err != nil {
+			log.Println("[TasadarAuth] An error occurred! ", err)
+			msgAlpha <- "Error in TasadarAuth!"
+		}
+		// Check for user deletions
+		for _, txt := range oldlist {
+			found := false
+			currentUser := txt
+			for _, txt2 := range userlist {
+				if txt == txt2 {
+					found = true
+					break
+				}
+			}
+			if !found {
+				err = redclient.Set("auth|"+currentUser+"|hash", "", 0).Err()
+				if err != nil {
+					log.Println("[TasadarAuth] Error updating database: ", err)
+				}
+				err = redclient.Set("auth|"+currentUser+"|groups", "", 0).Err()
+				if err != nil {
+					log.Println("[TasadarAuth] Error updating database: ", err)
+				}
+				//msgAlpha <- "New Account Deletion: " + currentUser
+			}
+		}
+
+		// Put new list into database
 		err = redclient.Set("userlist", string(userlistJSON), 0).Err()
 		if err != nil {
 			log.Println("[TasadarAuth] Error updating database: ", err)
+			msgAlpha <- "Error in TasadarAuth!"
 		}
 	}
 	log.Println("[TasadarAuth] Finished Updating the database")
@@ -100,6 +136,9 @@ func hashPassword(password string) (string, error) {
 }
 
 func checkPasswordHash(password, hash string) bool {
+	if password == "" || hash == "" {
+		return false
+	}
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }

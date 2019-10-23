@@ -1,2 +1,7 @@
- - Get changed values from server
- - Write auth function
+- Shiori Integration
+- Basic Auth
+- Nextcloud Basic Auth
+- MC Server Calls (Query+RCON)
+- Grav API
+- Monica API
+- Glyph API(?)
