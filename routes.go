@@ -40,6 +40,7 @@ func routes(router *gin.Engine) {
 	router.GET("/auth/basic", authGin)
 	router.POST("/auth/basic", authGin)
 	router.PUT("/auth/basic", authGin)
+	router.GET("/auth/group/:group", authGinGroup)
 
 	// Google Assitant API - WIP
 	router.POST("/dialogflow/alpha", retFoodToday)

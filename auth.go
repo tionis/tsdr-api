@@ -44,6 +44,36 @@ func authGin(c *gin.Context) {
 	}
 }
 
+func authGinGroup(c *gin.Context) {
+	header := c.Request.Header
+	basicString := strings.Join(header["Authorization"], "")
+	if basicString == "" {
+		c.Header("WWW-Authenticate", "Basic")
+		c.String(401, "Not authorized")
+		return
+	}
+	basicString = strings.TrimPrefix(basicString, "Basic ")
+	basic, err := base64.StdEncoding.DecodeString(basicString)
+	if err != nil {
+		log.Println("[TasadarAuth] Error in basic Auth: ", err)
+	}
+	pair := strings.Split(string(basic), ":")
+	if authUser(pair[0], pair[1]) {
+		val, err := redclient.Get("auth|" + pair[0] + "|groups").Result()
+		if err != nil {
+			log.Println("[TasadarAuth] Error looking up group of user: ", err)
+		}
+		if strings.Contains(val, c.Param("group")) {
+			c.String(200, "OK")
+		} else {
+			c.String(401, "Not authorized")
+		}
+	} else {
+		c.String(401, "Not authorized")
+	}
+
+}
+
 func updateAuth() {
 	// Download newest File
 	client := &http.Client{}
