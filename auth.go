@@ -4,11 +4,11 @@
 package main
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"log"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -24,24 +24,23 @@ func auth(user string, pass string) (bool, error) {
 }
 
 func authGin(c *gin.Context) {
-	// Returns Result off authentication
-	buf := make([]byte, 1024)
-	num, _ := c.Request.Body.Read(buf)
-	params, err := url.ParseQuery(string(buf[0:num]))
-	if err != nil {
-		log.Println("[TasadarAuth] ", c.Error(err))
+	header := c.Request.Header
+	basicString := strings.Join(header["Authorization"], "")
+	if basicString == "" {
+		c.Header("WWW-Authenticate", "Basic")
+		c.String(401, "Not authorized")
 		return
 	}
-	user := strings.Join(params["User"], " ")
-	pass := strings.Join(params["Password"], " ")
-
-	if b, err := auth(user, pass); b && err == nil {
-		c.String(200, "Access Granted")
-	} else if err == nil {
-		c.String(403, "Access Denied")
+	basicString = strings.TrimPrefix(basicString, "Basic ")
+	basic, err := base64.StdEncoding.DecodeString(basicString)
+	if err != nil {
+		log.Println("[TasadarAuth] Error in basic Auth: ", err)
+	}
+	pair := strings.Split(string(basic), ":")
+	if authUser(pair[0], pair[1]) {
+		c.String(200, "OK")
 	} else {
-		c.String(500, "Internal Server Error - Check the logs")
-		log.Println("[TasadarAuth] Error in authGin: ", err)
+		c.String(401, "Not authorized")
 	}
 }
 
@@ -128,6 +127,21 @@ func updateAuth() {
 		}
 	}
 	log.Println("[TasadarAuth] Finished Updating the database")
+}
+
+func authUser(username, password string) bool {
+	val, err := redclient.Get("auth|" + username + "|hash").Result()
+	if err != nil {
+		return false
+	}
+	return checkPasswordHash(password, val)
+}
+
+func respondWithError(code int, message string, c *gin.Context) {
+	resp := map[string]string{"error": message}
+
+	c.JSON(code, resp)
+	c.Abort()
 }
 
 func hashPassword(password string) (string, error) {
