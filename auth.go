@@ -145,7 +145,6 @@ func updateAuth() {
 				if err != nil {
 					log.Println("[TasadarAuth] Error updating database: ", err)
 				}
-				//msgAlpha <- "New Account Deletion: " + currentUser
 			}
 		}
 
@@ -156,7 +155,8 @@ func updateAuth() {
 			msgAlpha <- "Error in TasadarAuth!"
 		}
 	}
-	log.Println("[TasadarAuth] Finished Updating the database")
+	// Commented out for preventing Log Spamming
+	//log.Println("[TasadarAuth] Finished Updating the database")
 }
 
 func authUser(username, password string) bool {

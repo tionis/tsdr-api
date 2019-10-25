@@ -47,34 +47,14 @@ func alphaTelegramBot() {
 		return
 	}
 
-	// init reply keyboard
-	replyBtn := tb.ReplyButton{Text: "Food for today"}
-	replyBtn2 := tb.ReplyButton{Text: "Food for tomorrow"}
-	replyBtn3 := tb.ReplyButton{Text: "Food for the week"}
-	replyKeys := [][]tb.ReplyButton{
-		{replyBtn, replyBtn2}, {replyBtn3}}
-
 	// Command Handlers
-	// handle special keyboard commands
-	alpha.Handle(&replyBtn, func(m *tb.Message) {
-		_, _ = alpha.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
-		printInfoAlpha(m)
-	})
-	alpha.Handle(&replyBtn2, func(m *tb.Message) {
-		_, _ = alpha.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
-		printInfoAlpha(m)
-	})
-	alpha.Handle(&replyBtn3, func(m *tb.Message) {
-		_, _ = alpha.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
-		printInfoAlpha(m)
-	})
 	// handle standard text commands
 	alpha.Handle("/hello", func(m *tb.Message) {
 		_, _ = alpha.Send(m.Sender, "What do you want?", tb.ModeMarkdown)
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/start", func(m *tb.Message) {
-		_, _ = alpha.Send(m.Sender, "Hello.", &tb.ReplyMarkup{ReplyKeyboard: replyKeys})
+		_, _ = alpha.Send(m.Sender, "Hello.", &tb.ReplyMarkup{})
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/help", func(m *tb.Message) {
@@ -86,16 +66,16 @@ func alphaTelegramBot() {
 			_, _ = alpha.Send(m.Chat, foodtoday())
 			fmt.Println("[AlphaTelegramBot] " + "Group Message:")
 		} else {
-			_, _ = alpha.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+			_, _ = alpha.Send(m.Sender, foodtoday(), tb.ModeMarkdown)
 		}
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/foodtomorrow", func(m *tb.Message) {
 		if !m.Private() {
-			_, _ = alpha.Send(m.Chat, foodtomorrow())
+			_, _ = alpha.Send(m.Chat, foodtomorrow(), tb.ModeMarkdown)
 			fmt.Println("[AlphaTelegramBot] " + "Group Message:")
 		} else {
-			_, _ = alpha.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+			_, _ = alpha.Send(m.Sender, foodtomorrow(), tb.ModeMarkdown)
 		}
 		printInfoAlpha(m)
 	})
@@ -104,7 +84,7 @@ func alphaTelegramBot() {
 			_, _ = alpha.Send(m.Chat, foodweek())
 			fmt.Println("[AlphaTelegramBot] " + "Group Message:")
 		} else {
-			_, _ = alpha.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+			_, _ = alpha.Send(m.Sender, foodweek(), tb.ModeMarkdown)
 		}
 		printInfoAlpha(m)
 	})
@@ -264,6 +244,18 @@ func alphaTelegramBot() {
 			alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
 	})
+	alpha.Handle("/mcCancel", func(m *tb.Message) {
+		if isTasadarTGAdmin(m.Sender.ID) {
+			if mcStopping {
+				mcStopping = false
+				alpha.Send(m.Sender, "Shutdown cancelled!")
+			} else {
+				alpha.Send(m.Sender, "No Shutdown scheduled!")
+			}
+		} else {
+			alpha.Send(m.Sender, "You are not authorized to execute this command!")
+		}
+	})
 	alpha.Handle("/updateAuth", func(m *tb.Message) {
 		_, _ = alpha.Send(m.Sender, "_Updating Auth Database ...._", tb.ModeMarkdown)
 		updateAuth()
@@ -338,7 +330,7 @@ func mcShutdownTelegram(alpha *tb.Bot, m *tb.Message, minutes int) {
 	if err != nil {
 		log.Println("[AlphaDiscordBot] RCON server command connection failed")
 	}
-	alpha.Send(m.Sender, "If you don't say /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
+	alpha.Send(m.Sender, "If you don't say /mcCancel in the next "+minutesString+" Minutes I will shut down the server!")
 	time.Sleep(time.Duration(minutes) * time.Minute)
 	if mcStopping {
 		alpha.Send(m.Sender, "Shutting down Server...")

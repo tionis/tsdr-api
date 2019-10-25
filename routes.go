@@ -18,17 +18,6 @@ func routes(router *gin.Engine) {
 	router.GET("/", index)
 	router.GET("/echo", httpecho)
 
-	/*authorized := router.Group("/admin", gin.BasicAuth(gin.Accounts{
-		"foo":    "bar",
-		"austin": "1234",
-		"lena":   "hello2",
-		"manu":   "4321",
-	}))
-
-	authorized.GET("/", httpecho)*/
-	//authorized := router.Group("/auth", basicAuth())
-	//authorized.GET("/", retFoodToday)
-
 	// WhatsApp Bot
 	router.POST("/twilio/uni-passau-bot/whatsapp", whatsapp)
 
