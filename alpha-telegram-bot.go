@@ -54,7 +54,7 @@ func alphaTelegramBot() {
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/start", func(m *tb.Message) {
-		_, _ = alpha.Send(m.Sender, "Hello.", &tb.ReplyMarkup{})
+		_, _ = alpha.Send(m.Sender, "Hello.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/help", func(m *tb.Message) {

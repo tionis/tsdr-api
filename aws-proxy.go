@@ -37,7 +37,7 @@ type config struct { // nolint
 	s3KeyPrefix      string // AWS_S3_KEY_PREFIX
 	indexDocument    string // INDEX_DOCUMENT
 	directoryListing bool   // DIRECTORY_LISTINGS
-	dirListingFormat string // DIRECTORY_LISTINGS_FORMAT
+	//dirListingFormat string // DIRECTORY_LISTINGS_FORMAT
 	httpCacheControl string // HTTP_CACHE_CONTROL (max-age=86400, no-cache ...)
 	httpExpires      string // HTTP_EXPIRES (Thu, 01 Dec 1994 16:00:00 GMT ...)
 	basicAuthUser    string // BASIC_AUTH_USER
@@ -148,7 +148,7 @@ func configFromEnvironmentVariables() *config {
 		s3KeyPrefix:      os.Getenv("AWS_S3_KEY_PREFIX"),
 		indexDocument:    indexDocument,
 		directoryListing: directoryListings,
-		dirListingFormat: os.Getenv("DIRECTORY_LISTINGS_FORMAT"),
+		//dirListingFormat: os.Getenv("DIRECTORY_LISTINGS_FORMAT"),
 		httpCacheControl: os.Getenv("HTTP_CACHE_CONTROL"),
 		httpExpires:      os.Getenv("HTTP_EXPIRES"),
 		basicAuthUser:    os.Getenv("BASIC_AUTH_USER"),
@@ -486,7 +486,8 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 	}
 	sort.Sort(objects(files))
 
-	if strings.ToLower(c.dirListingFormat) == "html" {
+	// Disable html dirlistingformat choosing
+	if true /*strings.ToLower(c.dirListingFormat) == "html"*/ {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		//html := "<!DOCTYPE html><html><body><ul>"
 		// Alternative Index - use just a href without li in for loop
