@@ -176,7 +176,9 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 		log.Println("[AlphaDiscordBot] RCON server command connection failed")
 	}
 	s.ChannelMessageSend(m.ChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
-	s.ChannelMessageSend(mainChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
+	if m.ChannelID != mainChannelID {
+		s.ChannelMessageSend(mainChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
+	}
 	time.Sleep(time.Duration(minutes) * time.Minute)
 	if mcStopping {
 		s.ChannelMessageSend(m.ChannelID, "Shutting down Server...")

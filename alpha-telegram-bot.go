@@ -315,12 +315,12 @@ func isTasadarTGAdmin(ID int) bool {
 
 func mcShutdownTelegram(alpha *tb.Bot, m *tb.Message, minutes int) {
 	minutesString := strconv.Itoa(minutes)
-	msgDiscordMC <- "Server shutdown commencing in " + minutesString + "Minutes!\nYou can cancel it with /mc cancel"
 	client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 	if !mcRunning {
 		alpha.Send(m.Sender, "The Server is currently not running!")
 		return
 	}
+	msgDiscordMC <- "Server shutdown commencing in " + minutesString + "Minutes!\nYou can cancel it with /mc cancel"
 	mcStopping = true
 	_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"" + minutesString + " Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
 	if err != nil {
