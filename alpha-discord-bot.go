@@ -5,11 +5,13 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/seeruk/minecraft-rcon/rcon"
 )
 
 // Global Variables
@@ -81,6 +83,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if mcStopping {
 			mcStopping = false
 			s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped!")
+			client, err := rcon.NewClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+			_, err = client.SendCommand("tellraw @a [{\"text\":\"Server shutdown was aborted!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
+			if err != nil {
+				log.Println("[AlphaDiscordBot] RCON server command connection failed")
+			}
 		} else if mcRunning {
 			s.ChannelMessageSend(m.ChannelID, "There is currently no Server Shutdown scheduled!")
 		} else {
@@ -96,16 +103,48 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate) {
+	client, err := rcon.NewClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 	if !mcRunning {
 		s.ChannelMessageSend(m.ChannelID, "The Server is currently not running!")
 		return
 	}
 	mcStopping = true
+	_, err = client.SendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"7 Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
+	if err != nil {
+		log.Println("[AlphaDiscordBot] RCON server command connection failed")
+	}
+	_, err = client.SendCommand("tellraw @a [{\"text\":\"Type /mc cancel in the Discord Chat to cancel the shutdown! \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
+	if err != nil {
+		log.Println("[AlphaDiscordBot] RCON server command connection failed")
+	}
 	s.ChannelMessageSend(m.ChannelID, "If nobody says /mc cancel in the next 7 Minutes I will shut down the server!")
 	time.Sleep(7 * time.Minute)
 	if mcStopping {
 		//Send rcon command
 		//if no error send message
 		s.ChannelMessageSend(m.ChannelID, "Shutting down Server...")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server connection failed")
+		}
+		_, err = client.SendCommand("title @a title {\"text\":\"Warning!\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed")
+		}
+		_, err = client.SendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"10 Seconds!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed")
+		}
+		time.Sleep(3 * time.Second)
+		for i := 10; i >= 0; i-- {
+			time.Sleep(1 * time.Second)
+			_, err = client.SendCommand("title @a title {\"text\":\"" + strconv.Itoa(i) + "\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
+			if err != nil {
+				log.Println("[AlphaDiscordBot] RCON server command connection failed")
+			}
+		}
+		_, err = client.SendCommand("stop")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed")
+		}
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/seeruk/minecraft-rcon/rcon"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -227,6 +228,26 @@ func alphaTelegramBot() {
 			alpha.Send(m.Sender, "Error: Hash"+s[1]+"doesn't match the password!")
 		}
 		printInfoAlpha(m)
+	})
+	alpha.Handle("/mc", func(m *tb.Message) {
+		s1 := strings.TrimPrefix(m.Text, "/mc ")
+		client, err := rcon.NewClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+		if err != nil {
+			log.Println("[AlphaTelegramBot] Error occured while building client for connection: ", err)
+			alpha.Send(m.Sender, "Error occurred while trying to build a connection")
+		} else {
+			response, err := client.SendCommand(s1)
+			if err != nil {
+				log.Println("[AlphaTelegramBot] Error occured while making connection: ", err)
+				alpha.Send(m.Sender, "Error occurred while trying to connect")
+			} else {
+				if response != "" {
+					alpha.Send(m.Sender, response)
+				} else {
+					alpha.Send(m.Sender, "Empty Response received")
+				}
+			}
+		}
 	})
 	alpha.Handle("/updateAuth", func(m *tb.Message) {
 		_, _ = alpha.Send(m.Sender, "_Updating Auth Database ...._", tb.ModeMarkdown)

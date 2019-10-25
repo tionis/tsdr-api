@@ -56,3 +56,7 @@ func main() {
 	log.Fatal(router.Run()) // Start WebServer
 	c.Stop()
 }
+
+func handleError(err error) {
+	log.Println("[TasdarApi] General Error: ", err)
+}
