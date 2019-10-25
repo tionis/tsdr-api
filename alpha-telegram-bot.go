@@ -11,7 +11,6 @@ import (
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload"
-	"github.com/seeruk/minecraft-rcon/rcon"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -118,7 +117,7 @@ func alphaTelegramBot() {
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/redis", func(m *tb.Message) {
-		if m.Sender.ID == 248533143 {
+		if isTasadarTGAdmin(m.Sender.ID) {
 			alpha.Send(m.Sender, "Available Commands:\n/redisSet - Set Redis Record like this key value\n/redisGet - Get value for key\n/redisPing - Ping/Pong\n/redisBcryptSet - Same as set but with bcrypt\n/redisBcryptGet - Same as Get but with Verify")
 		} else {
 			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
@@ -126,7 +125,7 @@ func alphaTelegramBot() {
 		printInfo(m)
 	})
 	alpha.Handle("/redisSet", func(m *tb.Message) {
-		if m.Sender.ID == 248533143 {
+		if isTasadarTGAdmin(m.Sender.ID) {
 			if !strings.Contains(m.Text, " ") {
 				alpha.Send(m.Sender, "Error in Syntax!")
 			} else {
@@ -146,7 +145,7 @@ func alphaTelegramBot() {
 		printInfo(m)
 	})
 	alpha.Handle("/redisGet", func(m *tb.Message) {
-		if m.Sender.ID == 248533143 {
+		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/redisGet ")
 			val, err := redclient.Get(s1).Result()
 			if err != nil {
@@ -161,7 +160,7 @@ func alphaTelegramBot() {
 		printInfo(m)
 	})
 	alpha.Handle("/redisPing", func(m *tb.Message) {
-		if m.Sender.ID == 248533143 {
+		if isTasadarTGAdmin(m.Sender.ID) {
 			pong, err := redclient.Ping().Result()
 			if err != nil {
 				alpha.Send(m.Sender, "An Error occurred!")
@@ -174,7 +173,7 @@ func alphaTelegramBot() {
 		printInfo(m)
 	})
 	alpha.Handle("/redisBcryptSet", func(m *tb.Message) {
-		if m.Sender.ID == 248533143 {
+		if isTasadarTGAdmin(m.Sender.ID) {
 			if !strings.Contains(m.Text, " ") {
 				alpha.Send(m.Sender, "Error in Syntax!")
 			} else {
@@ -195,7 +194,7 @@ func alphaTelegramBot() {
 		printInfo(m)
 	})
 	alpha.Handle("/redisBcryptGet", func(m *tb.Message) {
-		if m.Sender.ID == 248533143 {
+		if isTasadarTGAdmin(m.Sender.ID) {
 			if !strings.Contains(m.Text, " ") {
 				alpha.Send(m.Sender, "Error in Syntax!")
 			} else {
@@ -230,23 +229,39 @@ func alphaTelegramBot() {
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/mc", func(m *tb.Message) {
-		s1 := strings.TrimPrefix(m.Text, "/mc ")
-		client, err := rcon.NewClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
-		if err != nil {
-			log.Println("[AlphaTelegramBot] Error occured while building client for connection: ", err)
-			alpha.Send(m.Sender, "Error occurred while trying to build a connection")
-		} else {
-			response, err := client.SendCommand(s1)
+		if isTasadarTGAdmin(m.Sender.ID) {
+			s1 := strings.TrimPrefix(m.Text, "/mc ")
+			client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 			if err != nil {
-				log.Println("[AlphaTelegramBot] Error occured while making connection: ", err)
-				alpha.Send(m.Sender, "Error occurred while trying to connect")
+				log.Println("[AlphaTelegramBot] Error occured while building client for connection: ", err)
+				alpha.Send(m.Sender, "Error occurred while trying to build a connection")
 			} else {
-				if response != "" {
-					alpha.Send(m.Sender, response)
+				response, err := client.sendCommand(s1)
+				if err != nil {
+					log.Println("[AlphaTelegramBot] Error occured while making connection: ", err)
+					alpha.Send(m.Sender, "Error occurred while trying to connect")
 				} else {
-					alpha.Send(m.Sender, "Empty Response received")
+					if response != "" {
+						alpha.Send(m.Sender, response)
+					} else {
+						alpha.Send(m.Sender, "Empty Response received")
+					}
 				}
 			}
+		} else {
+			alpha.Send(m.Sender, "You are not authorized to execute this command!")
+		}
+	})
+	alpha.Handle("/mcStop", func(m *tb.Message) {
+		if isTasadarTGAdmin(m.Sender.ID) {
+			s1 := strings.TrimPrefix(m.Text, "/mcStop ")
+			minutes, err := strconv.Atoi(s1)
+			if err != nil {
+				alpha.Send(m.Sender, "Error converting minutes, check your input")
+			}
+			mcShutdownTelegram(alpha, m, minutes)
+		} else {
+			alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
 	})
 	alpha.Handle("/updateAuth", func(m *tb.Message) {
@@ -297,4 +312,59 @@ func printInfoAlpha(m *tb.Message) {
 	fmt.Println("[AlphaTelegramBot] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
 	fmt.Println("[AlphaTelegramBot] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID))
 	fmt.Println("[AlphaTelegramBot] " + "Message: " + m.Text + "\n")
+}
+
+func isTasadarTGAdmin(ID int) bool {
+	if ID == 248533143 {
+		return true
+	}
+	return false
+}
+
+func mcShutdownTelegram(alpha *tb.Bot, m *tb.Message, minutes int) {
+	minutesString := strconv.Itoa(minutes)
+	msgDiscordMC <- "Server shutdown commencing in " + minutesString + "Minutes!\nYou can cancel it with /mc cancel"
+	client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+	if !mcRunning {
+		alpha.Send(m.Sender, "The Server is currently not running!")
+		return
+	}
+	mcStopping = true
+	_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"" + minutesString + " Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
+	if err != nil {
+		log.Println("[AlphaDiscordBot] RCON server command connection failed")
+	}
+	_, err = client.sendCommand("tellraw @a [{\"text\":\"Type /mc cancel in the Discord Chat to cancel the shutdown! \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
+	if err != nil {
+		log.Println("[AlphaDiscordBot] RCON server command connection failed")
+	}
+	alpha.Send(m.Sender, "If you don't say /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
+	time.Sleep(time.Duration(minutes) * time.Minute)
+	if mcStopping {
+		alpha.Send(m.Sender, "Shutting down Server...")
+		msgDiscordMC <- "Shutting down Server..."
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server connection failed")
+		}
+		_, err = client.sendCommand("title @a title {\"text\":\"Warning!\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed")
+		}
+		_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"10 Seconds!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed")
+		}
+		time.Sleep(3 * time.Second)
+		for i := 10; i >= 0; i-- {
+			time.Sleep(1 * time.Second)
+			_, err = client.sendCommand("title @a title {\"text\":\"" + strconv.Itoa(i) + "\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
+			if err != nil {
+				log.Println("[AlphaDiscordBot] RCON server command connection failed")
+			}
+		}
+		_, err = client.sendCommand("stop")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed")
+		}
+	}
 }

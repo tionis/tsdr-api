@@ -15,12 +15,6 @@ var redclient *redis.Client
 
 // Main and Init
 func main() {
-	//resp, err := Query("tasadar.net", 25565, time.Second*5)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//fmt.Printf("%d/%d players are online.", resp.PlayerCount, resp.MaxPlayers)
-
 	// Start Uni-Passau-Bot
 	go uniPassauBot()
 
