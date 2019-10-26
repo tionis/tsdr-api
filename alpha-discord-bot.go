@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Tnze/go-mc/bot"
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/heroku/x/hmetrics/onload"
 )
@@ -41,6 +42,7 @@ func alphaDiscordBot() {
 	// Init Server Stuff
 	// Get Server State
 	mcRunning, mcStopping = false, false
+	go pingMC()
 
 	// Set some StartUp Stuff
 	dg.UpdateStatus(0, "Manager of Tasadar Stuff")
@@ -226,6 +228,11 @@ func pingInMinutes(minutes int) {
 }
 
 func pingMC() {
-	// To be edited with a true server ping
-	mcRunning = true
+	// To be edited with a true server ping - finished (more or less) - can still be improved!
+	_, _, err := bot.PingAndList("mc.tasadar.net", 25565)
+	if err != nil {
+		mcRunning = true
+	} else {
+		mcRunning = false
+	}
 }

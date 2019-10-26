@@ -235,6 +235,10 @@ func alphaTelegramBot() {
 	alpha.Handle("/mcStop", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/mcStop ")
+			if s1 == "" {
+				alpha.Send(m.Sender, "Please specify a minute count!")
+				return
+			}
 			minutes, err := strconv.Atoi(s1)
 			if err != nil {
 				alpha.Send(m.Sender, "Error converting minutes, check your input")
@@ -320,7 +324,7 @@ func mcShutdownTelegram(alpha *tb.Bot, m *tb.Message, minutes int) {
 		alpha.Send(m.Sender, "The Server is currently not running!")
 		return
 	}
-	msgDiscordMC <- "Server shutdown commencing in " + minutesString + "Minutes!\nYou can cancel it with /mc cancel"
+	msgDiscordMC <- "Server shutdown commencing in " + minutesString + " Minutes!\nYou can cancel it with /mc cancel"
 	mcStopping = true
 	_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"" + minutesString + " Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
 	if err != nil {
