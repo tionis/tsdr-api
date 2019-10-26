@@ -1,6 +1,10 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+)
 
 type tasadarStatus struct {
 	Grav      bool
@@ -33,32 +37,50 @@ func updateStatus() {
 	resp, _ := http.Get("https://grav.tasadar.net")
 	status.Grav = resp.StatusCode == 200
 
-	// Ping nextcloud over api
+	// Ping nextcloud over api - use status.php in future!
+	resp, _ = http.Get("https://cloud.tasadar.net")
+	status.Nextcloud = resp.StatusCode == 200
 
 	// access dokuwiki api glyph
+	resp, _ = http.Get("https://glyph.tasadar.net/lib/exe/xmlrpc.php")
+	status.Glyph = resp.StatusCode == 200
 
 	// access tasadar wiki api
+	resp, _ = http.Get("https://wiki.tasadar.net/lib/exe/xmlrpc.php")
+	status.Wiki = resp.StatusCode == 200
 
 	// access shiori api
+	resp, _ = http.Get("https://shiori.tasadar.net")
+	status.Shiori = resp.StatusCode == 405
 
 	// test search (maybe replace with custom javascript?)
 	resp, _ = http.Get("https://search.tasadar.net")
-	status.Grav = resp.StatusCode == 401
+	status.Golinks = resp.StatusCode == 401
 
 	// test dev
 	resp, _ = http.Get("https://dev.tasadar.net")
-	status.Grav = resp.StatusCode == 401
+	status.Dev = resp.StatusCode == 401
 
 	// test books
+	resp, _ = http.Get("https://books.tasadar.net")
+	status.Books = resp.StatusCode == 200
 
 	// test monica api
+	resp, _ = http.Get("https://monica.tasadar.net")
+	status.Monica = resp.StatusCode == 200
 
 	// test matrix
 	resp, _ = http.Get("https://matrix.tasadar.net:8448")
 	status.Grav = resp.StatusCode == 200
 
 	// check turnserver
+	status.TurnServer = true
 
 	//check auth and API-server (currently this server, so always true) may change in future
 	status.APIServer, status.AuthServer = true, true
+}
+
+func statusHandler(c *gin.Context) {
+	updateStatus()
+	c.JSON(200, status)
 }

@@ -18,6 +18,9 @@ func routes(router *gin.Engine) {
 	router.GET("/", index)
 	router.GET("/echo", httpecho)
 
+	// Handle Status Watch
+	router.GET("/status", statusHandler)
+
 	// WhatsApp Bot
 	router.POST("/twilio/uni-passau-bot/whatsapp", whatsapp)
 
