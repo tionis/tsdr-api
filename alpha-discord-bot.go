@@ -136,13 +136,17 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return
 		}
 		var creeperCountString string
-		res, _ := client.sendCommand("execute if entity @a")
+		res, err := client.sendCommand("execute if entity @e[type=creeper]")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
+			return
+		}
 		if strings.Contains(res, "Test failed") {
 			creeperCountString = "0"
 		} else {
-			creeperCountString = strings.TrimPrefix(resp, "Test passed, count: ")
+			creeperCountString = strings.TrimPrefix(res, "Test passed, count: ")
 		}
-
 		var playerCountString string
 		if strings.Contains(resp, "Test failed") {
 			playerCountString = "0"
@@ -152,10 +156,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if err != nil {
 			log.Println("[AlphaDiscordBot] Player counting failed: ", err)
 			s.ChannelMessageSend(m.ChannelID, "An error occurred while counting players, please contact the administrator.")
+			log.Println(err)
 		} else {
-			s.ChannelMessage(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and "+creeperCountString+" Creepers are loaded.")
+			s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
 		}
-
 	case "/mc help":
 		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
 	}
@@ -230,9 +234,5 @@ func pingInMinutes(minutes int) {
 func pingMC() {
 	// To be edited with a true server ping - finished (more or less) - can still be improved!
 	_, _, err := bot.PingAndList("mc.tasadar.net", 25565)
-	if err != nil {
-		mcRunning = true
-	} else {
-		mcRunning = false
-	}
+	mcRunning = err == nil
 }
