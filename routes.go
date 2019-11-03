@@ -12,6 +12,11 @@ import (
 	_ "github.com/heroku/x/hmetrics/onload"
 )
 
+type alphaMsgStruct struct {
+	Message string `form:"message" json:"message" binding:"required"`
+	Token   string `form:"token" json:"token" binding:"required"`
+}
+
 func routes(router *gin.Engine) {
 	// Default Stuff
 	router.GET("/favicon.ico", favicon)
@@ -20,6 +25,7 @@ func routes(router *gin.Engine) {
 
 	// Handle Status Watch
 	router.GET("/status", statusHandler)
+	go updateStatus()
 
 	// WhatsApp Bot
 	router.POST("/twilio/uni-passau-bot/whatsapp", whatsapp)
@@ -39,11 +45,34 @@ func routes(router *gin.Engine) {
 
 	// Send Alpha Message to configured Admin
 	// TODO: Change this to full blown REST API (JSON TOKENS WITH SSO SOLUTION?)
-	router.GET("/tg/:message", func(c *gin.Context) {
+	/*router.GET("/tg/:message", func(c *gin.Context) {
 		message := c.Param("message")
 		msgAlpha <- message
 		c.String(200, message)
+	})*/
+
+	router.POST("/alpha/msg", func(c *gin.Context) {
+		var json alphaMsgStruct
+		if c.BindJSON(&json) == nil {
+			if authenticateToken(json.Token) {
+				msgAlpha <- json.Message
+				c.String(200, "OK")
+			} else {
+				c.String(401, "Unauthorized!")
+			}
+		} else {
+			c.String(400, "Error parsing your packet")
+		}
 	})
+}
+
+// authenticate token
+func authenticateToken(token string) bool {
+	val, err := redclient.Get("token|" + token + "|alpha").Result()
+	if err != nil {
+		return false
+	}
+	return val == "true"
 }
 
 // handle test case
@@ -104,6 +133,6 @@ func whatsapp(c *gin.Context) {
 	} else if strings.Contains(text, "woche") || strings.Contains(text, "Woche") || strings.Contains(text, "week") || strings.Contains(text, "Week") {
 		c.String(200, foodweek())
 	} else {
-		c.String(200, "Befehl nicht erkannt - versuche es mal mit einem Hallo!")
+		c.String(200, "Bef0ehl nicht erkannt - versuche es mal mit einem Hallo!")
 	}
 }

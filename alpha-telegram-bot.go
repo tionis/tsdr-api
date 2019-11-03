@@ -294,7 +294,7 @@ func alphaTelegramBot() {
 		for {
 			toSend := <-msgAlpha
 			tionis := tb.Chat{ID: 248533143}
-			alpha.Send(&tionis, toSend)
+			alpha.Send(&tionis, toSend, tb.ModeMarkdown)
 		}
 	}(alpha)
 

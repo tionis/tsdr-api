@@ -51,11 +51,11 @@ func updateStatus() {
 
 	// access shiori api
 	resp, _ = http.Get("https://shiori.tasadar.net")
-	status.Shiori = resp.StatusCode == 405
+	status.Shiori = resp.StatusCode == 200
 
 	// test search (maybe replace with custom javascript?)
 	resp, _ = http.Get("https://search.tasadar.net")
-	status.Golinks = resp.StatusCode == 401
+	status.Golinks = resp.StatusCode == 200
 
 	// test dev
 	resp, _ = http.Get("https://dev.tasadar.net")
@@ -71,7 +71,7 @@ func updateStatus() {
 
 	// test matrix
 	resp, _ = http.Get("https://matrix.tasadar.net:8448")
-	status.Grav = resp.StatusCode == 200
+	status.Matrix = resp.StatusCode == 200
 
 	// check turnserver
 	status.TurnServer = true
@@ -81,6 +81,6 @@ func updateStatus() {
 }
 
 func statusHandler(c *gin.Context) {
-	updateStatus()
+	//updateStatus()
 	c.JSON(200, status)
 }
