@@ -11,6 +11,11 @@ import (
 	"github.com/robfig/cron"
 )
 
+// TODO
+// Check Alpha-telegram-bot
+// Move to postgresql
+// Check for more memory leaks (maybe reduce dependencies?)
+
 var redclient *redis.Client
 
 // Main and Init

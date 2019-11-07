@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
@@ -43,6 +44,11 @@ func routes(router *gin.Engine) {
 	// Google Assitant API - WIP
 	router.POST("/dialogflow/alpha", retFoodToday)
 
+	// IoT Handling
+	router.GET("/iot/:home/:service/:command", func(c *gin.Context) {
+		iotWebhookHandler(c.Param("home"), c.Param("service"), c.Param("command"), c)
+	})
+
 	// Send Alpha Message to configured Admin
 	// TODO: Change this to full blown REST API (JSON TOKENS WITH SSO SOLUTION?)
 	/*router.GET("/tg/:message", func(c *gin.Context) {
@@ -50,7 +56,6 @@ func routes(router *gin.Engine) {
 		msgAlpha <- message
 		c.String(200, message)
 	})*/
-
 	router.POST("/alpha/msg", func(c *gin.Context) {
 		var json alphaMsgStruct
 		if c.BindJSON(&json) == nil {
@@ -64,6 +69,100 @@ func routes(router *gin.Engine) {
 			c.String(400, "Error parsing your packet")
 		}
 	})
+}
+
+// iot Webhook handler
+func iotWebhookHandler(home string, service string, command string, c *gin.Context) {
+	switch home {
+	case "passau":
+		switch service {
+		case "node":
+			switch command {
+			case "now_on":
+				err := redclient.Set("iot|"+home+"|"+service, "on", 0).Err()
+				if err != nil {
+					log.Println("[TasadarIoT] Error while executing redis command: ", err)
+					c.String(500, "Error executing command")
+					return
+				}
+				c.String(200, "OK")
+			case "now_off":
+				err := redclient.Set("iot|"+home+"|"+service, "off", 0).Err()
+				if err != nil {
+					log.Println("[TasadarIoT] Error while executing redis command: ", err)
+					c.String(500, "Error executing command")
+					return
+				}
+				c.String(200, "OK")
+			case "on":
+				_, err := http.Get("https://maker.ifttt.com/trigger/" + service + "_on/with/key/cxGr-6apUjU9_cwUQMCGQ5")
+				if err != nil {
+					log.Println("[TasadarIoT] Error while sending HTTP request: ", err)
+					c.String(500, "Error executing command")
+					return
+				}
+				c.String(200, "OK")
+			case "off":
+				_, err := http.Get("https://maker.ifttt.com/trigger/" + service + "_off/with/key/cxGr-6apUjU9_cwUQMCGQ5")
+				if err != nil {
+					log.Println("[TasadarIoT] Error while sending HTTP request: ", err)
+					c.String(500, "Error executing command")
+					return
+				}
+				c.String(200, "OK")
+			default:
+				c.String(400, "Error in request")
+				return
+			}
+		case "led":
+			switch command {
+			case "now_on":
+				err := redclient.Set("iot|"+home+"|"+service, "on", 0).Err()
+				if err != nil {
+					log.Println("[TasadarIoT] Error while executing redis command: ", err)
+					c.String(500, "Error executing command")
+					return
+				}
+				c.String(200, "OK")
+			case "now_off":
+				err := redclient.Set("iot|"+home+"|"+service, "off", 0).Err()
+				if err != nil {
+					log.Println("[TasadarIoT] Error while executing redis command: ", err)
+					c.String(500, "Error executing command")
+					return
+				}
+				c.String(200, "OK")
+			case "on":
+				_, err := http.Get("https://maker.ifttt.com/trigger/" + service + "_on/with/key/cxGr-6apUjU9_cwUQMCGQ5")
+				if err != nil {
+					log.Println("[TasadarIoT] Error while sending HTTP request: ", err)
+					c.String(500, "Error executing command")
+					return
+				}
+				c.String(200, "OK")
+			case "off":
+				_, err := http.Get("https://maker.ifttt.com/trigger/" + service + "_off/with/key/cxGr-6apUjU9_cwUQMCGQ5")
+				if err != nil {
+					log.Println("[TasadarIoT] Error while sending HTTP request: ", err)
+					c.String(500, "Error executing command")
+					return
+				}
+				c.String(200, "OK")
+			default:
+				c.String(400, "Error in request")
+				return
+			}
+		default:
+			c.String(400, "Error in request")
+			return
+		}
+	case "utting":
+		c.String(400, "No devices in Utting!")
+		return
+	default:
+		c.String(400, "Unknown location")
+		return
+	}
 }
 
 // authenticate token

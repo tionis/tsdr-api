@@ -14,6 +14,12 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+//TODO
+// Export and Import Function for Database to textfile (modeled after dokuwikis users.auth.php)
+// Should coantain dokuwiki information + telegram links + [TO BE EXTENDED]
+// Change database from redis to postgresql for advanced functionality
+// Maybe keep redis for Tokens? - Look into advanced functionality
+
 // Global Variables
 var msgAlpha chan string
 
@@ -111,12 +117,13 @@ func alphaTelegramBot() {
 			} else {
 				s1 := strings.TrimPrefix(m.Text, "/redisSet ")
 				s := strings.Split(s1, " ")
-				err := redclient.Set(s[0], s[1], 0).Err()
+				val := strings.TrimPrefix(m.Text, "/redisSet "+s[0]+" ")
+				err := redclient.Set(s[0], val, 0).Err()
 				if err != nil {
 					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
 					_, _ = alpha.Send(m.Sender, "There was an error! Check the logs!")
 				} else {
-					alpha.Send(m.Sender, s[0]+" was set to "+s[1])
+					alpha.Send(m.Sender, s[0]+" was set to:\n"+val)
 				}
 			}
 		} else {
@@ -132,7 +139,7 @@ func alphaTelegramBot() {
 				log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
 				_, _ = alpha.Send(m.Sender, "Error! Maybe the value does not exist?")
 			} else {
-				_, _ = alpha.Send(m.Sender, "Value "+s1+" is set to "+val)
+				_, _ = alpha.Send(m.Sender, "Value "+s1+" is set to:\n\n"+val)
 			}
 		} else {
 			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
@@ -314,6 +321,15 @@ func isTasadarTGAdmin(ID int) bool {
 	if ID == 248533143 {
 		return true
 	}
+	/*
+		If connection username to telegram is established
+		Check in database corresponding to telegram id the groups and if admin exists therein if not return false
+		redclient get code here (maybe auth-tg|NUMBER|username)
+		then get auth|USERNAME|groups
+		if strings.Contains(groups,"admin,") || strings.Contains(groups,",admin") {
+			return true
+		}*/
+
 	return false
 }
 
