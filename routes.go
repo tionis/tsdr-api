@@ -48,6 +48,9 @@ func routes(router *gin.Engine) {
 	router.GET("/iot/:home/:service/:command", func(c *gin.Context) {
 		iotWebhookHandler(c.Param("home"), c.Param("service"), c.Param("command"), c)
 	})
+	router.GET("/phonetrack/geofence/:device/:location/:movement/:coordinates", func(c *gin.Context) {
+		iotGeofenceHandler(c.Param("device"), c.Param("location"), c.Param("movement"), c.Param("coordinates"), c)
+	})
 
 	// Send Alpha Message to configured Admin
 	// TODO: Change this to full blown REST API (JSON TOKENS WITH SSO SOLUTION?)
@@ -161,6 +164,32 @@ func iotWebhookHandler(home string, service string, command string, c *gin.Conte
 		return
 	default:
 		c.String(400, "Unknown location")
+		return
+	}
+}
+
+func iotGeofenceHandler(device string, location string, movement string, coordinates string, c *gin.Context) {
+	switch device {
+	case "note":
+		switch location {
+		case "home":
+			switch "movement" {
+			case "enter":
+				msgAlpha <- "Entered with " + coordinates
+				c.String(200, "OK")
+			case "leave":
+				msgAlpha <- "Left with " + coordinates
+				c.String(200, "OK")
+			default:
+				c.String(400, "Error in request")
+				return
+			}
+		default:
+			c.String(400, "Error in request")
+			return
+		}
+	default:
+		c.String(400, "Error in request")
 		return
 	}
 }

@@ -273,6 +273,9 @@ func alphaTelegramBot() {
 		_, _ = alpha.Send(m.Sender, "_Updated the Auth Database_", tb.ModeMarkdown)
 		printInfoAlpha(m)
 	})
+	alpha.Handle("/linkAccount", func(m *tb.Message) {
+		_, _ = alpha.Send(m.Sender, "Not implemented yet!")
+	})
 	alpha.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		fmt.Println("[AlphaTelegramBot] " + "Group Message:")
 		printInfoAlpha(m)
