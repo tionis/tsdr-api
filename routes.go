@@ -48,6 +48,9 @@ func routes(router *gin.Engine) {
 	router.GET("/iot/:home/:service/:command", func(c *gin.Context) {
 		iotWebhookHandler(c.Param("home"), c.Param("service"), c.Param("command"), c)
 	})
+	router.POST("/phonetrack/geofence/:device/:location/:movement/:coordinates", func(c *gin.Context) {
+		iotGeofenceHandler(c.Param("device"), c.Param("location"), c.Param("movement"), c.Param("coordinates"), c)
+	})
 	router.GET("/phonetrack/geofence/:device/:location/:movement/:coordinates", func(c *gin.Context) {
 		iotGeofenceHandler(c.Param("device"), c.Param("location"), c.Param("movement"), c.Param("coordinates"), c)
 	})
