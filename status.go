@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,43 +35,83 @@ func updateStatus() {
 	status.Minecraft = mcRunning
 
 	// Handle Grav
-	resp, _ := http.Get("https://grav.tasadar.net")
+	resp, err := http.Get("https://grav.tasadar.net")
+	if err != nil {
+		log.Println("[Fatal] Error getting Status: ", err)
+		return
+	}
 	status.Grav = resp.StatusCode == 200
 
 	// Ping nextcloud over api - use status.php in future!
-	resp, _ = http.Get("https://cloud.tasadar.net")
+	resp, err = http.Get("https://cloud.tasadar.net")
+	if err != nil {
+		log.Println("[Fatal] Error getting Status: ", err)
+		return
+	}
 	status.Nextcloud = resp.StatusCode == 200
 
 	// access dokuwiki api glyph
-	resp, _ = http.Get("https://glyph.tasadar.net/lib/exe/xmlrpc.php")
+	resp, err = http.Get("https://glyph.tasadar.net/lib/exe/xmlrpc.php")
+	if err != nil {
+		log.Println("[Fatal] Error getting Status: ", err)
+		return
+	}
 	status.Glyph = resp.StatusCode == 200
 
 	// access tasadar wiki api
-	resp, _ = http.Get("https://wiki.tasadar.net/lib/exe/xmlrpc.php")
+	resp, err = http.Get("https://wiki.tasadar.net/lib/exe/xmlrpc.php")
+	if err != nil {
+		log.Println("[Fatal] Error getting Status: ", err)
+		return
+	}
 	status.Wiki = resp.StatusCode == 200
 
 	// access shiori api
-	resp, _ = http.Get("https://shiori.tasadar.net")
+	resp, err = http.Get("https://shiori.tasadar.net")
+	if err != nil {
+		log.Println("[Fatal] Error getting Status: ", err)
+		return
+	}
 	status.Shiori = resp.StatusCode == 200
 
 	// test search (maybe replace with custom javascript?)
-	resp, _ = http.Get("https://search.tasadar.net")
+	resp, err = http.Get("https://search.tasadar.net")
+	if err != nil {
+		log.Println("[Fatal] Error getting Status: ", err)
+		return
+	}
 	status.Golinks = resp.StatusCode == 200
 
 	// test dev
-	resp, _ = http.Get("https://dev.tasadar.net")
+	resp, err = http.Get("https://dev.tasadar.net")
+	if err != nil {
+		log.Println("[Fatal] Error getting Status: ", err)
+		return
+	}
 	status.Dev = resp.StatusCode == 401
 
 	// test books
-	resp, _ = http.Get("https://books.tasadar.net")
+	resp, err = http.Get("https://books.tasadar.net")
+	if err != nil {
+		log.Println("[Fatal] Error getting Status: ", err)
+		return
+	}
 	status.Books = resp.StatusCode == 200
 
 	// test monica api
-	resp, _ = http.Get("https://monica.tasadar.net")
+	resp, err = http.Get("https://monica.tasadar.net")
+	if err != nil {
+		log.Println("[Fatal] Error getting Status: ", err)
+		return
+	}
 	status.Monica = resp.StatusCode == 200
 
 	// test matrix
-	resp, _ = http.Get("https://matrix.tasadar.net:8448")
+	resp, err = http.Get("https://matrix.tasadar.net:8448")
+	if err != nil {
+		log.Println("[Fatal] Error getting Status: ", err)
+		return
+	}
 	status.Matrix = resp.StatusCode == 200
 
 	// check turnserver
