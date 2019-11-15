@@ -77,9 +77,17 @@ func authGinGroup(c *gin.Context) {
 func updateAuth() {
 	// Download newest File
 	client := &http.Client{}
-	req, _ := http.NewRequest("GET", "https://dev.tasadar.net/api/users.auth.php", nil)
+	req, err := http.NewRequest("GET", "https://dev.tasadar.net/api/users.auth.php", nil)
+	if err != nil {
+		log.Println("[Fatal] - Error constructiong updateAuth request: ", err)
+		return
+	}
 	req.SetBasicAuth("glyph-copy-user", "QFT7PEYDX4M76EqmbGRFMnU6sWtbCLbd")
-	resp, _ := client.Do(req)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("[Fatal] - Error getting user.auth.php file: ", err)
+		return
+	}
 	if resp.StatusCode == http.StatusOK {
 		bodyBytes, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -114,7 +122,11 @@ func updateAuth() {
 			}
 			userlist = append(userlist, user[0])
 		}
-		userlistJSON, _ := json.Marshal(userlist)
+		userlistJSON, err := json.Marshal(userlist)
+		if err != nil {
+			log.Println("Error marshaling userlist to json: ", err)
+			return
+		}
 		var oldlist []string
 		oldval, err := redclient.Get("userlist").Result()
 		if err != nil {
