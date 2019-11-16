@@ -48,7 +48,6 @@ func routes(router *gin.Engine) {
 
 	// Receive Message from contact form
 	router.POST("/contact/tasadar", contactTasadar)
-	router.GET("/contact/tasadar", func(c *gin.Context) { c.Redirect(302, "https://contact.tasadar.net/success") })
 
 	// IoT Handling
 	router.GET("/iot/:home/:service/:command", func(c *gin.Context) {
@@ -106,7 +105,7 @@ func contactTasadar(c *gin.Context) {
 		log.Println("[TasadarAPI] Error sending mail: ", err)
 		c.String(500, "Error sending mail, please send an email to support@tasadar.net")
 	} else {
-		c.String(200, "OK, Mail sent")
+		c.Redirect(302, "https://contact.tasadar.net/success")
 	}
 
 }
