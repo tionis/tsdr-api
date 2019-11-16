@@ -48,6 +48,7 @@ func routes(router *gin.Engine) {
 
 	// Receive Message from contact form
 	router.POST("/contact/tasadar", contactTasadar)
+	router.GET("/contact/tasadar", contactTasadar)
 
 	// IoT Handling
 	router.GET("/iot/:home/:service/:command", func(c *gin.Context) {
@@ -82,25 +83,26 @@ func routes(router *gin.Engine) {
 	})
 }
 
+type contactForm struct {
+	name    string `form:"name" binding:"required"`
+	mail    string `form:"mail" binding:"required"`
+	message string `form:"message" binding:"required"`
+}
+
 // contactTasadar
 func contactTasadar(c *gin.Context) {
 	auth := smtp.PlainAuth("", os.Getenv("SMTP_USERNAME"), os.Getenv("SMTP_PASSWORD"), os.Getenv("SMTP_HOST"))
-	buf := make([]byte, 1024)
-	num, _ := c.Request.Body.Read(buf)
-	params, err := url.ParseQuery(string(buf[0:num]))
-	if err != nil {
-		log.Println("[TasadarAPI] Error parsing contact", c.Error(err))
-		return
-	}
-	name := strings.Join(params["Name"], " ")
-	email := strings.Join(params["Email"], " ")
-	message := strings.Join(params["Message"], " ")
+	var contact contactForm
+	c.Bind(&contact) // This will infer what binder to use depending on the content-type header.
+	name := c.PostForm("name")
+	email := c.PostForm("email")
+	message := c.PostForm("message")
 	to := []string{"support@tasadar.net"}
 	msg := []byte("To: support@tasadar.net\r\n" +
 		"Subject: New Message over Contact Form\r\n" +
 		"\r\nNew Message from" + name + "\r\n Email: " + email + "\r\n" +
 		message + "\r\n")
-	err = smtp.SendMail(os.Getenv("SMTP_HOST")+":"+os.Getenv("SMTP_PORT"), auth, email, to, msg)
+	err := smtp.SendMail(os.Getenv("SMTP_HOST")+":"+os.Getenv("SMTP_PORT"), auth, "postmaster@mail.tasadar.net", to, msg)
 	if err != nil {
 		log.Println("[TasadarAPI] Error sending mail: ", err)
 		c.String(500, "Error sending mail, please send an email to support@tasadar.net")
