@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"net/smtp"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -44,6 +46,10 @@ func routes(router *gin.Engine) {
 	// Google Assitant API - WIP
 	router.POST("/dialogflow/alpha", retFoodToday)
 
+	// Receive Message from contact form
+	router.POST("/contact/tasadar", contactTasadar)
+	router.GET("/contact/tasadar", func(c *gin.Context) { c.Redirect(302, "https://contact.tasadar.net/success") })
+
 	// IoT Handling
 	router.GET("/iot/:home/:service/:command", func(c *gin.Context) {
 		iotWebhookHandler(c.Param("home"), c.Param("service"), c.Param("command"), c)
@@ -75,6 +81,34 @@ func routes(router *gin.Engine) {
 			c.String(400, "Error parsing your packet")
 		}
 	})
+}
+
+// contactTasadar
+func contactTasadar(c *gin.Context) {
+	auth := smtp.PlainAuth("", os.Getenv("SMTP_USERNAME"), os.Getenv("SMTP_PASSWORD"), os.Getenv("SMTP_HOST"))
+	buf := make([]byte, 1024)
+	num, _ := c.Request.Body.Read(buf)
+	params, err := url.ParseQuery(string(buf[0:num]))
+	if err != nil {
+		log.Println("[TasadarAPI] Error parsing contact", c.Error(err))
+		return
+	}
+	name := strings.Join(params["Name"], " ")
+	email := strings.Join(params["Email"], " ")
+	message := strings.Join(params["Message"], " ")
+	to := []string{"support@tasadar.net"}
+	msg := []byte("To: support@tasadar.net\r\n" +
+		"Subject: New Message over Contact Form\r\n" +
+		"\r\nNew Message from" + name + "\r\n Email: " + email + "\r\n" +
+		message + "\r\n")
+	err = smtp.SendMail(os.Getenv("SMTP_HOST")+":"+os.Getenv("SMTP_PORT"), auth, email, to, msg)
+	if err != nil {
+		log.Println("[TasadarAPI] Error sending mail: ", err)
+		c.String(500, "Error sending mail, please send an email to support@tasadar.net")
+	} else {
+		c.String(200, "OK, Mail sent")
+	}
+
 }
 
 // iot Webhook handler
