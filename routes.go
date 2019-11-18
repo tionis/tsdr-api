@@ -35,7 +35,8 @@ func routes(router *gin.Engine) {
 
 	// CURL API
 	router.GET("/mensa/today", retFoodToday)
-	router.GET("/mensa/tommorow", retFoodTomorow)
+	router.GET("/mensa/tomorrow", retFoodTomorow)
+	router.GET("/mensa/week", retFoodWeek)
 
 	// Auth API
 	router.GET("/auth/basic", authGin)
@@ -71,7 +72,7 @@ func routes(router *gin.Engine) {
 	router.POST("/alpha/msg", func(c *gin.Context) {
 		var json alphaMsgStruct
 		if c.BindJSON(&json) == nil {
-			if authenticateToken(json.Token) {
+			if authenticateAlphaToken(json.Token) {
 				msgAlpha <- json.Message
 				c.String(200, "OK")
 			} else {
@@ -233,7 +234,7 @@ func iotGeofenceHandler(device string, location string, movement string, coordin
 }
 
 // authenticate token
-func authenticateToken(token string) bool {
+func authenticateAlphaToken(token string) bool {
 	val, err := redclient.Get("token|" + token + "|alpha").Result()
 	if err != nil {
 		return false
@@ -267,6 +268,9 @@ func retFoodToday(c *gin.Context) {
 func retFoodTomorow(c *gin.Context) {
 	c.String(200, foodtomorrow())
 }
+func retFoodWeek(c *gin.Context) {
+	c.String(200, foodweek())
+}
 
 // Handle WhatsApp Twilio Webhook
 func whatsapp(c *gin.Context) {
@@ -299,6 +303,6 @@ func whatsapp(c *gin.Context) {
 	} else if strings.Contains(text, "woche") || strings.Contains(text, "Woche") || strings.Contains(text, "week") || strings.Contains(text, "Week") {
 		c.String(200, foodweek())
 	} else {
-		c.String(200, "Bef0ehl nicht erkannt - versuche es mal mit einem Hallo!")
+		c.String(200, "Befehl nicht erkannt - versuche es mal mit einem Hallo!")
 	}
 }
