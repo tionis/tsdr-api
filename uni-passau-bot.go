@@ -105,6 +105,7 @@ func uniPassauBot() {
 			_, _ = b.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		}
 		printInfo(m)
+		printAnswer(foodtoday())
 	})
 	b.Handle("/foodtomorrow", func(m *tb.Message) {
 		if !m.Private() {
@@ -114,6 +115,7 @@ func uniPassauBot() {
 			_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		}
 		printInfo(m)
+		printAnswer(foodtomorrow())
 	})
 	b.Handle("/foodweek", func(m *tb.Message) {
 		if !m.Private() {
@@ -125,17 +127,20 @@ func uniPassauBot() {
 			//_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
 		}
 		printInfo(m)
+		printAnswer(foodweek())
 	})
 	b.Handle("/contact", func(m *tb.Message) {
+		sendstring := ""
 		if m.Text == "/contact" {
 			_, _ = b.Send(m.Sender, "For requests and bug reports just add your message to the _/contact_ command.", tb.ModeMarkdown)
 		} else {
 			_, _ = b.Send(m.Sender, "Sending Message to the Bot Maintainer...")
 			tionis := tb.Chat{ID: 248533143}
-			sendstring := "Message by " + m.Sender.FirstName + " " + m.Sender.LastName + "\nID: " + strconv.Itoa(m.Sender.ID) + " Username: " + m.Sender.Username + "\n- - - - -\n" + strings.TrimPrefix(m.Text, "/contact ")
+			sendstring = "Message by " + m.Sender.FirstName + " " + m.Sender.LastName + "\nID: " + strconv.Itoa(m.Sender.ID) + " Username: " + m.Sender.Username + "\n- - - - -\n" + strings.TrimPrefix(m.Text, "/contact ")
 			_, _ = b.Send(&tionis, sendstring)
 		}
 		printInfo(m)
+		printAnswer(sendstring)
 	})
 	b.Handle("/send", func(m *tb.Message) {
 		if m.Sender.ID == 248533143 {
@@ -152,27 +157,31 @@ func uniPassauBot() {
 	b.Handle("Danke", func(m *tb.Message) {
 		_, _ = b.Send(m.Sender, "_Gern geschehen!_", tb.ModeMarkdown)
 		printInfo(m)
+		printAnswer("_Gern geschehen!_")
 	})
 	b.Handle("Thanks", func(m *tb.Message) {
 		_, _ = b.Send(m.Sender, "_It's a pleasure!_", tb.ModeMarkdown)
 		printInfo(m)
+		printAnswer("_It's a pleasure!_")
 	})
 	b.Handle("/ping", func(m *tb.Message) {
 		_, _ = b.Send(m.Sender, "_pong_", tb.ModeMarkdown)
 		printInfo(m)
+		printAnswer("_pong_")
 	})
 	b.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		fmt.Println("[UniPassauBot] " + "Group Message:")
 		printInfo(m)
 	})
 	b.Handle(tb.OnText, func(m *tb.Message) {
+		sendstring := "Unknown Command - use help to get a list of available commands"
 		if !m.Private() {
 			fmt.Println("[UniPassauBot] " + "Message from Group:")
-			printInfo(m)
 		} else {
-			_, _ = b.Send(m.Sender, "Unknown Command - use help to get a list of available commands")
-			printInfo(m)
+			_, _ = b.Send(m.Sender, sendstring)
 		}
+		printInfo(m)
+		printAnswer(sendstring)
 	})
 
 	// Graceful Shutdown (botquit)
@@ -629,4 +638,8 @@ func printInfo(m *tb.Message) {
 	fmt.Println("[UniPassauBot] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
 	fmt.Println("[UniPassauBot] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID))
 	fmt.Println("[UniPassauBot] " + "Message: " + m.Text + "\n")
+}
+
+func printAnswer(input string) {
+	fmt.Println("[UniPassauBot] Answer: " + input)
 }

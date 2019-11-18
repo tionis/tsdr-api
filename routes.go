@@ -100,7 +100,7 @@ func contactTasadar(c *gin.Context) {
 	to := []string{"support@tasadar.net"}
 	msg := []byte("To: support@tasadar.net\r\n" +
 		"Subject: New Message over Contact Form\r\n" +
-		"\r\nNew Message from" + name + "\r\n Email: " + email + "\r\n" +
+		"\r\nNew Message from " + name + "\r\n Email: " + email + "\r\n---\r\n" +
 		message + "\r\n")
 	err := smtp.SendMail(os.Getenv("SMTP_HOST")+":"+os.Getenv("SMTP_PORT"), auth, "postmaster@mail.tasadar.net", to, msg)
 	if err != nil {
