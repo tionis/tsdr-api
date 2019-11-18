@@ -320,32 +320,33 @@ func foodtomorrow() string {
 	daynum++
 	if daynum == 8 {
 		// Code not ready yet
-		// return "This only works weekdays, will be implemented soon!"
-		// Here Code for next week
-		loc, _ := time.LoadLocation("Europe/Berlin")
-		_, thisWeek := time.Now().In(loc).UTC().ISOWeek()
-		//nextweekstring := strconv.Itoa(thisWeek + 1)
-		//downloadFile(nextweekstring)
-		if thisWeek < 51 {
-			initNextArray()
-		} else {
-			return "Error! - Not implemented yet!"
-		}
-		// Verarbeitung
-		// Has to be monday as it would else trigger a another part of the code
-		daynum = 1
-		day := "*Essen am Montag:* 😋\n"
-		for i := 1; i < len(nextvalues); i++ {
-			if nextvalues[i][0] == nextWeekDate(daynum) {
-				if len(nextvalues[i]) >= 6 {
-					day = day + nextvalues[i][2] + ": " + delInf(nextvalues[i][3]) + " - " + transcor(nextvalues[i][6]) + " €\n"
-				} else {
-					day = day + "Error in this line\n"
+		return "This only works weekdays, will be implemented soon!"
+		/*
+			// Here Code for next week
+			loc, _ := time.LoadLocation("Europe/Berlin")
+			_, thisWeek := time.Now().In(loc).UTC().ISOWeek()
+			//nextweekstring := strconv.Itoa(thisWeek + 1)
+			//downloadFile(nextweekstring)
+			if thisWeek < 51 {
+				initNextArray()
+			} else {
+				return "Error! - Not implemented yet!"
+			}
+			// Verarbeitung
+			// Has to be monday as it would else trigger a another part of the code
+			daynum = 1
+			day := "*Essen am Montag:* 😋\n"
+			for i := 1; i < len(nextvalues); i++ {
+				if nextvalues[i][0] == nextWeekDate(daynum) {
+					if len(nextvalues[i]) >= 6 {
+						day = day + nextvalues[i][2] + ": " + delInf(nextvalues[i][3]) + " - " + transcor(nextvalues[i][6]) + " €\n"
+					} else {
+						day = day + "Error in this line\n"
+					}
 				}
 			}
-		}
 
-		return day
+			return day*/
 	} else if daynum > 8 {
 		return "An Error occurred please contact the administrator"
 	}
