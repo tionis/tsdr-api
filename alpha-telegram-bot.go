@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/pquerna/otp/totp"
 	"log"
 	"os"
 	"os/signal"
@@ -206,6 +207,7 @@ func alphaTelegramBot() {
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/bcryptVerify", func(m *tb.Message) {
+
 		s1 := strings.TrimPrefix(m.Text, "/bcryptVerify ")
 		s := strings.Split(s1, " ")
 		if checkPasswordHash(s[0], s[1]) {
@@ -214,6 +216,51 @@ func alphaTelegramBot() {
 			alpha.Send(m.Sender, "Error: Hash"+s[1]+"doesn't match the password!")
 		}
 		printInfoAlpha(m)
+
+	})
+	alpha.Handle("/gen", func(m *tb.Message) {
+		if isTasadarTGAdmin(m.Sender.ID) {
+			//s1 := strings.TrimPrefix(m.Text, "/gen ")
+			val, err := redclient.Get("TOTP-Secret|" + "Protonmail").Result()
+			if err != nil {
+				alpha.Send(m.Sender, "An error occurred")
+				alpha.Send(m.Sender, val)
+				log.Println("[AlphaTelegramBot] Error while querying redis store: ", err)
+				return
+			}
+			str, err := totp.GenerateCode(val, time.Now())
+			if err != nil {
+				alpha.Send(m.Sender, "An error occurred!")
+				log.Println("[AlphaTelegramBot] Error while generating totp code: ", err)
+			} else {
+				alpha.Send(m.Sender, str)
+			}
+			printInfoAlpha(m)
+		} else {
+			sendstring := "You are not authorized to execute this command!"
+			alpha.Send(m.Sender, sendstring)
+			printInfoAlpha(m)
+		}
+	})
+	alpha.Handle("/addTOTP", func(m *tb.Message) {
+		// TODO: Implement saving of all available Accounts per User(json or csv list in redis)
+		if isTasadarTGAdmin(m.Sender.ID) {
+			s1 := strings.TrimPrefix(m.Text, "/addTOTP ")
+			s := strings.Split(s1, " ")
+			err = redclient.Set("TOTP-Secret|"+s[0], s[1], 0).Err()
+			if err != nil {
+				alpha.Send(m.Sender, "An error occurred")
+				log.Println("[AlphaTelegramBot] Error setting redis store for totp: ", err)
+			} else {
+				alpha.Send(m.Sender, "Record for |"+s[0]+"| successfully set to [redacted]")
+			}
+			alpha.Delete(m)
+			printInfoAlpha(m)
+		} else {
+			sendstring := "You are not authorized to execute this command!"
+			alpha.Send(m.Sender, sendstring)
+			printInfoAlpha(m)
+		}
 	})
 	alpha.Handle("/mc", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
