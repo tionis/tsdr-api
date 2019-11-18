@@ -65,7 +65,33 @@ func alphaTelegramBot() {
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/help", func(m *tb.Message) {
-		_, _ = alpha.Send(m.Sender, "There is no help!", tb.ModeMarkdown)
+		sendstring := ""
+		if isTasadarTGAdmin(m.Sender.ID) {
+			sendstring = `==Following Commands are Available:==
+=== UniPassauBot-Commands:
+  - /foodtoday - Food for todayco
+  - /foodtomorrow - Food for tomorrow
+  - /foodweek - Food for week
+=== Redis-Commands:
+  - /redisGet x - Get Key x from Redis
+  - /redisSet x y - Set Key x to y from Redis
+  - /redisPing - Ping redis Server
+  - /redisBcryptSet x y - Set passw y for user x
+  - /redisBcryptGet x y - Check if pass y is valid for user x
+=== TOTP-Commands:
+  - /addTOTP x y - Add key y for account x
+  - /gen x - Get TOTP-Code for account x 
+=== MC-Commands:
+  - /mc x - Forward command x to MC-Server 
+  - /mcStop n - Shutdown server in n minute
+  - /mcCancel - Cancel Server shutdown
+=== Tasadar-API-Commands:
+  - /updateAuth - update Auth Database
+  - /linkAccount - Link TN-Account to tg id`
+		} else {
+			sendstring = "There is no help!"
+		}
+		_, _ = alpha.Send(m.Sender, sendstring)
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/food", func(m *tb.Message) {
@@ -173,9 +199,10 @@ func alphaTelegramBot() {
 					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
 					_, _ = alpha.Send(m.Sender, "There was an error! Check the logs!")
 				} else {
-					alpha.Send(m.Sender, s[0]+" now has the hash "+hash)
+					alpha.Send(m.Sender, "Hash for "+s[0]+" was successfully set!")
 				}
 			}
+			alpha.Delete(m)
 		} else {
 			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
@@ -197,7 +224,7 @@ func alphaTelegramBot() {
 						alpha.Send(m.Sender, "Password matches!")
 					} else {
 						alpha.Send(m.Sender, "Password doesn't match!")
-						alpha.Send(m.Sender, "Just to bes sure, I checked:\n"+s[0]+"\n"+s[1])
+						alpha.Send(m.Sender, "Just to be sure, I checked:\n"+s[0]+"\n"+s[1])
 					}
 				}
 			}
@@ -206,7 +233,7 @@ func alphaTelegramBot() {
 		}
 		printInfoAlpha(m)
 	})
-	alpha.Handle("/bcryptVerify", func(m *tb.Message) {
+	/*alpha.Handle("/bcryptVerify", func(m *tb.Message) {
 
 		s1 := strings.TrimPrefix(m.Text, "/bcryptVerify ")
 		s := strings.Split(s1, " ")
@@ -217,11 +244,11 @@ func alphaTelegramBot() {
 		}
 		printInfoAlpha(m)
 
-	})
+	})*/
 	alpha.Handle("/gen", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
-			//s1 := strings.TrimPrefix(m.Text, "/gen ")
-			val, err := redclient.Get("TOTP-Secret|" + "Protonmail").Result()
+			s1 := strings.TrimPrefix(m.Text, "/gen ")
+			val, err := redclient.Get("TOTP-Secret|" + s1).Result()
 			if err != nil {
 				alpha.Send(m.Sender, "An error occurred")
 				alpha.Send(m.Sender, val)
