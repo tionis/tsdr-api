@@ -28,8 +28,9 @@ func routes(router *gin.Engine) {
 	router.GET("/echo", httpecho)
 
 	// Handle Status Watch
-	router.GET("/status", statusHandler)
-	go updateStatus()
+	router.GET("/onlinecheck", func(c *gin.Context) {
+		c.String(418, "I'm online")
+	})
 
 	// WhatsApp Bot
 	router.POST("/twilio/uni-passau-bot/whatsapp", whatsapp)
