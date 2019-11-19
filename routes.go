@@ -22,8 +22,9 @@ type alphaMsgStruct struct {
 
 func routes(router *gin.Engine) {
 	// Default Stuff
-	router.GET("/favicon.ico", favicon)
+	router.GET("/favicon.svg", favicon)
 	router.GET("/", index)
+	router.NoRoute(notFound)
 	router.GET("/echo", httpecho)
 
 	// Handle Status Watch
@@ -254,11 +255,15 @@ func httpecho(c *gin.Context) {
 
 // Handle both root thingies
 func favicon(c *gin.Context) {
-	c.File("static/favicon.ico")
+	c.File("static/favicon.svg")
 }
 
 func index(c *gin.Context) {
 	c.File("static/index.html")
+}
+
+func notFound(c *gin.Context) {
+	c.File("static/404.html")
 }
 
 // handle simple GET requests for food
