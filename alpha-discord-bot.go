@@ -256,7 +256,7 @@ func pingInMinutes(minutes int) {
 }
 
 func updateMC() {
-	if mcRunning {
+	if mcRunning && mcStopping == false {
 		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 		if err != nil {
 			mcRunning = false
