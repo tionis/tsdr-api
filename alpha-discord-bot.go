@@ -40,6 +40,19 @@ func alphaDiscordBot() {
 		return
 	}
 
+	//Init Variables from redis
+	noPlayerOnlineCountString, err := redclient.Get("noPlayerOnlineCount").Result()
+	if err != nil {
+		log.Println("Error reading noPlayerOnlineCount from Redis: ", err)
+		noPlayerOnlineCountString = "0"
+	}
+	noPlayerOnlineCount, err = strconv.Atoi(noPlayerOnlineCountString)
+	if err != nil {
+		log.Println("Error transforming noPlayerOnlineCountString to int: ", err)
+		noPlayerOnlineCount = 0
+	}
+	// TODO: get MCRunning from redis
+
 	// Init Server Stuff
 	// Get Server State
 	mcRunning, mcStopping = false, false
@@ -123,6 +136,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 		if err != nil {
 			mcRunning = false
+			redclient.Set("mc|IsRunning", mcRunning, 0).Err()
+			if err != nil {
+				log.Println("Error setting mc|IsRunning on Redis: ", err)
+			}
 			s.ChannelMessage(m.ChannelID, "An Error occurred, please contact the administrator!")
 			log.Println("[AlphaDiscordBot] Error while creating rcon client: ", err)
 			return
@@ -223,6 +240,10 @@ func mcStart() bool {
 	res, err := client.Do(req)
 	if res.StatusCode == 200 {
 		mcRunning = true
+		redclient.Set("mc|IsRunning", mcRunning, 0).Err()
+		if err != nil {
+			log.Println("Error setting mc|IsRunning on Redis: ", err)
+		}
 		return true
 	}
 	log.Println(res, err)
@@ -239,6 +260,10 @@ func updateMC() {
 		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 		if err != nil {
 			mcRunning = false
+			redclient.Set("mc|IsRunning", mcRunning, 0).Err()
+			if err != nil {
+				log.Println("Error setting mc|IsRunning on Redis: ", err)
+			}
 			log.Println("[AlphaDiscordBot] Error while creating rcon client: ", err)
 			return
 		}
@@ -263,10 +288,22 @@ func updateMC() {
 		}
 		if playerCount > 0 {
 			noPlayerOnlineCount = 0
+			redclient.Set("noPlayerOnlineCount", strconv.Itoa(noPlayerOnlineCount), 0).Err()
+			if err != nil {
+				log.Println("Error setting noPlayerOnlineCount on Redis: ", err)
+			}
 		} else {
 			noPlayerOnlineCount++
+			redclient.Set("noPlayerOnlineCount", strconv.Itoa(noPlayerOnlineCount), 0).Err()
+			if err != nil {
+				log.Println("Error setting noPlayerOnlineCount on Redis: ", err)
+			}
 			if noPlayerOnlineCount > 6 {
 				noPlayerOnlineCount = 0
+				redclient.Set("noPlayerOnlineCount", strconv.Itoa(noPlayerOnlineCount), 0).Err()
+				if err != nil {
+					log.Println("Error setting noPlayerOnlineCount on Redis: ", err)
+				}
 				mcStopPlayerOffline()
 			}
 		}
@@ -319,4 +356,8 @@ func pingMC() {
 	// To be edited with a true server ping - finished (more or less) - can still be improved!
 	_, _, err := bot.PingAndList("mc.tasadar.net", 25565)
 	mcRunning = err == nil
+	redclient.Set("mc|IsRunning", mcRunning, 0).Err()
+	if err != nil {
+		log.Println("Error setting mc|IsRunning on Redis: ", err)
+	}
 }
