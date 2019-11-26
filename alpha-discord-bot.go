@@ -21,6 +21,7 @@ var mcStopping bool
 var mcRunning bool
 var mainChannelID string
 var msgDiscordMC chan string
+var noPlayerOnlineCount int
 
 // Main and Init
 func alphaDiscordBot() {
@@ -231,6 +232,87 @@ func mcStart() bool {
 func pingInMinutes(minutes int) {
 	time.Sleep(time.Duration(minutes) * time.Minute)
 	pingMC()
+}
+
+func updateMC() {
+	if mcRunning {
+		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+		if err != nil {
+			mcRunning = false
+			log.Println("[AlphaDiscordBot] Error while creating rcon client: ", err)
+			return
+		}
+		resp, err := client.sendCommand("execute if entity @a")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed: : ", err)
+			return
+		}
+		var playerCountString string
+		if strings.Contains(resp, "Test failed") {
+			playerCountString = "0"
+		} else {
+			playerCountString = strings.TrimPrefix(resp, "Test passed, count: ")
+		}
+		if err != nil {
+			log.Println("[AlphaDiscordBot] Player counting failed: ", err)
+			log.Println(err)
+		}
+		playerCount, err := strconv.Atoi(playerCountString)
+		if err != nil {
+			log.Println("Error converting PlayerCountString to int: ", err)
+		}
+		if playerCount > 0 {
+			noPlayerOnlineCount = 0
+		} else {
+			noPlayerOnlineCount++
+		}
+		if noPlayerOnlineCount > 6 {
+			noPlayerOnlineCount = 0
+			mcStopPlayerOffline()
+		}
+	}
+}
+
+func mcStopPlayerOffline() {
+	client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+	mcStopping = true
+	_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\" 5 Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
+	if err != nil {
+		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+	}
+	_, err = client.sendCommand("tellraw @a [{\"text\":\"Type /mc cancel in the Discord Chat to cancel the shutdown! \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
+	if err != nil {
+		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+	}
+	msgDiscordMC <- "If nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
+	time.Sleep(5 * time.Minute)
+	if mcStopping {
+		msgDiscordMC <- "Shutting down Server..."
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server connection failed", err)
+		}
+		_, err = client.sendCommand("title @a title {\"text\":\"Warning!\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+		}
+		_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"10 Seconds!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+		}
+		time.Sleep(3 * time.Second)
+		for i := 10; i >= 0; i-- {
+			time.Sleep(1 * time.Second)
+			_, err = client.sendCommand("title @a title {\"text\":\"" + strconv.Itoa(i) + "\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
+			if err != nil {
+				log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			}
+		}
+		_, err = client.sendCommand("stop")
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			msgAlpha <- "Error sending stop command to MC-Server"
+		}
+	}
 }
 
 func pingMC() {
