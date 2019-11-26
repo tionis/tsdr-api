@@ -87,7 +87,7 @@ func alphaTelegramBot() {
   - /mcCancel - Cancel Server shutdown
 === Tasadar-API-Commands:
   - /updateAuth - update Auth Database
-  - /linkAccount - Link TN-Account to tg id`
+  - /linkAccount username password - Link TN-Account to telegram account`
 		} else {
 			sendstring = "There is no help!"
 		}
