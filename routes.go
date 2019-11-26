@@ -96,6 +96,19 @@ func routes(router *gin.Engine) {
 			c.String(400, "Error parsing your packet")
 		}
 	})
+	router.POST("/alpha/msg-discord", func(c *gin.Context) {
+		var json alphaMsgStruct
+		if c.BindJSON(&json) == nil {
+			if authenticateAlphaToken(json.Token) {
+				msgDiscordMC <- json.Message
+				c.String(200, "OK")
+			} else {
+				c.String(401, "Unauthorized!")
+			}
+		} else {
+			c.String(400, "Error parsing your packet")
+		}
+	})
 }
 
 type contactForm struct {
