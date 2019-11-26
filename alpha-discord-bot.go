@@ -265,10 +265,10 @@ func updateMC() {
 			noPlayerOnlineCount = 0
 		} else {
 			noPlayerOnlineCount++
-		}
-		if noPlayerOnlineCount > 6 {
-			noPlayerOnlineCount = 0
-			mcStopPlayerOffline()
+			if noPlayerOnlineCount > 6 {
+				noPlayerOnlineCount = 0
+				mcStopPlayerOffline()
+			}
 		}
 	}
 }
@@ -284,7 +284,7 @@ func mcStopPlayerOffline() {
 	if err != nil {
 		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
 	}
-	msgDiscordMC <- "If nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
+	msgDiscordMC <- "No players on Server.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
 	time.Sleep(5 * time.Minute)
 	if mcStopping {
 		msgDiscordMC <- "Shutting down Server..."
