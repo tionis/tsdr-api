@@ -324,6 +324,7 @@ func mcStopPlayerOffline() {
 	msgDiscordMC <- "No players on Server.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
 	time.Sleep(5 * time.Minute)
 	if mcStopping {
+		client.reconnect()
 		msgDiscordMC <- "Shutting down Server..."
 		if err != nil {
 			log.Println("[AlphaDiscordBot] RCON server connection failed", err)
@@ -347,7 +348,9 @@ func mcStopPlayerOffline() {
 		_, err = client.sendCommand("stop")
 		if err != nil {
 			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			msgDiscordMC <- "Error while trying to stop Server"
 			msgAlpha <- "Error sending stop command to MC-Server"
+			mcStopping = false
 		}
 	}
 }
