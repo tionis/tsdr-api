@@ -121,8 +121,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		pingMC()
 		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 		if err != nil {
-			log.Println("[AlphaDiscordBot] Error while creating rcon client: ", err)
+			mcRunning = false
 			s.ChannelMessage(m.ChannelID, "An Error occurred, please contact the administrator!")
+			log.Println("[AlphaDiscordBot] Error while creating rcon client: ", err)
 			return
 		}
 		if !mcRunning {
@@ -218,11 +219,12 @@ func mcStart() bool {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/start", nil)
 	req.Header.Set("TASADAR_SECRET", "JFyMdGUgx3Re2r2VefLYFJeGNosscB98")
-	res, _ := client.Do(req)
+	res, err := client.Do(req)
 	if res.StatusCode == 200 {
 		mcRunning = true
 		return true
 	}
+	log.Println(res, err)
 	return false
 }
 

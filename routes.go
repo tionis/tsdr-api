@@ -46,6 +46,18 @@ func routes(router *gin.Engine) {
 	router.PUT("/auth/basic", authGin)
 	router.GET("/auth/group/:group", authGinGroup)
 
+	// Minecraft API
+	router.GET("/mc/stopped/:token", func(c *gin.Context) {
+		getAuthorization, err := redclient.Get("mc|token|" + c.Param("token")).Result()
+		if err != nil {
+			c.String(500, "Internal Server Error")
+		}
+		if getAuthorization == "true" {
+			mcRunning = false
+			c.String(200, "OK")
+		}
+	})
+
 	// Google Assitant API - WIP
 	router.POST("/dialogflow/alpha", retFoodToday)
 
