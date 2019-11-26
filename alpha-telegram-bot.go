@@ -209,6 +209,7 @@ func alphaTelegramBot() {
 		printInfo(m)
 	})
 	alpha.Handle("/redisBcryptGet", func(m *tb.Message) {
+		alpha.Delete(m)
 		if isTasadarTGAdmin(m.Sender.ID) {
 			if !strings.Contains(m.Text, " ") {
 				alpha.Send(m.Sender, "Error in Syntax!")
@@ -221,7 +222,7 @@ func alphaTelegramBot() {
 					_, _ = alpha.Send(m.Sender, "Error! Maybe the value does not exist?")
 				} else {
 					if checkPasswordHash(s[1], val) {
-						alpha.Send(m.Sender, "Password matches!")
+						alpha.Send(m.Sender, "Password for "+s[0]+" matches!")
 					} else {
 						alpha.Send(m.Sender, "Password doesn't match!")
 						alpha.Send(m.Sender, "Just to be sure, I checked:\n"+s[0]+"\n"+s[1])
@@ -233,18 +234,6 @@ func alphaTelegramBot() {
 		}
 		printInfoAlpha(m)
 	})
-	/*alpha.Handle("/bcryptVerify", func(m *tb.Message) {
-
-		s1 := strings.TrimPrefix(m.Text, "/bcryptVerify ")
-		s := strings.Split(s1, " ")
-		if checkPasswordHash(s[0], s[1]) {
-			alpha.Send(m.Sender, "Hash"+s[1]+" matches the password!")
-		} else {
-			alpha.Send(m.Sender, "Error: Hash"+s[1]+"doesn't match the password!")
-		}
-		printInfoAlpha(m)
-
-	})*/
 	alpha.Handle("/gen", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/gen ")
@@ -348,7 +337,20 @@ func alphaTelegramBot() {
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/linkAccount", func(m *tb.Message) {
-		_, _ = alpha.Send(m.Sender, "Not implemented yet!")
+		alpha.Delete(m)
+		s1 := strings.TrimPrefix(m.Text, "/linkAccount ")
+		s := strings.Split(s1, " ")
+		if authUser(s[0], s[1]) {
+			err := redclient.Set("tg|"+strconv.Itoa(m.Sender.ID)+"|username", s[0], 0).Err()
+			if err != nil {
+				log.Println("[AlphaTelegramBot] Error connecting to redis: ", err)
+				alpha.Send(m.Sender, "Error saving your input")
+			} else {
+				alpha.Send(m.Sender, "New Username saved!")
+			}
+		} else {
+			alpha.Send(m.Sender, "Authentication failed!")
+		}
 	})
 	alpha.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		fmt.Println("[AlphaTelegramBot] " + "Group Message:")
@@ -395,18 +397,15 @@ func printInfoAlpha(m *tb.Message) {
 }
 
 func isTasadarTGAdmin(ID int) bool {
-	if ID == 248533143 {
+	/*if ID == 248533143 {
+		return true
+	}*/
+	username := redclient.Get("tg|" + strconv.Itoa(ID) + "|username").Val()
+	groups := redclient.Get("auth|" + username + "|groups").Val()
+	// Should transform into array and then check through it
+	if strings.Contains(groups, "admin,") || strings.Contains(groups, ",admin") /*|| strings.Contains(groups, "admin")*/ {
 		return true
 	}
-	/*
-		If connection username to telegram is established
-		Check in database corresponding to telegram id the groups and if admin exists therein if not return false
-		redclient get code here (maybe auth-tg|NUMBER|username)
-		then get auth|USERNAME|groups
-		if strings.Contains(groups,"admin,") || strings.Contains(groups,",admin") {
-			return true
-		}*/
-
 	return false
 }
 
