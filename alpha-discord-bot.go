@@ -92,18 +92,25 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	switch m.Content {
 	case "/help":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - General Tasadar Network - /tn help")
 	case "/unip help":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/tn help":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
 	case "/food":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		s.ChannelMessageSend(m.ChannelID, foodtoday())
 	case "/food tomorrow":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		s.ChannelMessageSend(m.ChannelID, foodtomorrow())
 	case "/ping":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		s.ChannelMessageSend(m.ChannelID, "Pong!")
 	case "/mc start":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		if mcRunning {
 			s.ChannelMessageSend(m.ChannelID, "Server already running!")
 		} else {
@@ -116,8 +123,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		pingInMinutes(2)
 	case "/mc stop":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		go mcShutdownDiscord(s, m, 7)
 	case "/mc cancel":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		if mcStopping {
 			mcStopping = false
 			s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped!")
@@ -132,6 +141,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSend(m.ChannelID, "Server is currently not running!")
 		}
 	case "/mc status":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		pingMC()
 		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 		if err != nil {
@@ -179,8 +189,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		} else {
 			s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
 		}
+	case "/mc":
+	case "/minecraft":
 	case "/mc help":
+		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
+	default:
+		log.Println("[AlphaDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 	}
 }
 
