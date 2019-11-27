@@ -409,6 +409,6 @@ func pingMC() {
 	}
 	redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
 	if err != nil {
-		log.Println("Error setting mc|IsRunning on Redis: ", err)
+		log.Println("[pingMC] Error setting mc|IsRunning on Redis: ", err)
 	}
 }

@@ -43,9 +43,9 @@ func main() {
 
 	// Cron Job Definitions
 	c := cron.New()
-	c.AddFunc("*/15 * * * *", func() { updateAuth() })
-	c.AddFunc("*/5 * * * *", func() { pingMC() })
-	c.AddFunc("*/5 * * * *", func() { updateMC() })
+	c.AddFunc("*/15 * * *", func() { updateAuth() })
+	c.AddFunc("*/5 * * *", func() { pingMC() })
+	c.AddFunc("*/5 * * *", func() { updateMC() })
 	c.Start()
 
 	// Creates a gin router with default middleware:
