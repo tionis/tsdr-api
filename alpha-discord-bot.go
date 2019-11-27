@@ -148,7 +148,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 		if err != nil {
 			mcRunning = false
-			redclient.Set("mc|IsRunning", mcRunning, 0).Err()
+			var mcRunningString string
+			if mcRunning {
+				mcRunningString = "true"
+			} else {
+				mcRunningString = "false"
+			}
+			redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
 			if err != nil {
 				log.Println("Error setting mc|IsRunning on Redis: ", err)
 			}
@@ -257,7 +263,13 @@ func mcStart() bool {
 	res, err := client.Do(req)
 	if res.StatusCode == 200 {
 		mcRunning = true
-		redclient.Set("mc|IsRunning", mcRunning, 0).Err()
+		var mcRunningString string
+		if mcRunning {
+			mcRunningString = "true"
+		} else {
+			mcRunningString = "false"
+		}
+		redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
 		if err != nil {
 			log.Println("Error setting mc|IsRunning on Redis: ", err)
 		}
@@ -282,7 +294,13 @@ func updateMC() {
 		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 		if err != nil {
 			mcRunning = false
-			redclient.Set("mc|IsRunning", mcRunning, 0).Err()
+			var mcRunningString string
+			if mcRunning {
+				mcRunningString = "true"
+			} else {
+				mcRunningString = "false"
+			}
+			redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
 			if err != nil {
 				log.Println("Error setting mc|IsRunning on Redis: ", err)
 			}
@@ -383,7 +401,13 @@ func pingMC() {
 		}
 	}
 	mcRunning = err == nil
-	redclient.Set("mc|IsRunning", mcRunning, 0).Err()
+	var mcRunningString string
+	if mcRunning {
+		mcRunningString = "true"
+	} else {
+		mcRunningString = "false"
+	}
+	redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
 	if err != nil {
 		log.Println("Error setting mc|IsRunning on Redis: ", err)
 	}
