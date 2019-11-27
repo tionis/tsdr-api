@@ -21,7 +21,9 @@ var mcStopping bool
 var mcRunning bool
 var mainChannelID string
 var msgDiscordMC chan string
-var noPlayerOnlineCount int
+var lastPlayerOnline time.Time
+
+const lastPlayerOnlineLayout = "2006-01-02T15:04:05.000Z"
 
 // Main and Init
 func alphaDiscordBot() {
@@ -41,15 +43,15 @@ func alphaDiscordBot() {
 	}
 
 	//Init Variables from redis
-	noPlayerOnlineCountString, err := redclient.Get("noPlayerOnlineCount").Result()
+	lastPlayerOnlineString, err := redclient.Get("mc|lastPlayerOnline").Result()
 	if err != nil {
-		log.Println("Error reading noPlayerOnlineCount from Redis: ", err)
-		noPlayerOnlineCountString = "0"
+		log.Println("Error reading mc|lastPlayerOnline from Redis: ", err)
+		lastPlayerOnline = time.Now()
 	}
-	noPlayerOnlineCount, err = strconv.Atoi(noPlayerOnlineCountString)
+	lastPlayerOnline, err = time.Parse(lastPlayerOnlineLayout, lastPlayerOnlineString)
 	if err != nil {
-		log.Println("Error transforming noPlayerOnlineCountString to int: ", err)
-		noPlayerOnlineCount = 0
+		log.Println("Error transforming mc|lastPlayerOnline to time object: ", err)
+		lastPlayerOnline = time.Now()
 	}
 	// TODO: get MCRunning from redis
 
@@ -259,6 +261,11 @@ func mcStart() bool {
 		if err != nil {
 			log.Println("Error setting mc|IsRunning on Redis: ", err)
 		}
+		lastPlayerOnline = time.Now()
+		redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
+		if err != nil {
+			log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
+		}
 		return true
 	}
 	log.Println(res, err)
@@ -302,22 +309,17 @@ func updateMC() {
 			log.Println("Error converting PlayerCountString to int: ", err)
 		}
 		if playerCount > 0 {
-			noPlayerOnlineCount = 0
-			redclient.Set("noPlayerOnlineCount", strconv.Itoa(noPlayerOnlineCount), 0).Err()
+			lastPlayerOnline = time.Now()
+			redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 			if err != nil {
-				log.Println("Error setting noPlayerOnlineCount on Redis: ", err)
+				log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
 			}
 		} else {
-			noPlayerOnlineCount++
-			redclient.Set("noPlayerOnlineCount", strconv.Itoa(noPlayerOnlineCount), 0).Err()
-			if err != nil {
-				log.Println("Error setting noPlayerOnlineCount on Redis: ", err)
-			}
-			if noPlayerOnlineCount > 6 {
-				noPlayerOnlineCount = 0
-				redclient.Set("noPlayerOnlineCount", strconv.Itoa(noPlayerOnlineCount), 0).Err()
+			if lastPlayerOnline.Sub(time.Now()) < time.Duration(30*time.Minute) {
+				lastPlayerOnline = time.Now()
+				redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 				if err != nil {
-					log.Println("Error setting noPlayerOnlineCount on Redis: ", err)
+					log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
 				}
 				mcStopPlayerOffline()
 			}
@@ -373,6 +375,13 @@ func mcStopPlayerOffline() {
 func pingMC() {
 	// To be edited with a true server ping - finished (more or less) - can still be improved!
 	_, _, err := bot.PingAndList("mc.tasadar.net", 25565)
+	if mcRunning == false && err == nil { // Resets Counter if server online trough other means
+		lastPlayerOnline = time.Now()
+		redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
+		if err != nil {
+			log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
+		}
+	}
 	mcRunning = err == nil
 	redclient.Set("mc|IsRunning", mcRunning, 0).Err()
 	if err != nil {
