@@ -333,7 +333,7 @@ func updateMC() {
 				log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
 			}
 		} else {
-			if lastPlayerOnline.Sub(time.Now()) < time.Duration(30*time.Minute) {
+			if lastPlayerOnline.Sub(time.Now()).Minutes() > 30 {
 				lastPlayerOnline = time.Now()
 				redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 				if err != nil {
