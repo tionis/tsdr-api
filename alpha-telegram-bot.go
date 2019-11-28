@@ -1,8 +1,8 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
-	"github.com/pquerna/otp/totp"
 	"log"
 	"os"
 	"os/signal"
@@ -11,7 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/pquerna/otp/totp"
+
 	_ "github.com/heroku/x/hmetrics/onload"
+	_ "github.com/lib/pq"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -351,6 +354,22 @@ func alphaTelegramBot() {
 		} else {
 			alpha.Send(m.Sender, "Authentication failed!")
 		}
+	})
+	alpha.Handle("/psqlPing", func(m *tb.Message) {
+		db, err := sql.Open("postgres", psqlInfo)
+		if err != nil {
+			log.Println("[PostgreSQL] Server Connection failed: ", err)
+			alpha.Send(m.Sender, "An error occurred!\nCheck the logs!")
+			return
+		}
+		defer db.Close()
+		err = db.Ping()
+		if err != nil {
+			log.Println("[PostgreSQL] Server Ping failed: ", err)
+			alpha.Send(m.Sender, "An error occurred!\nCheck the logs!")
+			return
+		}
+		alpha.Send(m.Sender, "Ping successfull!")
 	})
 	alpha.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		fmt.Println("[AlphaTelegramBot] " + "Group Message:")

@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -17,9 +19,27 @@ import (
 // Check for more memory leaks (maybe reduce dependencies?)
 
 var redclient *redis.Client
+var psqlInfo string
 
 // Main and Init
 func main() {
+	// Init postgres
+	postgresString1 := strings.Split(strings.TrimPrefix(os.Getenv("DATABASE_URL"), "postgres://"), "@")
+	postgresString2 := strings.Split(postgresString1[0], ":")
+	postgresString3 := strings.Split(postgresString1[1], ":")
+	postgresString4 := strings.Split(postgresString3[1], "/")
+	host := postgresString3[0]
+	port, err := strconv.Atoi(postgresString4[0])
+	if err != nil {
+		log.Fatal("Could not read Postgres Port")
+	}
+	user := postgresString2[0]
+	password := postgresString2[1]
+	dbname := postgresString4[1]
+	psqlInfo = fmt.Sprintf("host=%s port=%d user=%s "+
+		"password=%s dbname=%s sslmode=disable",
+		host, port, user, password, dbname)
+
 	// Start Uni-Passau-Bot
 	go uniPassauBot()
 
