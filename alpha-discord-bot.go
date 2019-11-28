@@ -22,12 +22,14 @@ var mcRunning bool
 var mainChannelID string
 var msgDiscordMC chan string
 var lastPlayerOnline time.Time
+var discordAdminID string
 
 const lastPlayerOnlineLayout = "2006-01-02T15:04:05.000Z"
 
 // Main and Init
 func alphaDiscordBot() {
 	mainChannelID = os.Getenv("MC_CHANNEL_ID")
+	discordAdminID = os.Getenv("DISCORD_ADMIN")
 	dg, err := discordgo.New("Bot " + os.Getenv("AlphaDiscordBot"))
 	if err != nil {
 		log.Println("[AlphaDiscordBot] Error creating Discord session,", err)
@@ -53,15 +55,30 @@ func alphaDiscordBot() {
 		log.Println("Error transforming mc|lastPlayerOnline to time object: ", err)
 		lastPlayerOnline = time.Now()
 	}
-	// TODO: get MCRunning from redis
+	// Init mcRunning and mcStopping
+	mcRunningString, err := redclient.Get("mc|IsRunning").Result()
+	if err != nil {
+		log.Println("[AlphaDiscordBot] Error getting Redis value for mc|IsRunning", err)
+	} else if mcRunningString == "true" {
+		mcRunning = true
+	} else if mcRunningString == "false" {
+		mcRunning = false
+	} else {
+		mcRunning = false
+		log.Println("[AlphaDiscordBot] Error converting Redis value for mc|IsRunning, expected true or false but got " + mcRunningString)
+	}
+	mcStopping = false // Redis save not necessary - edge cases not important enough
 
-	// Init Server Stuff
 	// Get Server State
-	mcRunning, mcStopping = false, false
 	go pingMC()
 
 	// Set some StartUp Stuff
-	dg.UpdateStatus(0, "Manager of Tasadar Stuff")
+	dgStatus, err := redclient.Get("dg|status").Result()
+	if err != nil {
+		log.Println("[AlphaDiscordBot] Error getting dgStatus from redis: ", err)
+		dgStatus = "Mass Effect 5"
+	}
+	dg.UpdateStatus(0, dgStatus)
 
 	// Define input channel
 	go func(s *discordgo.Session) {
@@ -196,6 +213,17 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/mc help":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
+	case "/id":
+		s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
+	case "/updateStatus":
+		if m.Author.ID == discordAdminID {
+			newStatus := strings.TrimPrefix(m.Content, "/updateStatus")
+			err := redclient.Set("dg|status", newStatus, 0).Err()
+			if err != nil {
+				log.Println("Error setting dg|status on Redis: ", err)
+			}
+			s.UpdateStatus(0, newStatus)
+		}
 		//default:
 		//log.Println("[AlphaDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 	}
@@ -253,7 +281,7 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 
 func mcStart() bool {
 	client := &http.Client{}
-	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/start", nil)
+	req, _ := http.NewRequest("GET", "https://mc.tasadar.net/mc/start", nil)
 	req.Header.Set("TASADAR_SECRET", "JFyMdGUgx3Re2r2VefLYFJeGNosscB98")
 	res, err := client.Do(req)
 	if res.StatusCode == 200 {
