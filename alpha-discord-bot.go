@@ -215,17 +215,23 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
 	case "/id":
 		s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
-	case "/updateStatus":
+		//default:
+		//log.Println("[AlphaDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
+	}
+
+	if strings.Contains(m.Content, "/updateStatus ") {
 		if m.Author.ID == discordAdminID {
-			newStatus := strings.TrimPrefix(m.Content, "/updateStatus")
+			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
 			err := redclient.Set("dg|status", newStatus, 0).Err()
 			if err != nil {
 				log.Println("Error setting dg|status on Redis: ", err)
+				s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
 			}
 			s.UpdateStatus(0, newStatus)
+			s.ChannelMessageSend(m.ChannelID, "New Status set!")
+		} else {
+			s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
 		}
-		//default:
-		//log.Println("[AlphaDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 	}
 }
 
