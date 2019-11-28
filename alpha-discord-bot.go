@@ -202,8 +202,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/mc help":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
-	default:
-		log.Println("[AlphaDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
+		//default:
+		//log.Println("[AlphaDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 	}
 }
 
@@ -290,7 +290,7 @@ func pingInMinutes(minutes int) {
 }
 
 func updateMC() {
-	if mcRunning && mcStopping == false {
+	if mcRunning && !mcStopping {
 		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 		if err != nil {
 			mcRunning = false

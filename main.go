@@ -41,11 +41,11 @@ func main() {
 		log.Println("[FATAL] - Error connecting to redis database! err: ", err)
 	}
 
-	// Cron Job Definitions
+	// Cronjob Definitions
 	c := cron.New()
-	c.AddFunc("*/15 * * *", func() { updateAuth() })
-	c.AddFunc("*/5 * * *", func() { pingMC() })
-	c.AddFunc("*/5 * * *", func() { updateMC() })
+	c.AddFunc("@every 15m", func() { updateAuth() })
+	c.AddFunc("@every 5m", func() { pingMC() })
+	c.AddFunc("@every 5m", func() { updateMC() })
 	c.Start()
 
 	// Creates a gin router with default middleware:
