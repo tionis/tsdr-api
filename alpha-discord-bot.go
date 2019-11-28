@@ -118,7 +118,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/tn help":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-		s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/linkAccount username password - Link your Tasadar Account to your Discord Account (use only in DM!)")
 	case "/food":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		s.ChannelMessageSend(m.ChannelID, foodtoday())
@@ -232,6 +232,23 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		} else {
 			s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
 		}
+	} else if strings.Contains(m.Content, "/linkAccount ") {
+		tokens := strings.Split(strings.TrimPrefix(m.Content, "/linkAccount "), " ")
+		if len(tokens) < 2 {
+			s.ChannelMessageSend(m.ChannelID, "I couldn't parse your Message, please check your Syntax!")
+		} else {
+			if authUser(tokens[0], tokens[1]) {
+				err := redclient.Set("dg|"+m.Author.ID+"|username", tokens[0], 0).Err()
+				if err != nil {
+					s.ChannelMessageSend(m.ChannelID, "Error saving your link")
+				} else {
+					s.ChannelMessageSend(m.ChannelID, "I established your new Link successfully")
+				}
+			} else {
+				s.ChannelMessageSend(m.ChannelID, "Authentication failed, please double-check your password and username!")
+			}
+		}
+		s.ChannelMessageDelete(m.ChannelID, m.ID)
 	}
 }
 
