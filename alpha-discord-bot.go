@@ -206,7 +206,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
 			}
 		} else {
-			s.ChannelMessage(m.ChannelID, "Server currently offline!\nTo start it use /mc start")
+			s.ChannelMessageSend(m.ChannelID, "Server currently offline!\nTo start it use /mc start")
 		}
 	case "/mc":
 	case "/minecraft":
@@ -391,7 +391,7 @@ func mcStopPlayerOffline() {
 		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
 		return
 	}
-	msgDiscordMC <- "No players on Server.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
+	msgDiscordMC <- "There were no players on the Server for quite some time.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
 	time.Sleep(5 * time.Minute)
 	if mcStopping {
 		client.reconnect()
