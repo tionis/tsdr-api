@@ -76,7 +76,7 @@ func awsProxy(router *gin.Engine) {
 
 	http.HandleFunc("/--version", func(w http.ResponseWriter, r *http.Request) {
 		if len(version) > 0 && len(date) > 0 {
-			fmt.Fprintf(w, "version: %s (built at %s)\n", version, date)
+			_, _ = fmt.Fprintf(w, "version: %s (built at %s)\n", version, date)
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
@@ -317,7 +317,7 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 		}
 		var link symlink
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(result.Body) // nolint
+		_, _ = buf.ReadFrom(result.Body) // nolint
 		err = json.Unmarshal(buf.Bytes(), &link)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -327,7 +327,7 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasSuffix(path, "/") {
 		if c.directoryListing {
-			s3listFiles(w, r, c.s3Bucket, c.s3KeyPrefix+path)
+			s3listFiles(w, c.s3Bucket, c.s3KeyPrefix+path)
 			return
 		}
 		path += c.indexDocument
@@ -340,7 +340,7 @@ func awss3(w http.ResponseWriter, r *http.Request) {
 	}
 	setHeadersFromAwsResponse(w, obj)
 
-	io.Copy(w, obj.Body) // nolint
+	_, _ = io.Copy(w, obj.Body) // nolint
 }
 
 func setHeadersFromAwsResponse(w http.ResponseWriter, obj *s3.GetObjectOutput) {
@@ -448,7 +448,7 @@ func getObjsFromS3(req *s3.ListObjectsInput, key string) (*s3.ListObjectsOutput,
 	return result, err
 }
 
-func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
+func s3listFiles(w http.ResponseWriter, backet, key string) {
 	key = strings.TrimPrefix(key, "/")
 	req := &s3.ListObjectsInput{
 		Bucket:    aws.String(backet),
@@ -501,16 +501,16 @@ func s3listFiles(w http.ResponseWriter, r *http.Request, backet, key string) {
 		}
 		//html += "</ul></body></html>"
 		html += "</pre><hr></body>\n</html>"
-		fmt.Fprintln(w, html)
+		_, _ = fmt.Fprintln(w, html)
 		return
 	}
-	bytes, merr := json.Marshal(files)
+	bytes2, merr := json.Marshal(files)
 	if merr != nil {
 		http.Error(w, merr.Error(), http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	fmt.Fprintln(w, string(bytes))
+	_, _ = fmt.Fprintln(w, string(bytes2))
 }
 
 func awsSession() *session.Session {

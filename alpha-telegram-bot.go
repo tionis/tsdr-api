@@ -134,7 +134,7 @@ func alphaTelegramBot() {
 	})
 	alpha.Handle("/redis", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
-			alpha.Send(m.Sender, "Available Commands:\n/redisSet - Set Redis Record like this key value\n/redisGet - Get value for key\n/redisPing - Ping/Pong\n/redisBcryptSet - Same as set but with bcrypt\n/redisBcryptGet - Same as Get but with Verify")
+			_, _ = alpha.Send(m.Sender, "Available Commands:\n/redisSet - Set Redis Record like this key value\n/redisGet - Get value for key\n/redisPing - Ping/Pong\n/redisBcryptSet - Same as set but with bcrypt\n/redisBcryptGet - Same as Get but with Verify")
 		} else {
 			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
@@ -143,7 +143,7 @@ func alphaTelegramBot() {
 	alpha.Handle("/redisSet", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			if !strings.Contains(m.Text, " ") {
-				alpha.Send(m.Sender, "Error in Syntax!")
+				_, _ = alpha.Send(m.Sender, "Error in Syntax!")
 			} else {
 				s1 := strings.TrimPrefix(m.Text, "/redisSet ")
 				s := strings.Split(s1, " ")
@@ -153,7 +153,7 @@ func alphaTelegramBot() {
 					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
 					_, _ = alpha.Send(m.Sender, "There was an error! Check the logs!")
 				} else {
-					alpha.Send(m.Sender, s[0]+" was set to:\n"+val)
+					_, _ = alpha.Send(m.Sender, s[0]+" was set to:\n"+val)
 				}
 			}
 		} else {
@@ -180,9 +180,9 @@ func alphaTelegramBot() {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			pong, err := redclient.Ping().Result()
 			if err != nil {
-				alpha.Send(m.Sender, "An Error occurred!")
+				_, _ = alpha.Send(m.Sender, "An Error occurred!")
 			} else {
-				alpha.Send(m.Sender, "Everything normal: "+pong)
+				_, _ = alpha.Send(m.Sender, "Everything normal: "+pong)
 			}
 		} else {
 			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
@@ -192,7 +192,7 @@ func alphaTelegramBot() {
 	alpha.Handle("/redisBcryptSet", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			if !strings.Contains(m.Text, " ") {
-				alpha.Send(m.Sender, "Error in Syntax!")
+				_, _ = alpha.Send(m.Sender, "Error in Syntax!")
 			} else {
 				s1 := strings.TrimPrefix(m.Text, "/redisBcryptSet ")
 				s := strings.Split(s1, " ")
@@ -202,20 +202,20 @@ func alphaTelegramBot() {
 					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
 					_, _ = alpha.Send(m.Sender, "There was an error! Check the logs!")
 				} else {
-					alpha.Send(m.Sender, "Hash for "+s[0]+" was successfully set!")
+					_, _ = alpha.Send(m.Sender, "Hash for "+s[0]+" was successfully set!")
 				}
 			}
-			alpha.Delete(m)
+			_ = alpha.Delete(m)
 		} else {
 			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
 		printInfo(m)
 	})
 	alpha.Handle("/redisBcryptGet", func(m *tb.Message) {
-		alpha.Delete(m)
+		_ = alpha.Delete(m)
 		if isTasadarTGAdmin(m.Sender.ID) {
 			if !strings.Contains(m.Text, " ") {
-				alpha.Send(m.Sender, "Error in Syntax!")
+				_, _ = alpha.Send(m.Sender, "Error in Syntax!")
 			} else {
 				s1 := strings.TrimPrefix(m.Text, "/redisBcryptGet ")
 				s := strings.Split(s1, " ")
@@ -225,10 +225,10 @@ func alphaTelegramBot() {
 					_, _ = alpha.Send(m.Sender, "Error! Maybe the value does not exist?")
 				} else {
 					if checkPasswordHash(s[1], val) {
-						alpha.Send(m.Sender, "Password for "+s[0]+" matches!")
+						_, _ = alpha.Send(m.Sender, "Password for "+s[0]+" matches!")
 					} else {
-						alpha.Send(m.Sender, "Password doesn't match!")
-						alpha.Send(m.Sender, "Just to be sure, I checked:\n"+s[0]+"\n"+s[1])
+						_, _ = alpha.Send(m.Sender, "Password doesn't match!")
+						_, _ = alpha.Send(m.Sender, "Just to be sure, I checked:\n"+s[0]+"\n"+s[1])
 					}
 				}
 			}
@@ -242,22 +242,22 @@ func alphaTelegramBot() {
 			s1 := strings.TrimPrefix(m.Text, "/gen ")
 			val, err := redclient.Get("TOTP-Secret|" + s1).Result()
 			if err != nil {
-				alpha.Send(m.Sender, "An error occurred")
-				alpha.Send(m.Sender, val)
+				_, _ = alpha.Send(m.Sender, "An error occurred")
+				_, _ = alpha.Send(m.Sender, val)
 				log.Println("[AlphaTelegramBot] Error while querying redis store: ", err)
 				return
 			}
 			str, err := totp.GenerateCode(val, time.Now())
 			if err != nil {
-				alpha.Send(m.Sender, "An error occurred!")
+				_, _ = alpha.Send(m.Sender, "An error occurred!")
 				log.Println("[AlphaTelegramBot] Error while generating totp code: ", err)
 			} else {
-				alpha.Send(m.Sender, str)
+				_, _ = alpha.Send(m.Sender, str)
 			}
 			printInfoAlpha(m)
 		} else {
 			sendstring := "You are not authorized to execute this command!"
-			alpha.Send(m.Sender, sendstring)
+			_, _ = alpha.Send(m.Sender, sendstring)
 			printInfoAlpha(m)
 		}
 	})
@@ -268,16 +268,16 @@ func alphaTelegramBot() {
 			s := strings.Split(s1, " ")
 			err = redclient.Set("TOTP-Secret|"+s[0], s[1], 0).Err()
 			if err != nil {
-				alpha.Send(m.Sender, "An error occurred")
+				_, _ = alpha.Send(m.Sender, "An error occurred")
 				log.Println("[AlphaTelegramBot] Error setting redis store for totp: ", err)
 			} else {
-				alpha.Send(m.Sender, "Record for |"+s[0]+"| successfully set to [redacted]")
+				_, _ = alpha.Send(m.Sender, "Record for |"+s[0]+"| successfully set to [redacted]")
 			}
-			alpha.Delete(m)
+			_ = alpha.Delete(m)
 			printInfoAlpha(m)
 		} else {
 			sendstring := "You are not authorized to execute this command!"
-			alpha.Send(m.Sender, sendstring)
+			_, _ = alpha.Send(m.Sender, sendstring)
 			printInfoAlpha(m)
 		}
 	})
@@ -287,50 +287,50 @@ func alphaTelegramBot() {
 			client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 			if err != nil {
 				log.Println("[AlphaTelegramBot] Error occured while building client for connection: ", err)
-				alpha.Send(m.Sender, "Error occurred while trying to build a connection")
+				_, _ = alpha.Send(m.Sender, "Error occurred while trying to build a connection")
 			} else {
 				response, err := client.sendCommand(s1)
 				if err != nil {
 					log.Println("[AlphaTelegramBot] Error occured while making connection: ", err)
-					alpha.Send(m.Sender, "Error occurred while trying to connect")
+					_, _ = alpha.Send(m.Sender, "Error occurred while trying to connect")
 				} else {
 					if response != "" {
-						alpha.Send(m.Sender, response)
+						_, _ = alpha.Send(m.Sender, response)
 					} else {
-						alpha.Send(m.Sender, "Empty Response received")
+						_, _ = alpha.Send(m.Sender, "Empty Response received")
 					}
 				}
 			}
 		} else {
-			alpha.Send(m.Sender, "You are not authorized to execute this command!")
+			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
 	})
 	alpha.Handle("/mcStop", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/mcStop ")
 			if s1 == "" {
-				alpha.Send(m.Sender, "Please specify a minute count!")
+				_, _ = alpha.Send(m.Sender, "Please specify a minute count!")
 				return
 			}
 			minutes, err := strconv.Atoi(s1)
 			if err != nil {
-				alpha.Send(m.Sender, "Error converting minutes, check your input")
+				_, _ = alpha.Send(m.Sender, "Error converting minutes, check your input")
 			}
 			mcShutdownTelegram(alpha, m, minutes)
 		} else {
-			alpha.Send(m.Sender, "You are not authorized to execute this command!")
+			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
 	})
 	alpha.Handle("/mcCancel", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			if mcStopping {
 				mcStopping = false
-				alpha.Send(m.Sender, "Shutdown cancelled!")
+				_, _ = alpha.Send(m.Sender, "Shutdown cancelled!")
 			} else {
-				alpha.Send(m.Sender, "No Shutdown scheduled!")
+				_, _ = alpha.Send(m.Sender, "No Shutdown scheduled!")
 			}
 		} else {
-			alpha.Send(m.Sender, "You are not authorized to execute this command!")
+			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
 	})
 	alpha.Handle("/updateAuth", func(m *tb.Message) {
@@ -340,36 +340,36 @@ func alphaTelegramBot() {
 		printInfoAlpha(m)
 	})
 	alpha.Handle("/linkAccount", func(m *tb.Message) {
-		alpha.Delete(m)
+		_ = alpha.Delete(m)
 		s1 := strings.TrimPrefix(m.Text, "/linkAccount ")
 		s := strings.Split(s1, " ")
 		if authUser(s[0], s[1]) {
 			err := redclient.Set("tg|"+strconv.Itoa(m.Sender.ID)+"|username", s[0], 0).Err()
 			if err != nil {
 				log.Println("[AlphaTelegramBot] Error connecting to redis: ", err)
-				alpha.Send(m.Sender, "Error saving your input")
+				_, _ = alpha.Send(m.Sender, "Error saving your input")
 			} else {
-				alpha.Send(m.Sender, "New Username saved!")
+				_, _ = alpha.Send(m.Sender, "New Username saved!")
 			}
 		} else {
-			alpha.Send(m.Sender, "Authentication failed!")
+			_, _ = alpha.Send(m.Sender, "Authentication failed!")
 		}
 	})
 	alpha.Handle("/psqlPing", func(m *tb.Message) {
 		db, err := sql.Open("postgres", psqlInfo)
 		if err != nil {
 			log.Println("[PostgreSQL] Server Connection failed: ", err)
-			alpha.Send(m.Sender, "An error occurred!\nCheck the logs!")
+			_, _ = alpha.Send(m.Sender, "An error occurred!\nCheck the logs!")
 			return
 		}
 		defer db.Close()
 		err = db.Ping()
 		if err != nil {
 			log.Println("[PostgreSQL] Server Ping failed: ", err)
-			alpha.Send(m.Sender, "An error occurred!\nCheck the logs!")
+			_, _ = alpha.Send(m.Sender, "An error occurred!\nCheck the logs!")
 			return
 		}
-		alpha.Send(m.Sender, "Ping successfull!")
+		_, _ = alpha.Send(m.Sender, "Ping successfull!")
 	})
 	alpha.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		fmt.Println("[AlphaTelegramBot] " + "Group Message:")
@@ -399,7 +399,7 @@ func alphaTelegramBot() {
 		for {
 			toSend := <-msgAlpha
 			tionis := tb.Chat{ID: 248533143}
-			alpha.Send(&tionis, toSend, tb.ModeMarkdown)
+			_, _ = alpha.Send(&tionis, toSend, tb.ModeMarkdown)
 		}
 	}(alpha)
 
@@ -432,7 +432,7 @@ func mcShutdownTelegram(alpha *tb.Bot, m *tb.Message, minutes int) {
 	minutesString := strconv.Itoa(minutes)
 	client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 	if !mcRunning {
-		alpha.Send(m.Sender, "The Server is currently not running!")
+		_, _ = alpha.Send(m.Sender, "The Server is currently not running!")
 		return
 	}
 	msgDiscordMC <- "Server shutdown commencing in " + minutesString + " Minutes!\nYou can cancel it with /mc cancel"
@@ -445,10 +445,10 @@ func mcShutdownTelegram(alpha *tb.Bot, m *tb.Message, minutes int) {
 	if err != nil {
 		log.Println("[AlphaDiscordBot] RCON server command connection failed")
 	}
-	alpha.Send(m.Sender, "If you don't say /mcCancel in the next "+minutesString+" Minutes I will shut down the server!")
+	_, _ = alpha.Send(m.Sender, "If you don't say /mcCancel in the next "+minutesString+" Minutes I will shut down the server!")
 	time.Sleep(time.Duration(minutes) * time.Minute)
 	if mcStopping {
-		alpha.Send(m.Sender, "Shutting down Server...")
+		_, _ = alpha.Send(m.Sender, "Shutting down Server...")
 		msgDiscordMC <- "Shutting down Server..."
 		if err != nil {
 			log.Println("[AlphaDiscordBot] RCON server connection failed")

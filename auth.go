@@ -15,14 +15,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func auth(user string, pass string) (bool, error) {
-	val, err := redclient.Get(user).Result()
-	if err != nil {
-		return false, err
-	}
-	return val == pass, err
-}
-
 func authGin(c *gin.Context) {
 	header := c.Request.Header
 	basicString := strings.Join(header["Authorization"], "")

@@ -117,7 +117,7 @@ func (c *Client) sendPayload(request *payload) (*payload, error) {
 	}
 
 	if response.packetID == packetIDBadAuth {
-		return nil, errors.New("Authentication unsuccessful")
+		return nil, errors.New("rcon: authentication unsuccessful")
 	}
 
 	return response, nil
@@ -126,14 +126,14 @@ func (c *Client) sendPayload(request *payload) (*payload, error) {
 func createPacketFromPayload(payload *payload) ([]byte, error) {
 	var buf bytes.Buffer
 
-	binary.Write(&buf, binary.LittleEndian, payload.calculatePacketSize())
-	binary.Write(&buf, binary.LittleEndian, payload.packetID)
-	binary.Write(&buf, binary.LittleEndian, payload.packetType)
-	binary.Write(&buf, binary.LittleEndian, payload.packetBody)
-	binary.Write(&buf, binary.LittleEndian, [2]byte{})
+	_ = binary.Write(&buf, binary.LittleEndian, payload.calculatePacketSize())
+	_ = binary.Write(&buf, binary.LittleEndian, payload.packetID)
+	_ = binary.Write(&buf, binary.LittleEndian, payload.packetType)
+	_ = binary.Write(&buf, binary.LittleEndian, payload.packetBody)
+	_ = binary.Write(&buf, binary.LittleEndian, [2]byte{})
 
 	if buf.Len() >= payloadMaxSize {
-		return nil, fmt.Errorf("Payload exceeded maximum allowed size of %d", payloadMaxSize)
+		return nil, fmt.Errorf("rcon: payload exceeded maximum allowed size of %d", payloadMaxSize)
 	}
 
 	return buf.Bytes(), nil

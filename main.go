@@ -63,9 +63,9 @@ func main() {
 
 	// Cronjob Definitions
 	c := cron.New()
-	c.AddFunc("@every 15m", func() { updateAuth() })
-	c.AddFunc("@every 5m", func() { pingMC() })
-	c.AddFunc("@every 1m", func() { updateMC() })
+	_ = c.AddFunc("@every 15m", func() { updateAuth() })
+	_ = c.AddFunc("@every 5m", func() { pingMC() })
+	_ = c.AddFunc("@every 5m", func() { updateMC() })
 	c.Start()
 
 	// Creates a gin router with default middleware:
@@ -75,9 +75,5 @@ func main() {
 	routes(router) // Setup standard Routes and WA API
 	//awsProxy(router)        // Setup AWS Proxy Routes
 	log.Fatal(router.Run()) // Start WebServer
-	c.Stop()
-}
-
-func handleError(err error) {
-	log.Println("[TasdarApi] General Error: ", err)
+	//c.Stop()
 }

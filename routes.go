@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"net/smtp"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,6 +20,10 @@ import (
 type alphaMsgStruct struct {
 	Message string `form:"message" json:"message" binding:"required"`
 	Token   string `form:"token" json:"token" binding:"required"`
+}
+
+type tokenStruct struct {
+	Token string `json:"token"`
 }
 
 func routes(router *gin.Engine) {
@@ -50,7 +56,7 @@ func routes(router *gin.Engine) {
 	router.GET("/mc/stopped/:token", func(c *gin.Context) {
 		getAuthorization, err := redclient.Get("mc|token|" + c.Param("token")).Result()
 		if err != nil {
-			c.String(500, "Internal Server Error")
+			c.String(500, "uncategorized fuckery")
 		}
 		if getAuthorization == "true" {
 			mcRunning = false
@@ -61,6 +67,9 @@ func routes(router *gin.Engine) {
 	// Google Assitant API - WIP
 	router.POST("/dialogflow/alpha", retFoodToday)
 
+	// Google Assitant IFTTT API - tokenization
+	router.POST("/assitant/order/:number", assistantOrderHandler)
+
 	// Receive Message from contact form
 	router.POST("/contact/tasadar", contactTasadar)
 	router.GET("/contact/tasadar", contactTasadar)
@@ -70,10 +79,10 @@ func routes(router *gin.Engine) {
 		iotWebhookHandler(c.Param("home"), c.Param("service"), c.Param("command"), c)
 	})
 	router.POST("/phonetrack/geofence/:device/:location/:movement/:coordinates", func(c *gin.Context) {
-		iotGeofenceHandler(c.Param("device"), c.Param("location"), c.Param("movement"), c.Param("coordinates"), c)
+		iotGeofenceHandler(c.Param("device"), c.Param("location"), c.Param("coordinates"), c)
 	})
 	router.GET("/phonetrack/geofence/:device/:location/:movement/:coordinates", func(c *gin.Context) {
-		iotGeofenceHandler(c.Param("device"), c.Param("location"), c.Param("movement"), c.Param("coordinates"), c)
+		iotGeofenceHandler(c.Param("device"), c.Param("location"), c.Param("coordinates"), c)
 	})
 
 	// Send Alpha Message to configured Admin
@@ -112,16 +121,64 @@ func routes(router *gin.Engine) {
 }
 
 type contactForm struct {
-	name    string `form:"name" binding:"required"`
-	mail    string `form:"mail" binding:"required"`
-	message string `form:"message" binding:"required"`
+	Name    string `form:"name" binding:"required"`
+	Mail    string `form:"mail" binding:"required"`
+	Message string `form:"message" binding:"required"`
+}
+
+// Google Assistant IFTTT Bindings
+func authenticateIFTTTToken(token string) bool {
+	val, err := redclient.Get("token|" + token + "|ifttt").Result()
+	if err != nil {
+		return false
+	}
+	return val == "true"
+}
+
+func assistantOrderHandler(c *gin.Context) {
+	var tokenJSON tokenStruct
+	if c.BindJSON(&tokenJSON) == nil {
+		if authenticateIFTTTToken(tokenJSON.Token) {
+			err := assistantOrder(c.Param("number"))
+			if err != nil {
+				c.String(500, "Uncategorized Fuckery")
+				log.Println("[TasadarAPI] Error executing order"+c.Param("number")+" : ", err)
+			} else {
+				c.String(200, "Order executed")
+			}
+		} else {
+			c.String(401, "Unauthorized!")
+		}
+	} else {
+		c.String(400, "Error parsing your packet")
+	}
+}
+
+func assistantOrder(orderNumber string) error {
+	num, err := strconv.Atoi(orderNumber)
+	if err != nil {
+		return err
+	}
+	switch num {
+	case 31:
+		_, err := http.Get("https://maker.ifttt.com/trigger/node_on/with/key/cxGr-6apUjU9_cwUQMCGQ5")
+		if err != nil {
+			return err
+		}
+	default:
+		return errors.New("Tasadar-Assistant: Unknown command")
+	}
+	return nil
 }
 
 // contactTasadar
 func contactTasadar(c *gin.Context) {
 	auth := smtp.PlainAuth("", os.Getenv("SMTP_USERNAME"), os.Getenv("SMTP_PASSWORD"), os.Getenv("SMTP_HOST"))
 	var contact contactForm
-	c.Bind(&contact) // This will infer what binder to use depending on the content-type header.
+	err := c.Bind(&contact) // This will infer what binder to use depending on the content-type header.
+	if err != nil {
+		log.Println("[TasadarAPI] Error in contact form handling at c.Bind(&contact): ", err)
+	}
 	name := c.PostForm("name")
 	email := c.PostForm("email")
 	message := c.PostForm("message")
@@ -130,7 +187,7 @@ func contactTasadar(c *gin.Context) {
 		"Subject: New Message over Contact Form\r\n" +
 		"\r\nNew Message from " + name + "\r\n Email: " + email + "\r\n---\r\n" +
 		message + "\r\n")
-	err := smtp.SendMail(os.Getenv("SMTP_HOST")+":"+os.Getenv("SMTP_PORT"), auth, "postmaster@mail.tasadar.net", to, msg)
+	err = smtp.SendMail(os.Getenv("SMTP_HOST")+":"+os.Getenv("SMTP_PORT"), auth, "postmaster@mail.tasadar.net", to, msg)
 	if err != nil {
 		log.Println("[TasadarAPI] Error sending mail: ", err)
 		c.String(500, "Error sending mail, please send an email to support@tasadar.net")
@@ -234,7 +291,7 @@ func iotWebhookHandler(home string, service string, command string, c *gin.Conte
 	}
 }
 
-func iotGeofenceHandler(device string, location string, movement string, coordinates string, c *gin.Context) {
+func iotGeofenceHandler(device string, location string, coordinates string, c *gin.Context) {
 	switch device {
 	case "note":
 		switch location {

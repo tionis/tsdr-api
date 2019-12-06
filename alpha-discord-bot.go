@@ -78,14 +78,14 @@ func alphaDiscordBot() {
 		log.Println("[AlphaDiscordBot] Error getting dgStatus from redis: ", err)
 		dgStatus = "Mass Effect 5"
 	}
-	dg.UpdateStatus(0, dgStatus)
+	_ = dg.UpdateStatus(0, dgStatus)
 
 	// Define input channel
 	go func(s *discordgo.Session) {
 		msgDiscordMC = make(chan string)
 		for {
 			toSend := <-msgDiscordMC
-			s.ChannelMessageSend(mainChannelID, toSend)
+			_, _ = s.ChannelMessageSend(mainChannelID, toSend)
 		}
 	}(dg)
 
@@ -96,7 +96,7 @@ func alphaDiscordBot() {
 	<-sc
 
 	// Cleanly close down the Discord session.
-	dg.Close()
+	_ = dg.Close()
 }
 
 // This function will be called (due to AddHandler above) every time a new
@@ -112,31 +112,31 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	switch m.Content {
 	case "/help":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-		s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - General Tasadar Network - /tn help")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - General Tasadar Network - /tn help")
 	case "/unip help":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/tn help":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/linkAccount username password - Link your Tasadar Account to your Discord Account (use only in DM!)")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/linkAccount username password - Link your Tasadar Account to your Discord Account (use only in DM!)")
 	case "/food":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-		s.ChannelMessageSend(m.ChannelID, foodtoday())
+		_, _ = s.ChannelMessageSend(m.ChannelID, foodtoday())
 	case "/food tomorrow":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-		s.ChannelMessageSend(m.ChannelID, foodtomorrow())
+		_, _ = s.ChannelMessageSend(m.ChannelID, foodtomorrow())
 	case "/ping":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-		s.ChannelMessageSend(m.ChannelID, "Pong!")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
 	case "/mc start":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		if mcRunning {
-			s.ChannelMessageSend(m.ChannelID, "Server already running!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Server already running!")
 		} else {
-			s.ChannelMessageSend(m.ChannelID, "Starting MC-Server...")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Starting MC-Server...")
 			success := mcStart()
 			if !success {
-				s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
+				_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
 				log.Println("[AlphaDiscordBot] Error starting mc-server")
 			}
 		}
@@ -148,17 +148,17 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		if mcStopping {
 			mcStopping = false
-			s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped!")
 			client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 			_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown was aborted!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
 			if err != nil {
-				log.Println("[AlphaDiscordBot] RCON server command connection failed: ")
+				log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
 				return
 			}
 		} else if mcRunning {
-			s.ChannelMessageSend(m.ChannelID, "There is currently no Server Shutdown scheduled!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "There is currently no Server Shutdown scheduled!")
 		} else {
-			s.ChannelMessageSend(m.ChannelID, "Server is currently not running!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Server is currently not running!")
 		}
 	case "/mc status":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
@@ -166,25 +166,25 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if mcRunning {
 			client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 			if err != nil {
-				s.ChannelMessage(m.ChannelID, "An Error occurred, please contact the administrator!")
+				_, _ = s.ChannelMessage(m.ChannelID, "An Error occurred, please contact the administrator!")
 				log.Println("[AlphaDiscordBot] Error while creating rcon client: ", err)
 				return
 			}
 			if !mcRunning {
-				s.ChannelMessageSend(m.ChannelID, "Warning! - Server currently not running!")
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Warning! - Server currently not running!")
 				return
 			}
 			resp, err := client.sendCommand("execute if entity @a")
 			if err != nil {
 				log.Println("[AlphaDiscordBot] RCON server command connection failed: : ", err)
-				s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
+				_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
 				return
 			}
 			var creeperCountString string
 			res, err := client.sendCommand("execute if entity @e[type=creeper]")
 			if err != nil {
 				log.Println("[AlphaDiscordBot] RCON server command connection failed: : ", err)
-				s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
+				_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
 				return
 			}
 			if strings.Contains(res, "Test failed") {
@@ -198,23 +198,17 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			} else {
 				playerCountString = strings.TrimPrefix(resp, "Test passed, count: ")
 			}
-			if err != nil {
-				log.Println("[AlphaDiscordBot] Player counting failed: ", err)
-				s.ChannelMessageSend(m.ChannelID, "An error occurred while counting players, please contact the administrator.")
-				log.Println(err)
-			} else {
-				s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
-			}
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
 		} else {
-			s.ChannelMessageSend(m.ChannelID, "Server currently offline!\nTo start it use /mc start")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently offline!\nTo start it use /mc start")
 		}
 	case "/mc":
 	case "/minecraft":
 	case "/mc help":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-		s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
 	case "/id":
-		s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
 		//default:
 		//log.Println("[AlphaDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 	}
@@ -225,37 +219,37 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			err := redclient.Set("dg|status", newStatus, 0).Err()
 			if err != nil {
 				log.Println("Error setting dg|status on Redis: ", err)
-				s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
 			}
-			s.UpdateStatus(0, newStatus)
-			s.ChannelMessageSend(m.ChannelID, "New Status set!")
+			_ = s.UpdateStatus(0, newStatus)
+			_, _ = s.ChannelMessageSend(m.ChannelID, "New Status set!")
 		} else {
-			s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
 		}
 	} else if strings.Contains(m.Content, "/linkAccount ") {
 		tokens := strings.Split(strings.TrimPrefix(m.Content, "/linkAccount "), " ")
 		if len(tokens) < 2 {
-			s.ChannelMessageSend(m.ChannelID, "I couldn't parse your Message, please check your Syntax!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "I couldn't parse your Message, please check your Syntax!")
 		} else {
 			if authUser(tokens[0], tokens[1]) {
 				err := redclient.Set("dg|"+m.Author.ID+"|username", tokens[0], 0).Err()
 				if err != nil {
-					s.ChannelMessageSend(m.ChannelID, "Error saving your link")
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Error saving your link")
 				} else {
-					s.ChannelMessageSend(m.ChannelID, "I established your new Link successfully")
+					_, _ = s.ChannelMessageSend(m.ChannelID, "I established your new Link successfully")
 				}
 			} else {
-				s.ChannelMessageSend(m.ChannelID, "Authentication failed, please double-check your password and username!")
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Authentication failed, please double-check your password and username!")
 			}
 		}
-		s.ChannelMessageDelete(m.ChannelID, m.ID)
+		_ = s.ChannelMessageDelete(m.ChannelID, m.ID)
 	}
 }
 
 func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes int) {
 	minutesString := strconv.Itoa(minutes)
 	if !mcRunning {
-		s.ChannelMessageSend(m.ChannelID, "The Server is currently not running!\nYou must start the Server to stop it!")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "The Server is currently not running!\nYou must start the Server to stop it!")
 		return
 	}
 	client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
@@ -269,13 +263,13 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 	if err != nil {
 		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
 	}
-	s.ChannelMessageSend(m.ChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
+	_, _ = s.ChannelMessageSend(m.ChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
 	if m.ChannelID != mainChannelID {
-		s.ChannelMessageSend(mainChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
+		_, _ = s.ChannelMessageSend(mainChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
 	}
 	time.Sleep(time.Duration(minutes) * time.Minute)
 	if mcStopping {
-		s.ChannelMessageSend(m.ChannelID, "Shutting down Server...")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Shutting down Server...")
 		if err != nil {
 			log.Println("[AlphaDiscordBot] RCON server connection failed", err)
 		}
@@ -315,12 +309,12 @@ func mcStart() bool {
 		} else {
 			mcRunningString = "false"
 		}
-		redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
+		_ = redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
 		if err != nil {
 			log.Println("Error setting mc|IsRunning on Redis: ", err)
 		}
 		lastPlayerOnline = time.Now()
-		redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
+		_ = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 		if err != nil {
 			log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
@@ -346,7 +340,7 @@ func updateMC() {
 			} else {
 				mcRunningString = "false"
 			}
-			redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
+			err = redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
 			if err != nil {
 				log.Println("Error setting mc|IsRunning on Redis: ", err)
 			}
@@ -364,24 +358,20 @@ func updateMC() {
 		} else {
 			playerCountString = strings.TrimPrefix(resp, "Test passed, count: ")
 		}
-		if err != nil {
-			log.Println("[AlphaDiscordBot] Player counting failed: ", err)
-			log.Println(err)
-		}
 		playerCount, err := strconv.Atoi(playerCountString)
 		if err != nil {
 			log.Println("Error converting PlayerCountString to int: ", err)
 		}
 		if playerCount > 0 {
 			lastPlayerOnline = time.Now()
-			redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
+			_ = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 			if err != nil {
 				log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
 			}
 		} else {
 			if time.Now().Sub(lastPlayerOnline).Minutes() > 30 {
 				lastPlayerOnline = time.Now()
-				redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
+				_ = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 				if err != nil {
 					log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
 				}
@@ -411,7 +401,7 @@ func mcStopPlayerOffline() {
 	msgDiscordMC <- "There were no players on the Server for quite some time.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
 	time.Sleep(5 * time.Minute)
 	if mcStopping {
-		client.reconnect()
+		err = client.reconnect()
 		msgDiscordMC <- "Shutting down Server..."
 		if err != nil {
 			log.Println("[AlphaDiscordBot] RCON server connection failed", err)
@@ -447,7 +437,7 @@ func pingMC() {
 	_, _, err := bot.PingAndList("mc.tasadar.net", 25565)
 	if mcRunning == false && err == nil { // Resets Counter if server online trough other means
 		lastPlayerOnline = time.Now()
-		redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
+		err = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 		if err != nil {
 			log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
@@ -459,7 +449,7 @@ func pingMC() {
 	} else {
 		mcRunningString = "false"
 	}
-	redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
+	err = redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
 	if err != nil {
 		log.Println("[pingMC] Error setting mc|IsRunning on Redis: ", err)
 	}
