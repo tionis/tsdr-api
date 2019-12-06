@@ -22,6 +22,12 @@ type alphaMsgStruct struct {
 	Token   string `form:"token" json:"token" binding:"required"`
 }
 
+type mcWhitelistStruct struct {
+	User     string `form:"user" json:"user" binding:"required"`
+	Password string `form:"password" json:"password" binding:"required"`
+	MCUser   string `form:"mcuser" json:"mcuser" binding:"required"`
+}
+
 type tokenStruct struct {
 	Token string `json:"token"`
 }
@@ -71,8 +77,11 @@ func routes(router *gin.Engine) {
 	router.POST("/iot/assistant/order/:number", assistantOrderHandler)
 
 	// Receive Message from contact form
-	router.POST("/contact/tasadar", contactTasadar)
+	//router.POST("/contact/tasadar", contactTasadar)
 	router.GET("/contact/tasadar", contactTasadar)
+
+	// MC API
+	router.GET("/mc/whitelist", mcWhitelist)
 
 	// IoT Handling
 	router.GET("/iot/:home/:service/:command", func(c *gin.Context) {
@@ -169,6 +178,68 @@ func assistantOrder(orderNumber string) error {
 		return errors.New("Tasadar-Assistant: Unknown command")
 	}
 	return nil
+}
+
+// mc
+func mcWhitelist(c *gin.Context) {
+	var mcData mcWhitelistStruct
+	err := c.Bind(&mcData) // This will infer what binder to use depending on the content-type header.
+	if err != nil {
+		log.Println("[TasadarAPI] Error in contact form handling at c.Bind(&mcData): ", err)
+		c.Redirect(302, "https://mc.tasadar.net/error")
+		return
+	}
+	user := c.PostForm("user")
+	password := c.PostForm("password")
+	mcuser := c.PostForm("mcuser")
+	if authUser(user, password) {
+		oldName, errNoOldName := redclient.Get("auth|" + user + "|mc").Result()
+		if oldName == mcuser {
+			c.Redirect(302, "https://mc.tasadar.net/nochange")
+			return
+		}
+		// Blacklist old username and whitelist new username
+		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+		if err != nil {
+			log.Println("[TasadarAPI] Error occured while building client for connection: ", err)
+			c.Redirect(302, "https://mc.tasadar.net/offline")
+			return
+		}
+		if errNoOldName == nil {
+			response, err := client.sendCommand("whitelist remove " + oldName)
+			if err != nil {
+				log.Println("[TasadarAPI] Error occured while making connection: ", err)
+				c.Redirect(302, "https://mc.tasadar.net/error")
+				return
+			}
+			if !strings.Contains(response, "Removed") {
+				log.Println("[TasadarAPI] Error removing MCuser "+oldName+" from whitelist: ", response)
+				c.Redirect(302, "https://mc.tasadar.net/error")
+				return
+			}
+		}
+		response, err := client.sendCommand("whitelist add " + mcuser)
+		if err != nil {
+			log.Println("[TasadarAPI] Error occured while making connection: ", err)
+			c.Redirect(302, "https://mc.tasadar.net/error")
+			return
+		}
+		if strings.Contains(response, "Added") {
+			log.Println("[TasadarAPI] Error adding MCuser "+mcuser+" from whitelist: ", response)
+			c.Redirect(302, "https://mc.tasadar.net/error")
+			return
+		} else {
+			err = redclient.Set("auth|"+user+"|mc", mcuser, 0).Err()
+			if err != nil {
+				log.Println("[TasadarAPI] Error saving new mc username "+mcuser+" to database for user "+user+" : ", err)
+			}
+			c.Redirect(302, "https://mc.tasadar.net/success")
+			return
+		}
+	} else {
+		c.Redirect(302, "https://mc.tasadar.net/unauthorized")
+		return
+	}
 }
 
 // contactTasadar

@@ -298,7 +298,7 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 
 func mcStart() bool {
 	client := &http.Client{}
-	req, _ := http.NewRequest("GET", "https://mc.tasadar.net/mc/start", nil)
+	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/start", nil)
 	req.Header.Set("TASADAR_SECRET", "JFyMdGUgx3Re2r2VefLYFJeGNosscB98")
 	res, err := client.Do(req)
 	if res.StatusCode == 200 {
