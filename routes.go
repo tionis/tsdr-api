@@ -77,11 +77,12 @@ func routes(router *gin.Engine) {
 	router.POST("/iot/assistant/order/:number", assistantOrderHandler)
 
 	// Receive Message from contact form
-	//router.POST("/contact/tasadar", contactTasadar)
+	router.POST("/contact/tasadar", contactTasadar)
 	router.GET("/contact/tasadar", contactTasadar)
 
 	// MC API
 	router.GET("/mc/whitelist", mcWhitelist)
+	router.POST("/mc/whitelist", mcWhitelist)
 
 	// IoT Handling
 	router.GET("/iot/:home/:service/:command", func(c *gin.Context) {
@@ -95,7 +96,7 @@ func routes(router *gin.Engine) {
 	})
 
 	// Send Alpha Message to configured Admin
-	// TODO: Change this to full blown REST API (JSON TOKENS WITH SSO SOLUTION?)
+	// TODÖ: Change this to full blown REST API (JSON TOKENS WITH SSO SOLUTION?)
 	/*router.GET("/tg/:message", func(c *gin.Context) {
 		message := c.Param("message")
 		msgAlpha <- message
@@ -186,7 +187,7 @@ func mcWhitelist(c *gin.Context) {
 	err := c.Bind(&mcData) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
 		log.Println("[TasadarAPI] Error in contact form handling at c.Bind(&mcData): ", err)
-		c.Redirect(302, "https://mc.tasadar.net/error")
+		c.String(401, "Error in your request")
 		return
 	}
 	user := c.PostForm("user")
@@ -228,18 +229,16 @@ func mcWhitelist(c *gin.Context) {
 			log.Println("[TasadarAPI] Error adding MCuser "+mcuser+" from whitelist: ", response)
 			c.Redirect(302, "https://mc.tasadar.net/error")
 			return
-		} else {
-			err = redclient.Set("auth|"+user+"|mc", mcuser, 0).Err()
-			if err != nil {
-				log.Println("[TasadarAPI] Error saving new mc username "+mcuser+" to database for user "+user+" : ", err)
-			}
-			c.Redirect(302, "https://mc.tasadar.net/success")
-			return
 		}
-	} else {
-		c.Redirect(302, "https://mc.tasadar.net/unauthorized")
+		err = redclient.Set("auth|"+user+"|mc", mcuser, 0).Err()
+		if err != nil {
+			log.Println("[TasadarAPI] Error saving new mc username "+mcuser+" to database for user "+user+" : ", err)
+		}
+		c.Redirect(302, "https://mc.tasadar.net/success")
 		return
 	}
+	c.Redirect(302, "https://mc.tasadar.net/unauthorized")
+	return
 }
 
 // contactTasadar
@@ -249,6 +248,8 @@ func contactTasadar(c *gin.Context) {
 	err := c.Bind(&contact) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
 		log.Println("[TasadarAPI] Error in contact form handling at c.Bind(&contact): ", err)
+		c.String(401, "Error in your request")
+		return
 	}
 	name := c.PostForm("name")
 	email := c.PostForm("email")
