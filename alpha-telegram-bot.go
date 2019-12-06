@@ -448,6 +448,10 @@ func mcShutdownTelegram(alpha *tb.Bot, m *tb.Message, minutes int) {
 	_, _ = alpha.Send(m.Sender, "If you don't say /mcCancel in the next "+minutesString+" Minutes I will shut down the server!")
 	time.Sleep(time.Duration(minutes) * time.Minute)
 	if mcStopping {
+		err = client.reconnect()
+		if err != nil {
+			log.Println("[AlphaDiscordBot] RCON server reconnect failed: ", err)
+		}
 		_, _ = alpha.Send(m.Sender, "Shutting down Server...")
 		msgDiscordMC <- "Shutting down Server..."
 		if err != nil {
@@ -471,7 +475,12 @@ func mcShutdownTelegram(alpha *tb.Bot, m *tb.Message, minutes int) {
 		}
 		_, err = client.sendCommand("stop")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			log.Println("[AlphaDiscordBot] RCON server command connection failed - trying again: ", err)
+			_ = client.reconnect()
+			_, err = client.sendCommand("stop")
+			if err != nil {
+				log.Println("[AlphaDiscordBot] RCON server reconnect failed finally: ", err)
+			}
 		}
 	}
 }

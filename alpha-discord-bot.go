@@ -424,10 +424,15 @@ func mcStopPlayerOffline() {
 		}
 		_, err = client.sendCommand("stop")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
-			msgDiscordMC <- "Error while trying to stop Server"
-			msgAlpha <- "Error sending stop command to MC-Server"
-			mcStopping = false
+			log.Println("[AlphaDiscordBot] RCON server command connection failed - trying again: ", err)
+			_ = client.reconnect()
+			_, err = client.sendCommand("stop")
+			if err != nil {
+				log.Println("[AlphaDiscordBot] RCON server reconnect failed finally: ", err)
+				msgDiscordMC <- "Error while trying to stop Server"
+				msgAlpha <- "Error sending stop command to MC-Server"
+				mcStopping = false
+			}
 		}
 	}
 }
