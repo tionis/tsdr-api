@@ -68,7 +68,7 @@ func routes(router *gin.Engine) {
 	router.POST("/dialogflow/alpha", retFoodToday)
 
 	// Google Assitant IFTTT API - tokenization
-	router.POST("/assitant/order/:number", assistantOrderHandler)
+	router.POST("/iot/assistant/order/:number", assistantOrderHandler)
 
 	// Receive Message from contact form
 	router.POST("/contact/tasadar", contactTasadar)
