@@ -349,7 +349,7 @@ func updateMC() {
 		}
 		resp, err := client.sendCommand("execute if entity @a")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server command connection failed: : ", err)
+			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
 			return
 		}
 		var playerCountString string
