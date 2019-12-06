@@ -203,7 +203,11 @@ func mcWhitelist(c *gin.Context) {
 		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 		if err != nil {
 			log.Println("[TasadarAPI] Error occured while building client for connection: ", err)
-			c.Redirect(302, "https://mc.tasadar.net/offline")
+			if mcStart() {
+				c.Redirect(302, "https://mc.tasadar.net/offline")
+				return
+			}
+			c.Redirect(302, "https://mc.tasadar.net/error")
 			return
 		}
 		if errNoOldName == nil {
