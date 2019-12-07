@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -148,6 +149,35 @@ func updateAuth() {
 				err = redclient.Set("auth|"+currentUser+"|groups", "", 0).Err()
 				if err != nil {
 					log.Println("[TasadarAuth] Error updating database: ", err)
+				}
+				// Remove Minecraft User from whitelist
+				mcName, err := redclient.Get("auth|" + currentUser + "|mc").Result()
+				if err != nil {
+					log.Println("[TasadarAuth] - Deleted User " + currentUser + " but found no minecraft User --> Ignoring")
+				} else {
+					if mcRunning {
+						client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+						if err == nil {
+							response, err := client.sendCommand("whitelist remove " + mcName)
+							if err == nil {
+								if !strings.Contains(response, "Removed") {
+									log.Println("[TasadarAuth] Removed mcUser " + mcName + "from whitelist, because " + currentUser + "was removed!")
+								} else {
+									log.Println("[TasadarAuth] Error while executing command on Minecraft Server to delete user "+mcName+" - error: ", err)
+									msgAlpha <- "Please blacklist " + currentUser + " manually as there was an error:\n\n" + response
+								}
+							} else {
+								log.Println("[TasadarAuth] Error connecting to Minecraft Server to delete user "+mcName+" - error: ", err)
+								msgAlpha <- "Please blacklist " + currentUser + " manually - server was offline"
+							}
+						} else {
+							log.Println("[TasadarAuth] Error connecting to Minecraft Server to delete user "+mcName+" - error: ", err)
+							msgAlpha <- "Please blacklist " + currentUser + " manually - server was offline"
+						}
+					} else {
+						log.Println("[TasadarAuth] Error while deleting mcUser " + mcName + ": Server variable offline")
+						msgAlpha <- "Please blacklist " + currentUser + " manually - server was offline"
+					}
 				}
 			}
 		}

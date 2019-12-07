@@ -215,6 +215,7 @@ func mcWhitelist(c *gin.Context) {
 			if err != nil {
 				log.Println("[TasadarAPI] Error occured while making connection: ", err)
 				c.Redirect(302, "https://mc.tasadar.net/error")
+
 				return
 			}
 			if !strings.Contains(response, "Removed") {
@@ -227,11 +228,14 @@ func mcWhitelist(c *gin.Context) {
 		if err != nil {
 			log.Println("[TasadarAPI] Error occured while making connection: ", err)
 			c.Redirect(302, "https://mc.tasadar.net/error")
+			client.reconnect()
+			_, _ = client.sendCommand("whitelist add " + oldName)
 			return
 		}
-		if strings.Contains(response, "Added") {
+		if !strings.Contains(response, "Added") {
 			log.Println("[TasadarAPI] Error adding MCuser "+mcuser+" from whitelist: ", response)
 			c.Redirect(302, "https://mc.tasadar.net/error")
+			_, _ = client.sendCommand("whitelist add " + oldName)
 			return
 		}
 		err = redclient.Set("auth|"+user+"|mc", mcuser, 0).Err()
