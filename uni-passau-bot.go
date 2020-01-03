@@ -26,7 +26,8 @@ import (
 // Global Variables
 // Matrix Slice for food handling (should be repplaced in future??)
 var values [][]string
-var nextvalues [][]string
+
+//var nextvalues [][]string
 
 // uniPassauBot handles all the legacy uni-passau-bot code for telegram
 func uniPassauBot() {
@@ -216,7 +217,7 @@ func initArray() {
 	}
 }
 
-func initNextArray() {
+/*func initNextArray() {
 	// Check if exists
 	// checks if new file has to be downloaded and does so - does also remove the old file
 	loc, _ := time.LoadLocation("Europe/Berlin")
@@ -249,7 +250,7 @@ func initNextArray() {
 		// Build Slice by appending every line
 		nextvalues = append(nextvalues, record)
 	}
-}
+}*/
 
 func foodtoday() string {
 	// returns the string to print to user who requested the mensa plan
@@ -469,7 +470,7 @@ func weekDate(day int) string {
 	return ret.Format("02.01.2006")
 }
 
-func nextWeekDate(day int) string {
+/*func nextWeekDate(day int) string {
 	// Start from the middle of the year:
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	currentTime := time.Now().In(loc)
@@ -490,7 +491,7 @@ func nextWeekDate(day int) string {
 	ret := t.AddDate(0, 0, day-1)
 
 	return ret.Format("02.01.2006")
-}
+}*/
 
 func delInf(input string) string {
 	// Delete the symbols in the brackets at the end of the string (in this case the allergic info)

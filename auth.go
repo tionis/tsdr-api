@@ -1,16 +1,15 @@
-//Userauth Code
-// Sync user.auth.php from s3 and check against it,
-// if unavailable check against environment variable
 package main
 
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
@@ -97,19 +96,19 @@ func updateAuth() {
 		var userlist []string
 		for _, txt := range accounts {
 			user := strings.Split(txt, ":")
-			err := redclient.Set("auth|"+user[0]+"|hash", user[1], 0).Err()
+			err := redclient.Set("auth|"+user[0]+"|hash", user[1], time.Hour*10).Err()
 			if err != nil {
 				log.Println("[TasadarAuth] Error updating database: ", err)
 			}
-			err = redclient.Set("auth|"+user[0]+"|name", user[2], 0).Err()
+			err = redclient.Set("auth|"+user[0]+"|name", user[2], time.Hour*10).Err()
 			if err != nil {
 				log.Println("[TasadarAuth] Error updating database: ", err)
 			}
-			err = redclient.Set("auth|"+user[0]+"|email", user[3], 0).Err()
+			err = redclient.Set("auth|"+user[0]+"|email", user[3], time.Hour*10).Err()
 			if err != nil {
 				log.Println("[TasadarAuth] Error updating database: ", err)
 			}
-			err = redclient.Set("auth|"+user[0]+"|groups", user[4], 0).Err()
+			err = redclient.Set("auth|"+user[0]+"|groups", user[4], time.Hour*10).Err()
 			if err != nil {
 				log.Println("[TasadarAuth] Error updating database: ", err)
 			}
@@ -183,7 +182,7 @@ func updateAuth() {
 		}
 
 		// Put new list into database
-		err = redclient.Set("userlist", string(userlistJSON), 0).Err()
+		err = redclient.Set("userlist", string(userlistJSON), time.Hour*10).Err()
 		if err != nil {
 			log.Println("[TasadarAuth] Error updating database: ", err)
 			msgAlpha <- "Error in TasadarAuth!"
@@ -201,11 +200,8 @@ func authUser(username, password string) bool {
 	return checkPasswordHash(password, val)
 }
 
-func respondWithError(code int, message string, c *gin.Context) {
-	resp := map[string]string{"error": message}
-
-	c.JSON(code, resp)
-	c.Abort()
+func authSetPassword(username, newpassword string) error {
+	return errors.New("not implemented")
 }
 
 func hashPassword(password string) (string, error) {

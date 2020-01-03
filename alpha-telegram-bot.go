@@ -362,14 +362,21 @@ func alphaTelegramBot() {
 			_, _ = alpha.Send(m.Sender, "An error occurred!\nCheck the logs!")
 			return
 		}
-		defer db.Close()
 		err = db.Ping()
 		if err != nil {
 			log.Println("[PostgreSQL] Server Ping failed: ", err)
 			_, _ = alpha.Send(m.Sender, "An error occurred!\nCheck the logs!")
+			err = db.Close()
+			if err != nil {
+				log.Println("[PostgreSQL] Error closing Postgres Session")
+			}
 			return
 		}
 		_, _ = alpha.Send(m.Sender, "Ping successfull!")
+		err = db.Close()
+		if err != nil {
+			log.Println("[PostgreSQL] Error closing Postgres Session")
+		}
 	})
 	alpha.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		fmt.Println("[AlphaTelegramBot] " + "Group Message:")
@@ -431,6 +438,10 @@ func isTasadarTGAdmin(ID int) bool {
 func mcShutdownTelegram(alpha *tb.Bot, m *tb.Message, minutes int) {
 	minutesString := strconv.Itoa(minutes)
 	client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+	if err != nil {
+		_, _ = alpha.Send(m.Sender, "Error creating RCON Client Object - Check the logs!")
+		return
+	}
 	if !mcRunning {
 		_, _ = alpha.Send(m.Sender, "The Server is currently not running!")
 		return

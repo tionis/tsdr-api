@@ -17,6 +17,11 @@ import (
 	_ "github.com/heroku/x/hmetrics/onload"
 )
 
+const smtpHost = "smtp.eu.mailgun.org"
+const smtpPort = "25"
+const smtpUser = "postmaster@mail.tasadar.net"
+const smtpFrom = "do-no-reply@mail.tasadar.net"
+
 type alphaMsgStruct struct {
 	Message string `form:"message" json:"message" binding:"required"`
 	Token   string `form:"token" json:"token" binding:"required"`
@@ -30,6 +35,19 @@ type mcWhitelistStruct struct {
 
 type tokenStruct struct {
 	Token string `json:"token"`
+}
+
+type contactForm struct {
+	Name    string `form:"name" binding:"required"`
+	Mail    string `form:"mail" binding:"required"`
+	Message string `form:"message" binding:"required"`
+}
+
+type pwChangeForm struct {
+	Username         string `form:"username" binding:"required"`
+	OldPassword      string `form:"oldPassword" binding:"required"`
+	NewPassword      string `form:"newPassword" binding:"required"`
+	NewPasswordAgain string `form:"newPasswordAgain" binding:"required"`
 }
 
 func routes(router *gin.Engine) {
@@ -54,9 +72,15 @@ func routes(router *gin.Engine) {
 
 	// Auth API
 	router.GET("/auth/basic", authGin)
-	router.POST("/auth/basic", authGin)
-	router.PUT("/auth/basic", authGin)
+	router.GET("/auth/basic/group/:group", authGinGroup)
 	router.GET("/auth/group/:group", authGinGroup)
+	router.GET("/auth/resetpw/:token", resetPWToken)
+	router.GET("/auth/reset-password", resetPW)
+	router.GET("/auth/change-password", changePW)
+	router.POST("/auth/new-password/:token", newPWFormHandlerMail)
+	router.GET("/auth/new-password/:token", newPWFormHandlerMail)
+	router.POST("/auth/new-password", newPWFormHandler)
+	router.GET("/auth/new-password", newPWFormHandler)
 
 	// Minecraft API
 	router.GET("/mc/stopped/:token", func(c *gin.Context) {
@@ -94,14 +118,6 @@ func routes(router *gin.Engine) {
 	router.GET("/phonetrack/geofence/:device/:location/:movement/:coordinates", func(c *gin.Context) {
 		iotGeofenceHandler(c.Param("device"), c.Param("location"), c.Param("coordinates"), c)
 	})
-
-	// Send Alpha Message to configured Admin
-	// TODÖ: Change this to full blown REST API (JSON TOKENS WITH SSO SOLUTION?)
-	/*router.GET("/tg/:message", func(c *gin.Context) {
-		message := c.Param("message")
-		msgAlpha <- message
-		c.String(200, message)
-	})*/
 	router.POST("/alpha/msg", func(c *gin.Context) {
 		var json alphaMsgStruct
 		if c.BindJSON(&json) == nil {
@@ -130,10 +146,66 @@ func routes(router *gin.Engine) {
 	})
 }
 
-type contactForm struct {
-	Name    string `form:"name" binding:"required"`
-	Mail    string `form:"mail" binding:"required"`
-	Message string `form:"message" binding:"required"`
+// Auth System
+func resetPW(c *gin.Context) {
+	// Insert Form for Password Reset here
+	// Generate Token and insert into redis
+	// Send Email
+	c.File("static/auth/reset-password.html")
+}
+
+func resetPWToken(c *gin.Context) {
+	// Validate Token here
+	if false {
+		// Read first part
+		// Read second part
+		// Create custom Form with link
+		// Merge them
+		// IDEA as follows: Form always stays the same but link that its send to changes
+
+	} else {
+		c.File("static/error-pages/401.html")
+	}
+	// Send new form back with
+}
+
+func changePW(c *gin.Context) {
+	c.File("static/auth/change-password.html")
+}
+
+func newPWFormHandlerMail(c *gin.Context) {
+	// validate token
+	if false {
+		// Set new password
+		c.File("static/auth/password-set.html")
+	} else {
+		c.File("static/error-pages/401.html")
+	}
+}
+
+func newPWFormHandler(c *gin.Context) {
+	var newPWFormData pwChangeForm
+	err := c.Bind(&newPWFormData) // This will infer what binder to use depending on the content-type header.
+	if err != nil {
+		log.Println("[TasadarAPI] Error in contact form handling at c.Bind(&newPWFormData): ", err)
+		c.String(401, "Error in your request")
+		return
+	}
+	username := c.PostForm("username")
+	oldPassword := c.PostForm("oldPassword")
+	newPassword := c.PostForm("newPassword")
+	newPasswordAgain := c.PostForm("newPasswordAgain")
+	if newPassword != newPasswordAgain {
+		c.File("static/auth/change-password-wrong.html")
+	}
+	if authUser(username, oldPassword) {
+		err = authSetPassword(username, newPassword)
+		if err != nil {
+			log.Println("[TasadarAPI] Error while trying to set Password for User "+username+" with error code:", err)
+			c.File("static/error-pages/500.html")
+		}
+		c.File("static/auth/new-password-set.html")
+	}
 }
 
 // Google Assistant IFTTT Bindings
@@ -228,7 +300,11 @@ func mcWhitelist(c *gin.Context) {
 		if err != nil {
 			log.Println("[TasadarAPI] Error occured while making connection: ", err)
 			c.Redirect(302, "https://mc.tasadar.net/error")
-			client.reconnect()
+			err = client.reconnect()
+			if err != nil {
+				log.Println("[TasadarAPI] Error occured rebuilding connection, aborting... err: ", err)
+				return
+			}
 			_, _ = client.sendCommand("whitelist add " + oldName)
 			return
 		}
@@ -251,7 +327,7 @@ func mcWhitelist(c *gin.Context) {
 
 // contactTasadar
 func contactTasadar(c *gin.Context) {
-	auth := smtp.PlainAuth("", os.Getenv("SMTP_USERNAME"), os.Getenv("SMTP_PASSWORD"), os.Getenv("SMTP_HOST"))
+	auth := smtp.PlainAuth("", smtpUser, os.Getenv("SMTP_PASSWORD"), smtpHost)
 	var contact contactForm
 	err := c.Bind(&contact) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
@@ -267,7 +343,7 @@ func contactTasadar(c *gin.Context) {
 		"Subject: New Message over Contact Form\r\n" +
 		"\r\nNew Message from " + name + "\r\n Email: " + email + "\r\n---\r\n" +
 		message + "\r\n")
-	err = smtp.SendMail(os.Getenv("SMTP_HOST")+":"+os.Getenv("SMTP_PORT"), auth, "postmaster@mail.tasadar.net", to, msg)
+	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, smtpFrom, to, msg)
 	if err != nil {
 		log.Println("[TasadarAPI] Error sending mail: ", err)
 		c.String(500, "Error sending mail, please send an email to support@tasadar.net")
@@ -418,7 +494,7 @@ func httpecho(c *gin.Context) {
 
 // Handle both root thingies
 func favicon(c *gin.Context) {
-	c.File("static/favicon.svg")
+	c.File("static/icons/favicon.svg")
 }
 
 func index(c *gin.Context) {
@@ -426,7 +502,7 @@ func index(c *gin.Context) {
 }
 
 func notFound(c *gin.Context) {
-	c.File("static/404.html")
+	c.File("static/error-pages/404.html")
 }
 
 // handle simple GET requests for food

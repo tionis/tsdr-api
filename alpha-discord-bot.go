@@ -28,8 +28,8 @@ const lastPlayerOnlineLayout = "2006-01-02T15:04:05.000Z"
 
 // Main and Init
 func alphaDiscordBot() {
-	mainChannelID = os.Getenv("MC_CHANNEL_ID")
-	discordAdminID = os.Getenv("DISCORD_ADMIN")
+	mainChannelID = "574959338754670602"
+	discordAdminID = "259076782408335360"
 	dg, err := discordgo.New("Bot " + os.Getenv("AlphaDiscordBot"))
 	if err != nil {
 		log.Println("[AlphaDiscordBot] Error creating Discord session,", err)
@@ -150,6 +150,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			mcStopping = false
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped!")
 			client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+			if err != nil {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error, please ask an admin to check the logs.")
+				log.Println("[AlphaDiscordBot] Error while trying to create RCON-Client-Object")
+				return
+			}
 			_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown was aborted!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
 			if err != nil {
 				log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
@@ -254,6 +259,11 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 	}
 	client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
 	mcStopping = true
+	if err != nil {
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error, please ask an admin to check the logs.")
+		log.Println("[AlphaDiscordBot] Error while trying to create RCON-Client-Object")
+		return
+	}
 	_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"" + minutesString + " Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
 	if err != nil {
 		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
@@ -301,6 +311,10 @@ func mcStart() bool {
 	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/start", nil)
 	req.Header.Set("TASADAR_SECRET", "JFyMdGUgx3Re2r2VefLYFJeGNosscB98")
 	res, err := client.Do(req)
+	if res == nil {
+		log.Println("Error connecting to mcAPI")
+		return false
+	}
 	if res.StatusCode == 200 {
 		mcRunning = true
 		var mcRunningString string

@@ -1,5 +1,2 @@
-- Shiori Integration
-- Nextcloud Basic Auth
-- Grav API
-- Monica API
-- Glyph API(?)
+- Postgres Backend
+- Password Reset
