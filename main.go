@@ -24,6 +24,9 @@ var psqlInfo string
 // Main and Init
 func main() {
 	// Init postgres
+	if os.Getenv("DATABASE_URL") == "" || os.Getenv("REDIS_URL") == "" {
+		log.Fatal("[Fatal] Error getting Database Information!")
+	}
 	postgresString1 := strings.Split(strings.TrimPrefix(os.Getenv("DATABASE_URL"), "postgres://"), "@")
 	postgresString2 := strings.Split(postgresString1[0], ":")
 	postgresString3 := strings.Split(postgresString1[1], ":")
