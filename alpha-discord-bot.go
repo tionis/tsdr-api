@@ -23,13 +23,16 @@ var mainChannelID string
 var msgDiscordMC chan string
 var lastPlayerOnline time.Time
 var discordAdminID string
+var rconPassword string
 
 const lastPlayerOnlineLayout = "2006-01-02T15:04:05.000Z"
+const rconAddress = "mc.tasadar.net"
 
 // Main and Init
 func alphaDiscordBot() {
 	mainChannelID = "574959338754670602"
 	discordAdminID = "259076782408335360"
+	rconPassword = os.Getenv("RCON_PASS")
 	dg, err := discordgo.New("Bot " + os.Getenv("AlphaDiscordBot"))
 	if err != nil {
 		log.Println("[AlphaDiscordBot] Error creating Discord session,", err)
@@ -149,7 +152,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if mcStopping {
 			mcStopping = false
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped!")
-			client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+			client, err := newClient(rconAddress, 25575, rconPassword)
 			if err != nil {
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error, please ask an admin to check the logs.")
 				log.Println("[AlphaDiscordBot] Error while trying to create RCON-Client-Object")
@@ -169,7 +172,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		pingMC()
 		if mcRunning {
-			client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+			client, err := newClient(rconAddress, 25575, rconPassword)
 			if err != nil {
 				_, _ = s.ChannelMessage(m.ChannelID, "An Error occurred, please contact the administrator!")
 				log.Println("[AlphaDiscordBot] Error while creating rcon client: ", err)
@@ -257,7 +260,7 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 		_, _ = s.ChannelMessageSend(m.ChannelID, "The Server is currently not running!\nYou must start the Server to stop it!")
 		return
 	}
-	client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+	client, err := newClient(rconAddress, 25575, rconPassword)
 	mcStopping = true
 	if err != nil {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error, please ask an admin to check the logs.")
@@ -345,7 +348,7 @@ func pingInMinutes(minutes int) {
 
 func updateMC() {
 	if mcRunning && !mcStopping {
-		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+		client, err := newClient(rconAddress, 25575, rconPassword)
 		if err != nil {
 			mcRunning = false
 			var mcRunningString string
@@ -396,7 +399,7 @@ func updateMC() {
 }
 
 func mcStopPlayerOffline() {
-	client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+	client, err := newClient(rconAddress, 25575, rconPassword)
 	if err != nil {
 		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
 		return

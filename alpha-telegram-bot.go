@@ -284,7 +284,7 @@ func alphaTelegramBot() {
 	alpha.Handle("/mc", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/mc ")
-			client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+			client, err := newClient(rconAddress, 25575, rconPassword)
 			if err != nil {
 				log.Println("[AlphaTelegramBot] Error occured while building client for connection: ", err)
 				_, _ = alpha.Send(m.Sender, "Error occurred while trying to build a connection")
@@ -437,7 +437,7 @@ func isTasadarTGAdmin(ID int) bool {
 
 func mcShutdownTelegram(alpha *tb.Bot, m *tb.Message, minutes int) {
 	minutesString := strconv.Itoa(minutes)
-	client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+	client, err := newClient(rconAddress, 25575, rconPassword)
 	if err != nil {
 		_, _ = alpha.Send(m.Sender, "Error creating RCON Client Object - Check the logs!")
 		return

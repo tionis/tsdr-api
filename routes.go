@@ -86,7 +86,7 @@ func routes(router *gin.Engine) {
 	router.GET("/mc/stopped/:token", func(c *gin.Context) {
 		getAuthorization, err := redclient.Get("mc|token|" + c.Param("token")).Result()
 		if err != nil {
-			c.String(500, "uncategorized fuckery")
+			c.File("static/error-pages/500.html")
 		}
 		if getAuthorization == "true" {
 			mcRunning = false
@@ -272,7 +272,7 @@ func mcWhitelist(c *gin.Context) {
 			return
 		}
 		// Blacklist old username and whitelist new username
-		client, err := newClient(os.Getenv("RCON_ADDRESS"), 25575, os.Getenv("RCON_PASS"))
+		client, err := newClient(rconAddress, 25575, rconPassword)
 		if err != nil {
 			log.Println("[TasadarAPI] Error occured while building client for connection: ", err)
 			if mcStart() {
