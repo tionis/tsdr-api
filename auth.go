@@ -63,9 +63,9 @@ func authGinGroup(c *gin.Context) {
 	} else {
 		c.String(401, "Not authorized")
 	}
-
 }
 
+// Gets the users.auth file from the dev.tasadar.net server and imports it to redis
 func updateAuth() {
 	// Download newest File
 	client := &http.Client{}
@@ -163,6 +163,8 @@ func updateAuth() {
 									log.Println("[TasadarAuth] Removed mcUser " + mcName + "from whitelist, because " + currentUser + "was removed!")
 								} else {
 									log.Println("[TasadarAuth] Error while executing command on Minecraft Server to delete user "+mcName+" - error: ", err)
+									// Example for mc blacklist queue management
+									// mcAddToBlackListQueue(currentUser);
 									msgAlpha <- "Please blacklist " + currentUser + " manually as there was an error:\n\n" + response
 								}
 							} else {

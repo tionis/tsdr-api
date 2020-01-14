@@ -19,8 +19,8 @@ import (
 )
 
 //TODO
-// Export and Import Function for Database to textfile (modeled after dokuwikis users.auth.php)
-// Should coantain dokuwiki information + telegram links + [TO BE EXTENDED]
+// Export and Import Function for Database to text file (modeled after dokuwikis users.auth.php)
+// Should contain dokuwiki information + telegram links + [TO BE EXTENDED]
 // Change database from redis to postgresql for advanced functionality
 // Maybe keep redis for Tokens? - Look into advanced functionality
 

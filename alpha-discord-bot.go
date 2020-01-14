@@ -328,12 +328,12 @@ func mcStart() bool {
 		}
 		_ = redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
 		if err != nil {
-			log.Println("Error setting mc|IsRunning on Redis: ", err)
+			log.Println("[AlphaDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 		}
 		lastPlayerOnline = time.Now()
 		_ = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 		if err != nil {
-			log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
+			log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
 		return true
 	}
@@ -377,20 +377,20 @@ func updateMC() {
 		}
 		playerCount, err := strconv.Atoi(playerCountString)
 		if err != nil {
-			log.Println("Error converting PlayerCountString to int: ", err)
+			log.Println("[AlphaDiscordBot] Error converting PlayerCountString to int: ", err)
 		}
 		if playerCount > 0 {
 			lastPlayerOnline = time.Now()
 			_ = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 			if err != nil {
-				log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
+				log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 			}
 		} else {
 			if time.Now().Sub(lastPlayerOnline).Minutes() > 30 {
 				lastPlayerOnline = time.Now()
 				_ = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 				if err != nil {
-					log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
+					log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 				}
 				mcStopPlayerOffline()
 			}
@@ -461,7 +461,7 @@ func pingMC() {
 		lastPlayerOnline = time.Now()
 		err = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
 		if err != nil {
-			log.Println("Error setting mc|lastPlayerOnline on Redis: ", err)
+			log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
 	}
 	mcRunning = err == nil
@@ -473,6 +473,6 @@ func pingMC() {
 	}
 	err = redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
 	if err != nil {
-		log.Println("[pingMC] Error setting mc|IsRunning on Redis: ", err)
+		log.Println("[AlphaDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 	}
 }

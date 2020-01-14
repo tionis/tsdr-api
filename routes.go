@@ -82,6 +82,9 @@ func routes(router *gin.Engine) {
 	router.POST("/auth/new-password", newPWFormHandler)
 	router.GET("/auth/new-password", newPWFormHandler)
 
+	//3rd Party verify links
+	router.GET("/auth/verify/mail/:token", emailVerifyHandler)
+
 	// Minecraft API
 	router.GET("/mc/stopped/:token", func(c *gin.Context) {
 		getAuthorization, err := redclient.Get("mc|token|" + c.Param("token")).Result()
@@ -206,6 +209,12 @@ func newPWFormHandler(c *gin.Context) {
 		}
 		c.File("static/auth/new-password-set.html")
 	}
+}
+
+func emailVerifyHandler(c *gin.Context) {
+	// Verify token and getuser
+	// send correct file back
+	// set email of user
 }
 
 // Google Assistant IFTTT Bindings

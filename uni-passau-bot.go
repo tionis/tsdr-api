@@ -24,7 +24,7 @@ import (
 //TODO: Add checking command for nextweek - refer to implementation of food tomorrow where daynum = 8
 
 // Global Variables
-// Matrix Slice for food handling (should be repplaced in future??)
+// Matrix Slice for food handling (should be replaced in future??)
 var values [][]string
 
 //var nextvalues [][]string
@@ -201,7 +201,7 @@ func uniPassauBot() {
 	b.Start()
 }
 
-// Start bot specific code
+// Initializes the Array
 func initArray() {
 	updateFile()
 	r := csv.NewReader(bufio.NewReader(openactFile()))
@@ -252,6 +252,7 @@ func initArray() {
 	}
 }*/
 
+// returns a string to send on telegram of the food today
 func foodtoday() string {
 	// returns the string to print to user who requested the mensa plan
 	// reads actual file
@@ -302,6 +303,7 @@ func foodtoday() string {
 	return day
 }
 
+// returns a string to send on telegram of the food tomorrow
 func foodtomorrow() string {
 	// returns the string to print to user who requested the mensa plan
 	// reads actual file
@@ -385,14 +387,14 @@ func foodtomorrow() string {
 	return day
 }
 
+// As transformFile() also changes all the commas in the prices to semicolons this func does the opposite
 func transcor(input string) string {
-	// As transformFile() also changes all the commas in the prices to semicolons this func does the opposite
 	output := strings.Replace(input, ";", ",", -1)
 	return output
 }
 
+// returns a string to send on telegram of the food for the week
 func foodweek() string {
-	// returns the string to print to user who requested the mensa plan
 	// reads actual file
 	updateFile()
 
@@ -493,12 +495,13 @@ func weekDate(day int) string {
 	return ret.Format("02.01.2006")
 }*/
 
+// Delete the symbols in the brackets at the end of the string (in this case the allergic info)
 func delInf(input string) string {
-	// Delete the symbols in the brackets at the end of the string (in this case the allergic info)
 	reg := regexp.MustCompile(`\(.*\)`)
 	return reg.ReplaceAllString(input, "${1}")
 }
 
+// Transforms a given file from iso to utf
 func isoToUTF(path string) {
 	// Change the encoding and save file under non .tmp name
 	f, err := os.Open(path + ".tmp")
@@ -518,6 +521,7 @@ func isoToUTF(path string) {
 	}
 }
 
+// Transforms the file from the uni-passau version of the csv file to a standard one
 func transformFile(path string) {
 	// Transforms csv file with separator ";" to a file with separator "," and also transforms all "," to ";"
 	read, err := ioutil.ReadFile(path)
@@ -580,6 +584,7 @@ func downloadFile(week string) error {
 	return nil
 }
 
+// Open file for this week
 func openactFile() *os.File {
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	_, thisWeek := time.Now().In(loc).UTC().ISOWeek()
@@ -588,6 +593,7 @@ func openactFile() *os.File {
 	return f
 }
 
+// Update the food csv file
 func updateFile() {
 	// checks if new file has to be downloaded and does so - does also remove the old file
 	loc, _ := time.LoadLocation("Europe/Berlin")
@@ -617,24 +623,28 @@ func updateFile() {
 
 }
 
+// Stop the program and kill hanging routines
 func exit(quit chan bool) {
 	// function for normal exit
 	quit <- true
 	simpleExit()
 }
 
+// Exit while ignoring running routines
 func simpleExit() {
 	// Exit without using graceful shutdown channels
 	fmt.Print("[UniPassauBot] " + "Bye!")
 	os.Exit(3)
 }
 
+// Print an error with given message
 func checkmsg(message string, e error) {
 	if e != nil {
 		log.Fatal(message, e)
 	}
 }
 
+// Print info regarding a given message
 func printInfo(m *tb.Message) {
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	fmt.Println("[UniPassauBot] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
@@ -642,6 +652,7 @@ func printInfo(m *tb.Message) {
 	fmt.Println("[UniPassauBot] " + "Message: " + m.Text + "\n")
 }
 
+// Answer wrapper
 func printAnswer(input string) {
 	fmt.Println("[UniPassauBot] Answer: " + input)
 }
