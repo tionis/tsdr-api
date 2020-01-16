@@ -279,7 +279,7 @@ func tasadarLoginVerify(c *gin.Context) {
 	})
 
 	if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		c.String(200, "OK: ")
+		c.String(200, "OK")
 	} else {
 		c.String(200, "Traitor!")
 	}
