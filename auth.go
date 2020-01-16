@@ -203,7 +203,7 @@ func authUser(username, password string) bool {
 }
 
 func authGetGroupsString(username string) (string, error) {
-	val, err := redclient.Get("auth|" + username + "|hash").Result()
+	val, err := redclient.Get("auth|" + username + "|groups").Result()
 	if err != nil {
 		return "", err
 	}
