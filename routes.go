@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
 )
@@ -50,6 +51,11 @@ type pwChangeForm struct {
 	NewPasswordAgain string `form:"newPasswordAgain" binding:"required"`
 }
 
+type loginForm struct {
+	Username string `form:"username" binding:"required"`
+	Password string `form:"password" binding:"required"`
+}
+
 func routes(router *gin.Engine) {
 	// Default Stuff
 	router.GET("/favicon.svg", favicon)
@@ -81,6 +87,7 @@ func routes(router *gin.Engine) {
 	router.GET("/auth/new-password/:token", newPWFormHandlerMail)
 	router.POST("/auth/new-password", newPWFormHandler)
 	router.GET("/auth/new-password", newPWFormHandler)
+	router.POST("/login/execute", tasadarLoginHandler)
 
 	//3rd Party verify links
 	router.GET("/auth/verify/mail/:token", emailVerifyHandler)
@@ -208,6 +215,45 @@ func newPWFormHandler(c *gin.Context) {
 			c.File("static/error-pages/500.html")
 		}
 		c.File("static/auth/new-password-set.html")
+	}
+}
+
+func tasadarLoginHandler(c *gin.Context) {
+	var loginFormData loginForm
+	err := c.Bind(&loginFormData) // This will infer what binder to use depending on the content-type header.
+	if err != nil {
+		log.Println("[TasadarAPI] Error in contact form handling at c.Bind(&newPWFormData): ", err)
+		c.Redirect(301, "https://tasadar.net/login/error")
+		return
+	}
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+	if authUser(username, password) {
+		// Create a new token object, specifying signing method and the claims
+		// you would like it to contain.
+		groups, err := authGetGroupsString(username)
+		if err != nil {
+			log.Println("[TasadarAPI] Error getting groups string: ", err)
+			c.Redirect(301, "https://tasadar.net/login/error")
+			return
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"sub":    username,
+			"groups": groups,
+			// ToDo expire token
+		})
+		// Sign and get the complete encoded token as a string using the secret
+		hmacSampleSecret := []byte("v09AoteRzfUEDbxqjDFFyWaSPrNeDqOj")
+		value, err := token.SignedString(hmacSampleSecret)
+		if err != nil {
+			log.Println("[TasadarAPI] Error while creating signed JWT Token String: ", err)
+			c.Redirect(301, "https://tasadar.net/login/error")
+			return
+		}
+		c.SetCookie("jwt", value, 2678400, "", ".tasadar.net", true, true)
+		c.Redirect(301, "https://tasadar.net/login/success")
+	} else {
+		c.Redirect(301, "https://tasadar.net/login/wrong")
 	}
 }
 

@@ -202,6 +202,17 @@ func authUser(username, password string) bool {
 	return checkPasswordHash(password, val)
 }
 
+func authGetGroupsString(username string) (string, error) {
+	val, err := redclient.Get("auth|" + username + "|hash").Result()
+	if err != nil {
+		return "", err
+	}
+	if val == "" {
+		return val, errors.New("empty groups string")
+	}
+	return val, nil
+}
+
 func authSetPassword(username, newpassword string) error {
 	return errors.New("not implemented")
 }
