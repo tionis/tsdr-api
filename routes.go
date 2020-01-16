@@ -88,6 +88,7 @@ func routes(router *gin.Engine) {
 	router.POST("/auth/new-password", newPWFormHandler)
 	router.GET("/auth/new-password", newPWFormHandler)
 	router.POST("/login/execute", tasadarLoginHandler)
+	router.GET("/login/verify", tasadarLoginVerify)
 
 	//3rd Party verify links
 	router.GET("/auth/verify/mail/:token", emailVerifyHandler)
@@ -250,10 +251,37 @@ func tasadarLoginHandler(c *gin.Context) {
 			c.Redirect(301, "https://tasadar.net/login/error")
 			return
 		}
-		c.SetCookie("jwt", value, 2678400, "", ".tasadar.net", true, true)
+		c.SetCookie("tasadar-token", value, 2678400, "", ".tasadar.net", true, true)
 		c.Redirect(301, "https://tasadar.net/login/success")
 	} else {
 		c.Redirect(301, "https://tasadar.net/login/wrong")
+	}
+}
+
+func tasadarLoginVerify(c *gin.Context) {
+	// sample token string taken from the New example
+	tokenString, err := c.Cookie("tasadar-token")
+	if err != nil {
+		c.String(200, "Error")
+	}
+	// Parse takes the token string and a function for looking up the key. The latter is especially
+	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
+	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
+	// to the callback, providing flexibility.
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Don't forget to validate the alg is what you expect:
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		hmacSampleSecret := []byte("v09AoteRzfUEDbxqjDFFyWaSPrNeDqOj")
+		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
+		return hmacSampleSecret, nil
+	})
+
+	if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		c.String(200, "OK: ")
+	} else {
+		c.String(200, "Traitor!")
 	}
 }
 
