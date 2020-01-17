@@ -3,6 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/gbrlsnchs/jwt/v3"
+	"github.com/gin-gonic/gin"
+	_ "github.com/heroku/x/hmetrics/onload"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -12,16 +15,19 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/dgrijalva/jwt-go"
-	"github.com/gin-gonic/gin"
-	_ "github.com/heroku/x/hmetrics/onload"
 )
 
 const smtpHost = "smtp.eu.mailgun.org"
 const smtpPort = "25"
 const smtpUser = "postmaster@mail.tasadar.net"
 const smtpFrom = "do-no-reply@mail.tasadar.net"
+
+var hs = jwt.NewHS256([]byte("v09AoteRzfUEDbxqjDFFyWaSPrNeDqOj"))
+
+type TasadarToken struct {
+	jwt.Payload
+	Groups string `json:"groups,omitempty"`
+}
 
 type alphaMsgStruct struct {
 	Message string `form:"message" json:"message" binding:"required"`
@@ -230,28 +236,29 @@ func tasadarLoginHandler(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 	if authUser(username, password) {
-		// Create a new token object, specifying signing method and the claims
-		// you would like it to contain.
 		groups, err := authGetGroupsString(username)
 		if err != nil {
 			log.Println("[TasadarAPI] Error getting groups string: ", err)
 			c.Redirect(301, "https://tasadar.net/login/error")
 			return
 		}
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"sub":    username,
-			"groups": groups,
-			// ToDo expire token
-		})
-		// Sign and get the complete encoded token as a string using the secret
-		hmacSampleSecret := []byte("v09AoteRzfUEDbxqjDFFyWaSPrNeDqOj")
-		value, err := token.SignedString(hmacSampleSecret)
+		now := time.Now()
+		pl := TasadarToken{
+			Payload: jwt.Payload{
+				Issuer:         "https://tasadar.net",
+				Subject:        username,
+				ExpirationTime: jwt.NumericDate(now.Add(31 * 24 * time.Hour)),
+				IssuedAt:       jwt.NumericDate(now),
+			},
+			Groups: groups,
+		}
+		token, err := jwt.Sign(pl, hs)
 		if err != nil {
 			log.Println("[TasadarAPI] Error while creating signed JWT Token String: ", err)
 			c.Redirect(301, "https://tasadar.net/login/error")
 			return
 		}
-		c.SetCookie("tasadar-token", value, 2678400, "", ".tasadar.net", true, true)
+		c.SetCookie("tasadar-token", string(token), 2678400, "", ".tasadar.net", true, true)
 		c.Redirect(301, "https://tasadar.net/login/success")
 	} else {
 		c.Redirect(301, "https://tasadar.net/login/wrong")
@@ -259,33 +266,18 @@ func tasadarLoginHandler(c *gin.Context) {
 }
 
 func tasadarLoginVerify(c *gin.Context) {
-	// sample token string taken from the New example
-	tokenString, err := c.Cookie("tasadar-token")
+	token, _ := c.Cookie("tasadar-token")
+	var pl TasadarToken
+	_, err := jwt.Verify([]byte(token), hs, &pl)
 	if err != nil {
-		c.String(200, "Error")
-	}
-	// Parse takes the token string and a function for looking up the key. The latter is especially
-	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
-	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
-	// to the callback, providing flexibility.
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		// Don't forget to validate the alg is what you expect:
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-		hmacSampleSecret := []byte("v09AoteRzfUEDbxqjDFFyWaSPrNeDqOj")
-		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return hmacSampleSecret, nil
-	})
-
-	if _, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		c.String(200, "OK")
+		c.String(200, "Access Denied")
 	} else {
-		c.String(200, "Traitor!")
+		c.String(200, "Access Granted")
 	}
 }
 
 func emailVerifyHandler(c *gin.Context) {
+	c.String(200, "Not implemented!")
 	// Verify token and getuser
 	// send correct file back
 	// set email of user
