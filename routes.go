@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bufio"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"github.com/gbrlsnchs/jwt/v3"
@@ -95,6 +98,8 @@ func routes(router *gin.Engine) {
 	router.GET("/auth/new-password", newPWFormHandler)
 	router.POST("/login/execute", tasadarLoginHandler)
 	router.GET("/login/verify", tasadarLoginVerify)
+	router.GET("/register", tasadarRegister)
+	router.GET("/register/verify/:token", tasadarRegisterVerify)
 
 	//3rd Party verify links
 	router.GET("/auth/verify/mail/:token", emailVerifyHandler)
@@ -119,18 +124,13 @@ func routes(router *gin.Engine) {
 
 	// Receive Message from contact form
 	router.POST("/contact/tasadar", contactTasadar)
-	router.GET("/contact/tasadar", contactTasadar)
 
 	// MC API
-	router.GET("/mc/whitelist", mcWhitelist)
 	router.POST("/mc/whitelist", mcWhitelist)
 
 	// IoT Handling
 	router.GET("/iot/:home/:service/:command", func(c *gin.Context) {
 		iotWebhookHandler(c.Param("home"), c.Param("service"), c.Param("command"), c)
-	})
-	router.POST("/phonetrack/geofence/:device/:location/:movement/:coordinates", func(c *gin.Context) {
-		iotGeofenceHandler(c.Param("device"), c.Param("location"), c.Param("coordinates"), c)
 	})
 	router.GET("/phonetrack/geofence/:device/:location/:movement/:coordinates", func(c *gin.Context) {
 		iotGeofenceHandler(c.Param("device"), c.Param("location"), c.Param("coordinates"), c)
@@ -226,6 +226,7 @@ func newPWFormHandler(c *gin.Context) {
 }
 
 func tasadarLoginHandler(c *gin.Context) {
+	// ToDo
 	var loginFormData loginForm
 	err := c.Bind(&loginFormData) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
@@ -266,14 +267,64 @@ func tasadarLoginHandler(c *gin.Context) {
 }
 
 func tasadarLoginVerify(c *gin.Context) {
+	// ToDo
+	privateKeyFile, err := os.Open("private.pem")
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	pemfileinfo, _ := privateKeyFile.Stat()
+	var size = pemfileinfo.Size()
+	pembytes := make([]byte, size)
+	buffer := bufio.NewReader(privateKeyFile)
+	_, err = buffer.Read(pembytes)
+	data, _ := pem.Decode(pembytes)
+	_ = privateKeyFile.Close()
+
+	privateKeyImported, err := x509.ParsePKCS1PrivateKey(data.Bytes)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Println("Private Key : ", privateKeyImported)
+
+	//var js = jwt.NewRS512(jwt.RSAPrivateKey(privateKeyImported))
+	//var ds = jwt.NewRS512(jwt.RSAPublicKey(privateKeyImported.Public()))
+
 	token, _ := c.Cookie("tasadar-token")
 	var pl TasadarToken
-	_, err := jwt.Verify([]byte(token), hs, &pl)
+	_, err = jwt.Verify([]byte(token), hs, &pl)
 	if err != nil {
 		c.String(200, "Access Denied")
 	} else {
 		c.String(200, "Access Granted")
 	}
+}
+
+/*func tokenGenerator() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return fmt.Sprintf("%x", b)
+}*/
+
+func tasadarRegister(c *gin.Context) {
+	// ToDO
+	// Return Form with email, username, password, password-again
+	/*token := tokenGenerator();
+	err := redclient.Set("mail-verify|" + token, "true", 30 * 60).Err()
+	if err != nil {
+		c.File("static/error/500.html")
+	}*/
+	c.String(200, "No. At least not yet...")
+}
+
+func tasadarRegisterVerify(c *gin.Context) {
+	/*token := c.Param("token")
+	if val := redclient.Get("mail-verify|" + token).Val(); val != "" {
+		strings.Split(val,"|")
+	}*/
+	c.String(200, "No. At least not yet...")
 }
 
 func emailVerifyHandler(c *gin.Context) {

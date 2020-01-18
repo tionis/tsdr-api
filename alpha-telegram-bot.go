@@ -196,8 +196,7 @@ func alphaTelegramBot() {
 			} else {
 				s1 := strings.TrimPrefix(m.Text, "/redisBcryptSet ")
 				s := strings.Split(s1, " ")
-				hash, err := hashPassword(s[1])
-				err = redclient.Set(s[0], hash, 0).Err()
+				err = authSetPassword(s[0], s[1])
 				if err != nil {
 					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
 					_, _ = alpha.Send(m.Sender, "There was an error! Check the logs!")

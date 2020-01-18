@@ -214,7 +214,11 @@ func authGetGroupsString(username string) (string, error) {
 }
 
 func authSetPassword(username, newpassword string) error {
-	return errors.New("not implemented")
+	hash, err := hashPassword(newpassword)
+	if err != nil {
+		return err
+	}
+	return redclient.Set("auth|"+username+"|hash", hash, 0).Err()
 }
 
 func hashPassword(password string) (string, error) {
