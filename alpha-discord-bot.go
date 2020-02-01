@@ -112,7 +112,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	switch m.Content {
+	inputString := strings.Split(m.Content, " ")
+	switch inputString[0] {
 	case "/help":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - General Tasadar Network - /tn help")
@@ -219,9 +220,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
 		//default:
 		//log.Println("[AlphaDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-	}
-
-	if strings.Contains(m.Content, "/updateStatus ") {
+	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
 			err := redclient.Set("dg|status", newStatus, 0).Err()
@@ -234,7 +233,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		} else {
 			_, _ = s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
 		}
-	} else if strings.Contains(m.Content, "/linkAccount ") {
+	case "/linkAccount":
 		tokens := strings.Split(strings.TrimPrefix(m.Content, "/linkAccount "), " ")
 		if len(tokens) < 2 {
 			_, _ = s.ChannelMessageSend(m.ChannelID, "I couldn't parse your Message, please check your Syntax!")
@@ -251,6 +250,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		}
 		_ = s.ChannelMessageDelete(m.ChannelID, m.ID)
+	case "/roll":
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
 	}
 }
 
