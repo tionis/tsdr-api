@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -24,7 +26,10 @@ var msgDiscordMC chan string
 var lastPlayerOnline time.Time
 var discordAdminID string
 var rconPassword string
+var onlyOnce sync.Once
+var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
+// Some Constants
 const lastPlayerOnlineLayout = "2006-01-02T15:04:05.000Z"
 const rconAddress = "mc.tasadar.net"
 
@@ -114,6 +119,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	inputString := strings.Split(m.Content, " ")
 	switch inputString[0] {
+	case "/roll":
+		rollHelper(s, m)
+	case "/r":
+		rollHelper(s, m)
 	case "/help":
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - General Tasadar Network - /tn help")
@@ -250,8 +259,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		}
 		_ = s.ChannelMessageDelete(m.ChannelID, m.ID)
-	case "/roll":
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
 	}
 }
 
@@ -453,6 +460,91 @@ func mcStopPlayerOffline() {
 			}
 		}
 	}
+}
+
+func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// ToDO: For this take Inspiration here: https://github.com/further-reading/Dicecord-Chatbot
+	// and here: https://github.com/Celeo/CoD_dice_roller
+	// Should look like this 14 rolls:
+	// 5 10(10(6)) 8 4 3 9 3 1 3 2 2 9 8 10(10))
+	// Or with rote:
+	// 5 10(10(6)) 8 4 3 9 3 1 3 2 2 9 8 10(10)) | Rote: 8 5 3 5 6 8 7 4
+	// x Successes
+
+	// Catch errors in command
+	inputString := strings.Split(m.Content, " ")
+	if len(inputString) < 2 {
+		s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+		return
+	}
+
+	// Catch simple commands
+	switch inputString[1] {
+	case "one":
+		s.ChannelMessageSend(m.ChannelID, "Simple 1D10 = "+strconv.Itoa(roll1D10()))
+		return
+	case "chance":
+		var retString strings.Builder
+		retString.Write([]byte("Chance-Die: "))
+		// ToDo: Code to be added...
+	}
+
+	// Check which dice designation is used
+	if strings.Contains(inputString[1], "d") {
+		// Catch error in dice designation [/roll 1*s*10 ]
+		diceIndex := strings.Split(inputString[1], "d")
+		if len(diceIndex) < 2 {
+			s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			return
+		}
+
+		// Catch d-notation and read modifiers
+		switch diceIndex[1] {
+		// Catch error created by using a wrong dice side number: [/roll 1d*34*] | [/roll 1d*4f*]
+		default:
+			s.ChannelMessageSend(m.ChannelID, "Warning! "+diceIndex[1]+"-sided dice are not supported yet!")
+			return
+		}
+	} else if inputString[1] == "chance" {
+		s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+		return
+	} else {
+		// Start Dice Rolling in CoD Mode: Parse 9-again 8-again Rote-quality
+		// Opperate by using Modes like this:
+		// 9 = 9-again
+		// 8 = 8,9-again
+		// r = rote-quality
+		// r9 = rote and 9-again
+		// r8 = rote and 8,9 again
+		// n = roll but nothing is rolled again
+		// nr = roll with rote quality but reroll nothing
+
+		// Init needed variables
+		//var retString strings.Builder
+		//successes := 0
+
+		// Catch invalid number of dice to throw
+		throwCount, err := strconv.Atoi(inputString[1])
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			return
+		}
+		if throwCount > 1000 {
+			s.ChannelMessageSend(m.ChannelID, "Don't you think that are a few to many dice to throw?")
+			return
+		}
+
+		// Rest of Code here
+	}
+}
+
+func roll1D10() int {
+
+	onlyOnce.Do(func() {
+		rand.Seed(time.Now().UnixNano()) // only run once
+	})
+
+	return dice[rand.Intn(len(dice))]
 }
 
 func pingMC() {

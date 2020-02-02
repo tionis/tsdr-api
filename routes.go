@@ -6,9 +6,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"github.com/gbrlsnchs/jwt/v3"
-	"github.com/gin-gonic/gin"
-	_ "github.com/heroku/x/hmetrics/onload"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -18,6 +15,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gbrlsnchs/jwt/v3"
+	"github.com/gin-gonic/gin"
+	_ "github.com/heroku/x/hmetrics/onload"
 )
 
 const smtpHost = "smtp.eu.mailgun.org"
@@ -27,7 +28,7 @@ const smtpFrom = "do-no-reply@mail.tasadar.net"
 
 var hs = jwt.NewHS256([]byte("v09AoteRzfUEDbxqjDFFyWaSPrNeDqOj"))
 
-type TasadarToken struct {
+type tasadarToken struct {
 	jwt.Payload
 	Groups string `json:"groups,omitempty"`
 }
@@ -244,7 +245,7 @@ func tasadarLoginHandler(c *gin.Context) {
 			return
 		}
 		now := time.Now()
-		pl := TasadarToken{
+		pl := tasadarToken{
 			Payload: jwt.Payload{
 				Issuer:         "https://tasadar.net",
 				Subject:        username,
@@ -293,7 +294,7 @@ func tasadarLoginVerify(c *gin.Context) {
 	//var ds = jwt.NewRS512(jwt.RSAPublicKey(privateKeyImported.Public()))
 
 	token, _ := c.Cookie("tasadar-token")
-	var pl TasadarToken
+	var pl tasadarToken
 	_, err = jwt.Verify([]byte(token), hs, &pl)
 	if err != nil {
 		c.String(200, "Access Denied")
