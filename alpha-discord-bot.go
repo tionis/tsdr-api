@@ -142,8 +142,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
 	case "/mc":
-		switch m.Content {
-		case "/mc start":
+		switch inputString[1] {
+		case "start":
 			log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 			if mcRunning {
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Server already running!")
@@ -156,10 +156,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 			}
 			pingInMinutes(2)
-		case "/mc stop":
+		case "stop":
 			log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 			go mcShutdownDiscord(s, m, 7)
-		case "/mc cancel":
+		case "cancel":
 			log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 			if mcStopping {
 				mcStopping = false
@@ -180,7 +180,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			} else {
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Server is currently not running!")
 			}
-		case "/mc status":
+		case "status":
 			log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 			pingMC()
 			if mcRunning {
@@ -223,7 +223,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently offline!\nTo start it use /mc start")
 			}
 
-		case "/mc help":
+		default:
 			log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
 		}
