@@ -101,6 +101,10 @@ func routes(router *gin.Engine) {
 	router.GET("/login/verify", tasadarLoginVerify)
 	router.GET("/register", tasadarRegister)
 	router.GET("/register/verify/:token", tasadarRegisterVerify)
+	router.GET("/login", func(c *gin.Context) { c.File("static/login/login.html") })
+	router.GET("/login/success", func(c *gin.Context) { c.File("static/login/login-success.html") })
+	router.GET("/login/error", func(c *gin.Context) { c.File("static/login/login-error.html") })
+	router.GET("/login/wrong", func(c *gin.Context) { c.File("static/login/login-error.html") })
 
 	//3rd Party verify links
 	router.GET("/auth/verify/mail/:token", emailVerifyHandler)
