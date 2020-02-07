@@ -106,6 +106,15 @@ func alphaTelegramBot() {
 		}
 		printInfoAlpha(m)
 	})
+	alpha.Handle("food", func(m *tb.Message) {
+		if !m.Private() {
+			_, _ = alpha.Send(m.Chat, foodtoday())
+			fmt.Println("[AlphaTelegramBot] " + "Group Message:")
+		} else {
+			_, _ = alpha.Send(m.Sender, foodtoday(), tb.ModeMarkdown)
+		}
+		printInfoAlpha(m)
+	})
 	alpha.Handle("/foodtomorrow", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = alpha.Send(m.Chat, foodtomorrow(), tb.ModeMarkdown)
@@ -115,7 +124,25 @@ func alphaTelegramBot() {
 		}
 		printInfoAlpha(m)
 	})
+	alpha.Handle("food tomorrow", func(m *tb.Message) {
+		if !m.Private() {
+			_, _ = alpha.Send(m.Chat, foodtomorrow(), tb.ModeMarkdown)
+			fmt.Println("[AlphaTelegramBot] " + "Group Message:")
+		} else {
+			_, _ = alpha.Send(m.Sender, foodtomorrow(), tb.ModeMarkdown)
+		}
+		printInfoAlpha(m)
+	})
 	alpha.Handle("/foodweek", func(m *tb.Message) {
+		if !m.Private() {
+			_, _ = alpha.Send(m.Chat, foodweek())
+			fmt.Println("[AlphaTelegramBot] " + "Group Message:")
+		} else {
+			_, _ = alpha.Send(m.Sender, foodweek(), tb.ModeMarkdown)
+		}
+		printInfoAlpha(m)
+	})
+	alpha.Handle("food week", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = alpha.Send(m.Chat, foodweek())
 			fmt.Println("[AlphaTelegramBot] " + "Group Message:")
