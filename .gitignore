@@ -17,7 +17,10 @@
 \.vscode/
 .vscode
 .vscode/*
+static/login/loginv4
+static/login/loginv4/*
 
 # Project Specific
 tasadar-heroku
 *.csv
+static/login/loginv4/fonts/font-awesome-4.7.0/HELP-US-OUT.txt
