@@ -175,7 +175,7 @@ func alphaTelegramBot() {
 				s1 := strings.TrimPrefix(m.Text, "/redisSet ")
 				s := strings.Split(s1, " ")
 				val := strings.TrimPrefix(m.Text, "/redisSet "+s[0]+" ")
-				err := redclient.Set(s[0], val, 0).Err()
+				err := set(s[0], val)
 				if err != nil {
 					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
 					_, _ = alpha.Send(m.Sender, "There was an error! Check the logs!")
@@ -191,7 +191,7 @@ func alphaTelegramBot() {
 	alpha.Handle("/redisGet", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/redisGet ")
-			val, err := redclient.Get(s1).Result()
+			val, err := getResult(s1)
 			if err != nil {
 				log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
 				_, _ = alpha.Send(m.Sender, "Error! Maybe the value does not exist?")
@@ -245,7 +245,7 @@ func alphaTelegramBot() {
 			} else {
 				s1 := strings.TrimPrefix(m.Text, "/redisBcryptGet ")
 				s := strings.Split(s1, " ")
-				val, err := redclient.Get("auth|" + s[0] + "|hash").Result()
+				val, err := getResult("auth|" + s[0] + "|hash")
 				if err != nil {
 					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
 					_, _ = alpha.Send(m.Sender, "Error! Maybe the value does not exist?")
@@ -266,7 +266,7 @@ func alphaTelegramBot() {
 	alpha.Handle("/gen", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/gen ")
-			val, err := redclient.Get("TOTP-Secret|" + s1).Result()
+			val, err := getResult("TOTP-Secret|" + s1)
 			if err != nil {
 				_, _ = alpha.Send(m.Sender, "An error occurred")
 				_, _ = alpha.Send(m.Sender, val)
@@ -292,7 +292,7 @@ func alphaTelegramBot() {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/addTOTP ")
 			s := strings.Split(s1, " ")
-			err = redclient.Set("TOTP-Secret|"+s[0], s[1], 0).Err()
+			err = set("TOTP-Secret|"+s[0], s[1])
 			if err != nil {
 				_, _ = alpha.Send(m.Sender, "An error occurred")
 				log.Println("[AlphaTelegramBot] Error setting redis store for totp: ", err)
@@ -370,7 +370,7 @@ func alphaTelegramBot() {
 		s1 := strings.TrimPrefix(m.Text, "/linkAccount ")
 		s := strings.Split(s1, " ")
 		if authUser(s[0], s[1]) {
-			err := redclient.Set("tg|"+strconv.Itoa(m.Sender.ID)+"|username", s[0], 0).Err()
+			err := set("tg|"+strconv.Itoa(m.Sender.ID)+"|username", s[0])
 			if err != nil {
 				log.Println("[AlphaTelegramBot] Error connecting to redis: ", err)
 				_, _ = alpha.Send(m.Sender, "Error saving your input")
@@ -452,8 +452,8 @@ func isTasadarTGAdmin(ID int) bool {
 	/*if ID == 248533143 {
 		return true
 	}*/
-	username := redclient.Get("tg|" + strconv.Itoa(ID) + "|username").Val()
-	groups := redclient.Get("auth|" + username + "|groups").Val()
+	username := get("tg|" + strconv.Itoa(ID) + "|username")
+	groups := get("auth|" + username + "|groups")
 	// Should transform into array and then check through it
 	if strings.Contains(groups, "admin,") || strings.Contains(groups, ",admin") /*|| strings.Contains(groups, "admin")*/ {
 		return true

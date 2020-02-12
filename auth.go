@@ -51,7 +51,7 @@ func authGinGroup(c *gin.Context) {
 	}
 	pair := strings.Split(string(basic), ":")
 	if authUser(pair[0], pair[1]) {
-		val, err := redclient.Get("auth|" + pair[0] + "|groups").Result()
+		val, err := getResult("auth|" + pair[0] + "|groups")
 		if err != nil {
 			log.Println("[TasadarAuth] Error looking up group of user: ", err)
 		}
@@ -96,19 +96,19 @@ func updateAuth() {
 		var userlist []string
 		for _, txt := range accounts {
 			user := strings.Split(txt, ":")
-			err := redclient.Set("auth|"+user[0]+"|hash", user[1], time.Hour*10).Err()
+			err := setTimer("auth|"+user[0]+"|hash", user[1], time.Hour*10)
 			if err != nil {
 				log.Println("[TasadarAuth] Error updating database: ", err)
 			}
-			err = redclient.Set("auth|"+user[0]+"|name", user[2], time.Hour*10).Err()
+			err = setTimer("auth|"+user[0]+"|name", user[2], time.Hour*10)
 			if err != nil {
 				log.Println("[TasadarAuth] Error updating database: ", err)
 			}
-			err = redclient.Set("auth|"+user[0]+"|email", user[3], time.Hour*10).Err()
+			err = setTimer("auth|"+user[0]+"|email", user[3], time.Hour*10)
 			if err != nil {
 				log.Println("[TasadarAuth] Error updating database: ", err)
 			}
-			err = redclient.Set("auth|"+user[0]+"|groups", user[4], time.Hour*10).Err()
+			err = setTimer("auth|"+user[0]+"|groups", user[4], time.Hour*10)
 			if err != nil {
 				log.Println("[TasadarAuth] Error updating database: ", err)
 			}
@@ -120,7 +120,7 @@ func updateAuth() {
 			return
 		}
 		var oldlist []string
-		oldval, err := redclient.Get("userlist").Result()
+		oldval, err := getResult("userlist")
 		if err != nil {
 			log.Println("[TasadarAuth] An error occurred! ", err)
 			msgAlpha <- "Error in TasadarAuth!"
@@ -141,16 +141,16 @@ func updateAuth() {
 				}
 			}
 			if !found {
-				err = redclient.Set("auth|"+currentUser+"|hash", "", 0).Err()
+				err = delete("auth|" + currentUser + "|hash")
 				if err != nil {
 					log.Println("[TasadarAuth] Error updating database: ", err)
 				}
-				err = redclient.Set("auth|"+currentUser+"|groups", "", 0).Err()
+				err = delete("auth|" + currentUser + "|groups")
 				if err != nil {
 					log.Println("[TasadarAuth] Error updating database: ", err)
 				}
 				// Remove Minecraft User from whitelist
-				mcName, err := redclient.Get("auth|" + currentUser + "|mc").Result()
+				mcName, err := getResult("auth|" + currentUser + "|mc")
 				if err != nil {
 					log.Println("[TasadarAuth] - Deleted User " + currentUser + " but found no minecraft User --> Ignoring")
 				} else {
@@ -184,7 +184,7 @@ func updateAuth() {
 		}
 
 		// Put new list into database
-		err = redclient.Set("userlist", string(userlistJSON), time.Hour*10).Err()
+		err = setTimer("userlist", string(userlistJSON), time.Hour*10)
 		if err != nil {
 			log.Println("[TasadarAuth] Error updating database: ", err)
 			msgAlpha <- "Error in TasadarAuth!"
@@ -195,7 +195,7 @@ func updateAuth() {
 }
 
 func authUser(username, password string) bool {
-	val, err := redclient.Get("auth|" + username + "|hash").Result()
+	val, err := getResult("auth|" + username + "|hash")
 	if err != nil {
 		return false
 	}
@@ -203,7 +203,7 @@ func authUser(username, password string) bool {
 }
 
 func authGetGroupsString(username string) (string, error) {
-	val, err := redclient.Get("auth|" + username + "|groups").Result()
+	val, err := getResult("auth|" + username + "|groups")
 	if err != nil {
 		return "", err
 	}
@@ -218,7 +218,7 @@ func authSetPassword(username, newpassword string) error {
 	if err != nil {
 		return err
 	}
-	return redclient.Set("auth|"+username+"|hash", hash, 0).Err()
+	return set("auth|"+username+"|hash", hash)
 }
 
 func hashPassword(password string) (string, error) {

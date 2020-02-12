@@ -9,8 +9,10 @@ require (
 	github.com/gbrlsnchs/jwt/v3 v3.0.0-rc.1
 	github.com/gin-gonic/gin v1.4.0
 	github.com/go-redis/redis/v7 v7.0.0-beta.4
+	github.com/gorilla/pat v1.0.1 // indirect
 	github.com/heroku/x v0.0.10
 	github.com/lib/pq v1.2.0
+	github.com/markbates/goth v1.61.1 // indirect
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron v1.2.0
 	golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad

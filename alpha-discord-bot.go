@@ -234,7 +234,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
-			err := redclient.Set("dg|status", newStatus, 0).Err()
+			err := set("dg|status", newStatus)
 			if err != nil {
 				log.Println("Error setting dg|status on Redis: ", err)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
@@ -250,7 +250,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			_, _ = s.ChannelMessageSend(m.ChannelID, "I couldn't parse your Message, please check your Syntax!")
 		} else {
 			if authUser(tokens[0], tokens[1]) {
-				err := redclient.Set("dg|"+m.Author.ID+"|username", tokens[0], 0).Err()
+				err := set("dg|"+m.Author.ID+"|username", tokens[0])
 				if err != nil {
 					_, _ = s.ChannelMessageSend(m.ChannelID, "Error saving your link")
 				} else {
@@ -336,12 +336,12 @@ func mcStart() bool {
 		} else {
 			mcRunningString = "false"
 		}
-		_ = redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
+		_ = set("mc|IsRunning", mcRunningString)
 		if err != nil {
 			log.Println("[AlphaDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 		}
 		lastPlayerOnline = time.Now()
-		_ = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
+		_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 		if err != nil {
 			log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
@@ -367,7 +367,7 @@ func updateMC() {
 			} else {
 				mcRunningString = "false"
 			}
-			err = redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
+			err = set("mc|IsRunning", mcRunningString)
 			if err != nil {
 				log.Println("Error setting mc|IsRunning on Redis: ", err)
 			}
@@ -391,14 +391,14 @@ func updateMC() {
 		}
 		if playerCount > 0 {
 			lastPlayerOnline = time.Now()
-			_ = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
+			_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 			if err != nil {
 				log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 			}
 		} else {
 			if time.Now().Sub(lastPlayerOnline).Minutes() > 30 {
 				lastPlayerOnline = time.Now()
-				_ = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
+				_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 				if err != nil {
 					log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 				}
@@ -554,7 +554,7 @@ func pingMC() {
 	_, _, err := bot.PingAndList("mc.tasadar.net", 25565)
 	if mcRunning == false && err == nil { // Resets Counter if server online trough other means
 		lastPlayerOnline = time.Now()
-		err = redclient.Set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout), 0).Err()
+		err = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 		if err != nil {
 			log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
@@ -566,7 +566,7 @@ func pingMC() {
 	} else {
 		mcRunningString = "false"
 	}
-	err = redclient.Set("mc|IsRunning", mcRunningString, 0).Err()
+	err = set("mc|IsRunning", mcRunningString)
 	if err != nil {
 		log.Println("[AlphaDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 	}
