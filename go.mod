@@ -3,7 +3,7 @@ module github.com/tionis/tasadar-heroku
 go 1.13
 
 require (
-	github.com/Tnze/go-mc v1.14.3
+	github.com/Tnze/go-mc v1.15.1
 	github.com/bwmarrin/discordgo v0.20.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gbrlsnchs/jwt/v3 v3.0.0-rc.1
