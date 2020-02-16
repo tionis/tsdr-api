@@ -552,7 +552,7 @@ func roll1D10() int {
 func pingMC() {
 	// To be edited with a true server ping - finished (more or less) - can still be improved!
 	_, _, err := bot.PingAndList("mc.tasadar.net", 25565)
-	if mcRunning == false && err == nil { // Resets Counter if server online trough other means
+	if !mcRunning && err == nil { // Resets Counter if server online trough other means
 		lastPlayerOnline = time.Now()
 		err = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 		if err != nil {
