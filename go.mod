@@ -10,7 +10,7 @@ require (
 	github.com/gin-gonic/gin v1.5.0
 	github.com/go-redis/redis/v7 v7.0.0-beta.4
 	github.com/gorilla/pat v1.0.1 // indirect
-	github.com/heroku/x v0.0.10
+	github.com/heroku/x v0.0.20
 	github.com/lib/pq v1.2.0
 	github.com/markbates/goth v1.61.1 // indirect
 	github.com/pquerna/otp v1.2.0
