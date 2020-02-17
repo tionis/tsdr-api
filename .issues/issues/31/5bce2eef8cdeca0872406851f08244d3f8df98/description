@@ -1,0 +1,26 @@
+[ImgBot] Optimize images
+
+## Beep boop. Your images are optimized!
+
+Your image file size has been reduced by **17%** 🎉
+
+<details>
+<summary>
+Details
+</summary>
+
+| File | Before | After | Percent reduction |
+|:--|:--|:--|:--|
+| /static/icons/favicon.png | 22.87kb | 17.08kb | 25.31% |
+| /static/icons/favicon32.png | 2.32kb | 1.76kb | 24.28% |
+| /static/icons/black-hole.svg | 10.53kb | 9.92kb | 5.79% |
+| /static/icons/favicon.svg | 6.90kb | 6.59kb | 4.54% |
+| /static/icons/favicon16.png | 0.79kb | 0.76kb | 3.73% |
+| | | | |
+| **Total :** | **43.41kb** | **36.11kb** | **16.82%** |
+</details>
+
+---
+
+[📝docs](https://imgbot.net/docs) | [:octocat: repo](https://github.com/dabutvin/ImgBot) | [🙋issues](https://github.com/dabutvin/ImgBot/issues) | [🏅swag](https://goo.gl/forms/1GX7wlhGEX8nkhGO2) | [🏪marketplace](https://github.com/marketplace/imgbot)
+
