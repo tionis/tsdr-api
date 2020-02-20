@@ -11,8 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pquerna/otp/totp"
-
 	_ "github.com/heroku/x/hmetrics/onload"
 	_ "github.com/lib/pq"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -87,10 +85,7 @@ func alphaTelegramBot() {
 === MC-Commands:
   - /mc x - Forward command x to MC-Server 
   - /mcStop n - Shutdown server in n minute
-  - /mcCancel - Cancel Server shutdown
-=== Tasadar-API-Commands:
-  - /updateAuth - update Auth Database
-  - /linkAccount username password - Link TN-Account to telegram account`
+  - /mcCancel - Cancel Server shutdown`
 		} else {
 			sendstring = "There is no help!"
 		}
@@ -216,97 +211,6 @@ func alphaTelegramBot() {
 		}
 		printInfo(m)
 	})
-	alpha.Handle("/redisBcryptSet", func(m *tb.Message) {
-		if isTasadarTGAdmin(m.Sender.ID) {
-			if !strings.Contains(m.Text, " ") {
-				_, _ = alpha.Send(m.Sender, "Error in Syntax!")
-			} else {
-				s1 := strings.TrimPrefix(m.Text, "/redisBcryptSet ")
-				s := strings.Split(s1, " ")
-				err = authSetPassword(s[0], s[1])
-				if err != nil {
-					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
-					_, _ = alpha.Send(m.Sender, "There was an error! Check the logs!")
-				} else {
-					_, _ = alpha.Send(m.Sender, "Hash for "+s[0]+" was successfully set!")
-				}
-			}
-			_ = alpha.Delete(m)
-		} else {
-			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-		printInfo(m)
-	})
-	alpha.Handle("/redisBcryptGet", func(m *tb.Message) {
-		_ = alpha.Delete(m)
-		if isTasadarTGAdmin(m.Sender.ID) {
-			if !strings.Contains(m.Text, " ") {
-				_, _ = alpha.Send(m.Sender, "Error in Syntax!")
-			} else {
-				s1 := strings.TrimPrefix(m.Text, "/redisBcryptGet ")
-				s := strings.Split(s1, " ")
-				val, err := getResult("auth|" + s[0] + "|hash")
-				if err != nil {
-					log.Println("[AlphaTelegramBot] Error while executing redis command: ", err)
-					_, _ = alpha.Send(m.Sender, "Error! Maybe the value does not exist?")
-				} else {
-					if checkPasswordHash(s[1], val) {
-						_, _ = alpha.Send(m.Sender, "Password for "+s[0]+" matches!")
-					} else {
-						_, _ = alpha.Send(m.Sender, "Password doesn't match!")
-						_, _ = alpha.Send(m.Sender, "Just to be sure, I checked:\n"+s[0]+"\n"+s[1])
-					}
-				}
-			}
-		} else {
-			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-		printInfoAlpha(m)
-	})
-	alpha.Handle("/gen", func(m *tb.Message) {
-		if isTasadarTGAdmin(m.Sender.ID) {
-			s1 := strings.TrimPrefix(m.Text, "/gen ")
-			val, err := getResult("TOTP-Secret|" + s1)
-			if err != nil {
-				_, _ = alpha.Send(m.Sender, "An error occurred")
-				_, _ = alpha.Send(m.Sender, val)
-				log.Println("[AlphaTelegramBot] Error while querying redis store: ", err)
-				return
-			}
-			str, err := totp.GenerateCode(val, time.Now())
-			if err != nil {
-				_, _ = alpha.Send(m.Sender, "An error occurred!")
-				log.Println("[AlphaTelegramBot] Error while generating totp code: ", err)
-			} else {
-				_, _ = alpha.Send(m.Sender, str)
-			}
-			printInfoAlpha(m)
-		} else {
-			sendstring := "You are not authorized to execute this command!"
-			_, _ = alpha.Send(m.Sender, sendstring)
-			printInfoAlpha(m)
-		}
-	})
-	alpha.Handle("/addTOTP", func(m *tb.Message) {
-		// TODO: Implement saving of all available Accounts per User(json or csv list in redis)
-		if isTasadarTGAdmin(m.Sender.ID) {
-			s1 := strings.TrimPrefix(m.Text, "/addTOTP ")
-			s := strings.Split(s1, " ")
-			err = set("TOTP-Secret|"+s[0], s[1])
-			if err != nil {
-				_, _ = alpha.Send(m.Sender, "An error occurred")
-				log.Println("[AlphaTelegramBot] Error setting redis store for totp: ", err)
-			} else {
-				_, _ = alpha.Send(m.Sender, "Record for |"+s[0]+"| successfully set to [redacted]")
-			}
-			_ = alpha.Delete(m)
-			printInfoAlpha(m)
-		} else {
-			sendstring := "You are not authorized to execute this command!"
-			_, _ = alpha.Send(m.Sender, sendstring)
-			printInfoAlpha(m)
-		}
-	})
 	alpha.Handle("/mc", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/mc ")
@@ -357,28 +261,6 @@ func alphaTelegramBot() {
 			}
 		} else {
 			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-	})
-	alpha.Handle("/updateAuth", func(m *tb.Message) {
-		_, _ = alpha.Send(m.Sender, "_Updating Auth Database ...._", tb.ModeMarkdown)
-		updateAuth()
-		_, _ = alpha.Send(m.Sender, "_Updated the Auth Database_", tb.ModeMarkdown)
-		printInfoAlpha(m)
-	})
-	alpha.Handle("/linkAccount", func(m *tb.Message) {
-		_ = alpha.Delete(m)
-		s1 := strings.TrimPrefix(m.Text, "/linkAccount ")
-		s := strings.Split(s1, " ")
-		if authUser(s[0], s[1]) {
-			err := set("tg|"+strconv.Itoa(m.Sender.ID)+"|username", s[0])
-			if err != nil {
-				log.Println("[AlphaTelegramBot] Error connecting to redis: ", err)
-				_, _ = alpha.Send(m.Sender, "Error saving your input")
-			} else {
-				_, _ = alpha.Send(m.Sender, "New Username saved!")
-			}
-		} else {
-			_, _ = alpha.Send(m.Sender, "Authentication failed!")
 		}
 	})
 	alpha.Handle("/psqlPing", func(m *tb.Message) {

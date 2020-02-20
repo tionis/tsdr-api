@@ -66,7 +66,6 @@ func main() {
 
 	// Cronjob Definitions
 	c := cron.New()
-	_ = c.AddFunc("@every 15m", func() { updateAuth() })
 	_ = c.AddFunc("@every 5m", func() { pingMC() })
 	_ = c.AddFunc("@every 5m", func() { updateMC() })
 	c.Start()
