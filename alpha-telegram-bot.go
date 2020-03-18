@@ -331,9 +331,9 @@ func printInfoAlpha(m *tb.Message) {
 }
 
 func isTasadarTGAdmin(ID int) bool {
-	/*if ID == 248533143 {
+	if ID == 248533143 {
 		return true
-	}*/
+	}
 	username := get("tg|" + strconv.Itoa(ID) + "|username")
 	groups := get("auth|" + username + "|groups")
 	// Should transform into array and then check through it
