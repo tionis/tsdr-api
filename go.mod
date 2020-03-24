@@ -8,7 +8,7 @@ require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gbrlsnchs/jwt/v3 v3.0.0-rc.1
 	github.com/gin-contrib/static v0.0.0-20191128031702-f81c604d8ac2 // indirect
-	github.com/gin-gonic/gin v1.5.0
+	github.com/gin-gonic/gin v1.6.1
 	github.com/go-redis/redis/v7 v7.2.0
 	github.com/gorilla/pat v1.0.1 // indirect
 	github.com/heroku/x v0.0.21
