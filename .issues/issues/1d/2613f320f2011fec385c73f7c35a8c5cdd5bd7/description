@@ -1,0 +1,56 @@
+Bump github.com/heroku/x from 0.0.21 to 0.0.22
+
+Bumps [github.com/heroku/x](https://github.com/heroku/x) from 0.0.21 to 0.0.22.
+<details>
+<summary>Commits</summary>
+<ul>
+<li><a href="https://github.com/heroku/x/commit/2ea78f73804bbe72cb4f4a27a7749f090c0c7f1d"><code>2ea78f7</code></a> Merge pull request <a href="https://github-redirect.dependabot.com/heroku/x/issues/132">#132</a> from heroku/lxf-syslog-resiliency</li>
+<li><a href="https://github.com/heroku/x/commit/dab4a99adbfa9811d09d273aa87ca2a56e9f4a0d"><code>dab4a99</code></a> fix test</li>
+<li><a href="https://github.com/heroku/x/commit/f4513f701fb9da8b84d3c0605e83150d7279b8fa"><code>f4513f7</code></a> encoding/logplex: validating prival field</li>
+<li><a href="https://github.com/heroku/x/commit/57ad5f468feaa9c64ee9a91f984dec3d742d7a8c"><code>57ad5f4</code></a> Revert &quot;updating env var names&quot;</li>
+<li><a href="https://github.com/heroku/x/commit/7ff4411285d9b39a475fb540943a9cda20e16767"><code>7ff4411</code></a> updating env var names</li>
+<li>See full diff in <a href="https://github.com/heroku/x/compare/v0.0.21...v0.0.22">compare view</a></li>
+</ul>
+</details>
+<br />
+
+
+[![Dependabot compatibility score](https://api.dependabot.com/badges/compatibility_score?dependency-name=github.com/heroku/x&package-manager=go_modules&previous-version=0.0.21&new-version=0.0.22)](https://dependabot.com/compatibility-score/?dependency-name=github.com/heroku/x&package-manager=go_modules&previous-version=0.0.21&new-version=0.0.22)
+
+Dependabot will resolve any conflicts with this PR as long as you don't alter it yourself. You can also trigger a rebase manually by commenting `@dependabot rebase`.
+
+[//]: # (dependabot-automerge-start)
+[//]: # (dependabot-automerge-end)
+
+---
+
+<details>
+<summary>Dependabot commands and options</summary>
+<br />
+
+You can trigger Dependabot actions by commenting on this PR:
+- `@dependabot rebase` will rebase this PR
+- `@dependabot recreate` will recreate this PR, overwriting any edits that have been made to it
+- `@dependabot merge` will merge this PR after your CI passes on it
+- `@dependabot squash and merge` will squash and merge this PR after your CI passes on it
+- `@dependabot cancel merge` will cancel a previously requested merge and block automerging
+- `@dependabot reopen` will reopen this PR if it is closed
+- `@dependabot close` will close this PR and stop Dependabot recreating it. You can achieve the same result by closing it manually
+- `@dependabot ignore this major version` will close this PR and stop Dependabot creating any more for this major version (unless you reopen the PR or upgrade to it yourself)
+- `@dependabot ignore this minor version` will close this PR and stop Dependabot creating any more for this minor version (unless you reopen the PR or upgrade to it yourself)
+- `@dependabot ignore this dependency` will close this PR and stop Dependabot creating any more for this dependency (unless you reopen the PR or upgrade to it yourself)
+- `@dependabot use these labels` will set the current labels as the default for future PRs for this repo and language
+- `@dependabot use these reviewers` will set the current reviewers as the default for future PRs for this repo and language
+- `@dependabot use these assignees` will set the current assignees as the default for future PRs for this repo and language
+- `@dependabot use this milestone` will set the current milestone as the default for future PRs for this repo and language
+- `@dependabot badge me` will comment on this PR with code to add a "Dependabot enabled" badge to your readme
+
+Additionally, you can set the following in your Dependabot [dashboard](https://app.dependabot.com):
+- Update frequency (including time of day and day of week)
+- Pull request limits (per update run and/or open at any time)
+- Out-of-range updates (receive only lockfile updates, if desired)
+- Security updates (receive only security updates, if desired)
+
+
+
+</details>
