@@ -40,10 +40,10 @@ func main() {
 	go uniPassauBot()
 
 	// Start Alpha Discord Bot
-	go alphaDiscordBot()
+	go glyphDiscordBot()
 
 	// Start Alpha Telegram Bot
-	go alphaTelegramBot()
+	go glyphTelegramBot()
 
 	// Init redis
 	redisS1 := strings.Split(strings.TrimPrefix(os.Getenv("REDIS_URL"), "redis://"), "@")

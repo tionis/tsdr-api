@@ -34,21 +34,22 @@ const lastPlayerOnlineLayout = "2006-01-02T15:04:05.000Z"
 const rconAddress = "mc.tasadar.net"
 
 // Main and Init
-func alphaDiscordBot() {
+func glyphDiscordBot() {
 	mainChannelID = "574959338754670602"
 	discordAdminID = "259076782408335360"
 	rconPassword = os.Getenv("RCON_PASS")
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
-		log.Println("[AlphaDiscordBot] Error creating Discord session,", err)
+		log.Println("[GlyphDiscordBot] Error creating Discord session,", err)
 	}
+
 	// Register the messageCreate func as a callback for MessageCreate events.
 	dg.AddHandler(messageCreate)
 
 	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {
-		fmt.Println("[AlphaDiscordBot] Error opening connection,", err)
+		fmt.Println("[GlyphDiscordBot] Error opening connection,", err)
 		return
 	}
 
@@ -66,16 +67,28 @@ func alphaDiscordBot() {
 	// Init mcRunning and mcStopping
 	mcRunningString, err := redclient.Get("mc|IsRunning").Result()
 	if err != nil {
-		log.Println("[AlphaDiscordBot] Error getting Redis value for mc|IsRunning", err)
+		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsRunning", err)
 	} else if mcRunningString == "true" {
 		mcRunning = true
 	} else if mcRunningString == "false" {
 		mcRunning = false
 	} else {
 		mcRunning = false
-		log.Println("[AlphaDiscordBot] Error converting Redis value for mc|IsRunning, expected true or false but got " + mcRunningString)
+		log.Println("[GlyphDiscordBot] Error converting Redis value for mc|IsRunning, expected true or false but got " + mcRunningString)
 	}
-	mcStopping = false // Redis save not necessary - edge cases not important enough
+	mcStoppingString, err := redclient.Get("mc|IsStopping").Result()
+	if err != nil {
+		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsStopping", err)
+	} else if mcStoppingString == "true" {
+		// Check if it maybe has already been stopped
+		mcStopping = true
+		// ToDo Start new stopping process
+	} else if mcStoppingString == "false" {
+		mcStopping = false
+	} else {
+		mcStopping = false
+		log.Println("[GlyphDiscordBot] Error converting Redis value for mc|IsRunning, expected true or false but got " + mcRunningString)
+	}
 
 	// Get Server State
 	go pingMC()
@@ -83,8 +96,8 @@ func alphaDiscordBot() {
 	// Set some StartUp Stuff
 	dgStatus, err := redclient.Get("dg|status").Result()
 	if err != nil {
-		log.Println("[AlphaDiscordBot] Error getting dgStatus from redis: ", err)
-		dgStatus = "Mass Effect 5"
+		log.Println("[GlyphDiscordBot] Error getting dgStatus from redis: ", err)
+		dgStatus = "planning world domination"
 	}
 	_ = dg.UpdateStatus(0, dgStatus)
 
@@ -98,7 +111,7 @@ func alphaDiscordBot() {
 	}(dg)
 
 	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("[AlphaDiscordBot] Bot is now running.")
+	fmt.Println("[GlyphDiscordBot] Bot is now running.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
@@ -124,113 +137,119 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/r":
 		rollHelper(s, m)
 	case "/help":
-		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - General Tasadar Network - /tn help")
 	case "/unip":
-		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/tn":
-		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\nNone!")
 	case "/food":
-		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtoday())
 	case "/food tomorrow":
-		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtomorrow())
 	case "/ping":
-		log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
 	case "/mc":
-		switch inputString[1] {
-		case "start":
-			log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-			if mcRunning {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Server already running!")
-			} else {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Starting MC-Server...")
-				success := mcStart()
-				if !success {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
-					log.Println("[AlphaDiscordBot] Error starting mc-server")
-				}
-			}
-			pingInMinutes(2)
-		case "stop":
-			log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-			go mcShutdownDiscord(s, m, 7)
-		case "cancel":
-			log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-			if mcStopping {
-				mcStopping = false
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped!")
-				client, err := newClient(rconAddress, 25575, rconPassword)
-				if err != nil {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error, please ask an admin to check the logs.")
-					log.Println("[AlphaDiscordBot] Error while trying to create RCON-Client-Object")
-					return
-				}
-				_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown was aborted!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
-				if err != nil {
-					log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
-					return
-				}
-			} else if mcRunning {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "There is currently no Server Shutdown scheduled!")
-			} else {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Server is currently not running!")
-			}
-		case "status":
-			log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
-			pingMC()
-			if mcRunning {
-				client, err := newClient(rconAddress, 25575, rconPassword)
-				if err != nil {
-					_, _ = s.ChannelMessage(m.ChannelID, "An Error occurred, please contact the administrator!")
-					log.Println("[AlphaDiscordBot] Error while creating rcon client: ", err)
-					return
-				}
-				if !mcRunning {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Warning! - Server currently not running!")
-					return
-				}
-				resp, err := client.sendCommand("execute if entity @a")
-				if err != nil {
-					log.Println("[AlphaDiscordBot] RCON server command connection failed: : ", err)
-					_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
-					return
-				}
-				var creeperCountString string
-				res, err := client.sendCommand("execute if entity @e[type=creeper]")
-				if err != nil {
-					log.Println("[AlphaDiscordBot] RCON server command connection failed: : ", err)
-					_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
-					return
-				}
-				if strings.Contains(res, "Test failed") {
-					creeperCountString = "0"
-				} else {
-					creeperCountString = strings.TrimPrefix(res, "Test passed, count: ")
-				}
-				var playerCountString string
-				if strings.Contains(resp, "Test failed") {
-					playerCountString = "0"
-				} else {
-					playerCountString = strings.TrimPrefix(resp, "Test passed, count: ")
-				}
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
-			} else {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently offline!\nTo start it use /mc start")
-			}
-
-		default:
-			log.Println("[AlphaDiscordBot] New Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
+		if len(inputString) < 2 {
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
+
+		} else {
+			switch inputString[1] {
+			case "start":
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				if mcRunning {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Server already running!")
+				} else {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Starting MC-Server...")
+					success := mcStart()
+					if !success {
+						_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
+						log.Println("[GlyphDiscordBot] Error starting mc-server")
+					}
+				}
+				pingInMinutes(2)
+			case "stop":
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				go mcShutdownDiscord(s, m, 7)
+			case "cancel":
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				if mcStopping {
+					mcStopping = false
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped!")
+					client, err := newClient(rconAddress, 25575, rconPassword)
+					if err != nil {
+						_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error, please ask an admin to check the logs.")
+						log.Println("[GlyphDiscordBot] Error while trying to create RCON-Client-Object")
+						return
+					}
+					_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown was aborted!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
+					if err != nil {
+						log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
+						return
+					}
+				} else if mcRunning {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "There is currently no Server Shutdown scheduled!")
+				} else {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Server is currently not running!")
+				}
+			case "status":
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				pingMC()
+				if mcRunning {
+					client, err := newClient(rconAddress, 25575, rconPassword)
+					if err != nil {
+						_, _ = s.ChannelMessage(m.ChannelID, "An Error occurred, please contact the administrator!")
+						log.Println("[GlyphDiscordBot] Error while creating rcon client: ", err)
+						return
+					}
+					if !mcRunning {
+						_, _ = s.ChannelMessageSend(m.ChannelID, "Warning! - Server currently not running!")
+						return
+					}
+					resp, err := client.sendCommand("execute if entity @a")
+					if err != nil {
+						log.Println("[GlyphDiscordBot] RCON server command connection failed: : ", err)
+						_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
+						return
+					}
+					var creeperCountString string
+					res, err := client.sendCommand("execute if entity @e[type=creeper]")
+					if err != nil {
+						log.Println("[GlyphDiscordBot] RCON server command connection failed: : ", err)
+						_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
+						return
+					}
+					if strings.Contains(res, "Test failed") {
+						creeperCountString = "0"
+					} else {
+						creeperCountString = strings.TrimPrefix(res, "Test passed, count: ")
+					}
+					var playerCountString string
+					if strings.Contains(resp, "Test failed") {
+						playerCountString = "0"
+					} else {
+						playerCountString = strings.TrimPrefix(resp, "Test passed, count: ")
+					}
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
+				} else {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently offline!\nTo start it use /mc start")
+				}
+
+			default:
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
+			}
 		}
 	case "/id":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
 		//default:
-		//log.Println("[AlphaDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[AlphaDiscordBot] " + m.Content)
+		//log.Println("[GlyphDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
@@ -255,19 +274,23 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 	}
 	client, err := newClient(rconAddress, 25575, rconPassword)
 	mcStopping = true
+	err = set("mc|isStopping", "true")
+	if err != nil {
+		log.Println("[GlyphDiscordBot] Error saving mc|isStopping to database")
+	}
 	if err != nil {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error, please ask an admin to check the logs.")
-		log.Println("[AlphaDiscordBot] Error while trying to create RCON-Client-Object")
+		log.Println("[GlyphDiscordBot] Error while trying to create RCON-Client-Object")
 		return
 	}
 	_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"" + minutesString + " Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
 	if err != nil {
-		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 		return
 	}
 	_, err = client.sendCommand("tellraw @a [{\"text\":\"Type /mc cancel in the Discord Chat to cancel the shutdown! \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
 	if err != nil {
-		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 	}
 	_, _ = s.ChannelMessageSend(m.ChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
 	if m.ChannelID != mainChannelID {
@@ -277,27 +300,27 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 	if mcStopping {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Shutting down Server...")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server connection failed", err)
+			log.Println("[GlyphDiscordBot] RCON server connection failed", err)
 		}
 		_, err = client.sendCommand("title @a title {\"text\":\"Warning!\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 		}
 		_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"10 Seconds!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 		}
 		time.Sleep(3 * time.Second)
 		for i := 10; i >= 0; i-- {
 			time.Sleep(1 * time.Second)
 			_, err = client.sendCommand("title @a title {\"text\":\"" + strconv.Itoa(i) + "\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
 			if err != nil {
-				log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+				log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 			}
 		}
 		_, err = client.sendCommand("stop")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 		}
 	}
 }
@@ -321,12 +344,12 @@ func mcStart() bool {
 		}
 		_ = set("mc|IsRunning", mcRunningString)
 		if err != nil {
-			log.Println("[AlphaDiscordBot] Error setting mc|IsRunning on Redis: ", err)
+			log.Println("[GlyphDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 		}
 		lastPlayerOnline = time.Now()
 		_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 		if err != nil {
-			log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
+			log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
 		return true
 	}
@@ -354,12 +377,12 @@ func updateMC() {
 			if err != nil {
 				log.Println("Error setting mc|IsRunning on Redis: ", err)
 			}
-			log.Println("[AlphaDiscordBot] Error while creating rcon client: ", err)
+			log.Println("[GlyphDiscordBot] Error while creating rcon client: ", err)
 			return
 		}
 		resp, err := client.sendCommand("execute if entity @a")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 			return
 		}
 		var playerCountString string
@@ -370,20 +393,20 @@ func updateMC() {
 		}
 		playerCount, err := strconv.Atoi(playerCountString)
 		if err != nil {
-			log.Println("[AlphaDiscordBot] Error converting PlayerCountString to int: ", err)
+			log.Println("[GlyphDiscordBot] Error converting PlayerCountString to int: ", err)
 		}
 		if playerCount > 0 {
 			lastPlayerOnline = time.Now()
 			_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 			if err != nil {
-				log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
+				log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 			}
 		} else {
 			if time.Now().Sub(lastPlayerOnline).Minutes() > 30 {
 				lastPlayerOnline = time.Now()
 				_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 				if err != nil {
-					log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
+					log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 				}
 				mcStopPlayerOffline()
 			}
@@ -394,18 +417,22 @@ func updateMC() {
 func mcStopPlayerOffline() {
 	client, err := newClient(rconAddress, 25575, rconPassword)
 	if err != nil {
-		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 		return
 	}
 	mcStopping = true
+	err = set("mc|isStopping", "true")
+	if err != nil {
+		log.Println("[GlyphDiscordBot] Error saving mc|isStopping to database")
+	}
 	_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\" 5 Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
 	if err != nil {
-		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 		return
 	}
 	_, err = client.sendCommand("tellraw @a [{\"text\":\"Type /mc cancel in the Discord Chat to cancel the shutdown! \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
 	if err != nil {
-		log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 		return
 	}
 	msgDiscordMC <- "There were no players on the Server for quite some time.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
@@ -414,34 +441,38 @@ func mcStopPlayerOffline() {
 		err = client.reconnect()
 		msgDiscordMC <- "Shutting down Server..."
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server connection failed", err)
+			log.Println("[GlyphDiscordBot] RCON server connection failed", err)
 		}
 		_, err = client.sendCommand("title @a title {\"text\":\"Warning!\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 		}
 		_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"10 Seconds!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 		}
 		time.Sleep(3 * time.Second)
 		for i := 10; i >= 0; i-- {
 			time.Sleep(1 * time.Second)
 			_, err = client.sendCommand("title @a title {\"text\":\"" + strconv.Itoa(i) + "\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
 			if err != nil {
-				log.Println("[AlphaDiscordBot] RCON server command connection failed: ", err)
+				log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
 			}
 		}
 		_, err = client.sendCommand("stop")
 		if err != nil {
-			log.Println("[AlphaDiscordBot] RCON server command connection failed - trying again: ", err)
+			log.Println("[GlyphDiscordBot] RCON server command connection failed - trying again: ", err)
 			_ = client.reconnect()
 			_, err = client.sendCommand("stop")
 			if err != nil {
-				log.Println("[AlphaDiscordBot] RCON server reconnect failed finally: ", err)
+				log.Println("[GlyphDiscordBot] RCON server reconnect failed finally: ", err)
 				msgDiscordMC <- "Error while trying to stop Server"
-				msgAlpha <- "Error sending stop command to MC-Server"
+				msgGlyph <- "Error sending stop command to MC-Server"
 				mcStopping = false
+				err = set("mc|isStopping", "false")
+				if err != nil {
+					log.Println("[GlyphDiscordBot] Error saving mc|isStopping to database")
+				}
 			}
 		}
 	}
@@ -582,7 +613,8 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 			retString = retString + "\n"
 		}
-		fmt.Println(retSlice)
+		s.ChannelMessageSend(m.ChannelID, "Feature currently in Development and not ready yet!")
+		//fmt.Println(retSlice)
 	}
 }
 
@@ -596,7 +628,7 @@ func normalConstructRoll(throwCount int) [][]int {
 			if diceResult != 10 {
 				repeat = false
 			}
-			log.Println("Debug-1")
+			//log.Println("Debug-1")
 			tmpSlice := []int{diceResult}
 			retSlice = append(retSlice, tmpSlice)
 		}
@@ -687,7 +719,7 @@ func pingMC() {
 		lastPlayerOnline = time.Now()
 		err = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 		if err != nil {
-			log.Println("[AlphaDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
+			log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
 	}
 	mcRunning = err == nil
@@ -699,6 +731,6 @@ func pingMC() {
 	}
 	err = set("mc|IsRunning", mcRunningString)
 	if err != nil {
-		log.Println("[AlphaDiscordBot] Error setting mc|IsRunning on Redis: ", err)
+		log.Println("[GlyphDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 	}
 }

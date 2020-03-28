@@ -95,37 +95,11 @@ func routes(router *gin.Engine) {
 		}
 	})
 
-	// Google Assitant API - WIP
-	router.POST("/dialogflow/alpha", retFoodToday)
-
 	// Google Assitant IFTTT API - tokenization
 	router.POST("/iot/assistant/order/:number", assistantOrderHandler)
 
 	// Receive Message from contact form
 	router.POST("/contact/tasadar", contactTasadar)
-}
-
-// Auth System
-func resetPW(c *gin.Context) {
-	// Insert Form for Password Reset here
-	// Generate Token and insert into redis
-	// Send Email
-	c.File("static/auth/reset-password.html")
-}
-
-func resetPWToken(c *gin.Context) {
-	// Validate Token here
-	if false {
-		// Read first part
-		// Read second part
-		// Create custom Form with link
-		// Merge them
-		// IDEA as follows: Form always stays the same but link that its send to changes
-
-	} else {
-		c.File("static/error-pages/401.html")
-	}
-	// Send new form back with
 }
 
 // Google Assistant IFTTT Bindings
