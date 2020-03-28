@@ -1,0 +1,78 @@
+Bump github.com/gin-gonic/gin from 1.6.1 to 1.6.2
+
+Bumps [github.com/gin-gonic/gin](https://github.com/gin-gonic/gin) from 1.6.1 to 1.6.2.
+<details>
+<summary>Release notes</summary>
+<p><em>Sourced from <a href="https://github.com/gin-gonic/gin/releases">github.com/gin-gonic/gin's releases</a>.</em></p>
+<blockquote>
+<h2>release v1.6.2</h2>
+<h2>Release Notes</h2>
+<ul>
+<li>BUGFIXES
+<ul>
+<li>fix missing initial sync.RWMutex (<a href="https://github-redirect.dependabot.com/gin-gonic/gin/issues/2305">#2305</a>)</li>
+</ul>
+</li>
+<li>ENHANCEMENTS
+<ul>
+<li>Add set samesite in cookie. (<a href="https://github-redirect.dependabot.com/gin-gonic/gin/issues/2306">#2306</a>)</li>
+</ul>
+</li>
+</ul>
+<h2>Contributors</h2>
+<ul>
+<li><a href="https://github.com/appleboy">@appleboy</a></li>
+</ul>
+</blockquote>
+</details>
+<details>
+<summary>Commits</summary>
+<ul>
+<li><a href="https://github.com/gin-gonic/gin/commit/298ebca69107001096eaf81c4b4977b14ffa0e6d"><code>298ebca</code></a> fix missing initial sync.RWMutex (<a href="https://github-redirect.dependabot.com/gin-gonic/gin/issues/2305">#2305</a>)</li>
+<li><a href="https://github.com/gin-gonic/gin/commit/57f99ca50fd368c9fdc4543e22d6e84b88571ae5"><code>57f99ca</code></a> Add set samesite in cookie. (<a href="https://github-redirect.dependabot.com/gin-gonic/gin/issues/2306">#2306</a>)</li>
+<li><a href="https://github.com/gin-gonic/gin/commit/bd5ee1aae2e34e45c7401c3b11c70ac8feac7b41"><code>bd5ee1a</code></a> doc: add pr link (<a href="https://github-redirect.dependabot.com/gin-gonic/gin/issues/2298">#2298</a>)</li>
+<li>See full diff in <a href="https://github.com/gin-gonic/gin/compare/v1.6.1...v1.6.2">compare view</a></li>
+</ul>
+</details>
+<br />
+
+
+[![Dependabot compatibility score](https://api.dependabot.com/badges/compatibility_score?dependency-name=github.com/gin-gonic/gin&package-manager=go_modules&previous-version=1.6.1&new-version=1.6.2)](https://dependabot.com/compatibility-score/?dependency-name=github.com/gin-gonic/gin&package-manager=go_modules&previous-version=1.6.1&new-version=1.6.2)
+
+Dependabot will resolve any conflicts with this PR as long as you don't alter it yourself. You can also trigger a rebase manually by commenting `@dependabot rebase`.
+
+[//]: # (dependabot-automerge-start)
+[//]: # (dependabot-automerge-end)
+
+---
+
+<details>
+<summary>Dependabot commands and options</summary>
+<br />
+
+You can trigger Dependabot actions by commenting on this PR:
+- `@dependabot rebase` will rebase this PR
+- `@dependabot recreate` will recreate this PR, overwriting any edits that have been made to it
+- `@dependabot merge` will merge this PR after your CI passes on it
+- `@dependabot squash and merge` will squash and merge this PR after your CI passes on it
+- `@dependabot cancel merge` will cancel a previously requested merge and block automerging
+- `@dependabot reopen` will reopen this PR if it is closed
+- `@dependabot close` will close this PR and stop Dependabot recreating it. You can achieve the same result by closing it manually
+- `@dependabot ignore this major version` will close this PR and stop Dependabot creating any more for this major version (unless you reopen the PR or upgrade to it yourself)
+- `@dependabot ignore this minor version` will close this PR and stop Dependabot creating any more for this minor version (unless you reopen the PR or upgrade to it yourself)
+- `@dependabot ignore this dependency` will close this PR and stop Dependabot creating any more for this dependency (unless you reopen the PR or upgrade to it yourself)
+- `@dependabot use these labels` will set the current labels as the default for future PRs for this repo and language
+- `@dependabot use these reviewers` will set the current reviewers as the default for future PRs for this repo and language
+- `@dependabot use these assignees` will set the current assignees as the default for future PRs for this repo and language
+- `@dependabot use this milestone` will set the current milestone as the default for future PRs for this repo and language
+- `@dependabot badge me` will comment on this PR with code to add a "Dependabot enabled" badge to your readme
+
+Additionally, you can set the following in your Dependabot [dashboard](https://app.dependabot.com):
+- Update frequency (including time of day and day of week)
+- Pull request limits (per update run and/or open at any time)
+- Out-of-range updates (receive only lockfile updates, if desired)
+- Security updates (receive only security updates, if desired)
+
+
+
+</details>
