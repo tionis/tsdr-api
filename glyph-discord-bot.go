@@ -38,7 +38,7 @@ func alphaDiscordBot() {
 	mainChannelID = "574959338754670602"
 	discordAdminID = "259076782408335360"
 	rconPassword = os.Getenv("RCON_PASS")
-	dg, err := discordgo.New("Bot " + os.Getenv("AlphaDiscordBot"))
+	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
 		log.Println("[AlphaDiscordBot] Error creating Discord session,", err)
 	}
@@ -52,7 +52,7 @@ func alphaDiscordBot() {
 		return
 	}
 
-	//Init Variables from redis
+	// Init Variables from redis
 	lastPlayerOnlineString, err := redclient.Get("mc|lastPlayerOnline").Result()
 	if err != nil {
 		log.Println("Error reading mc|lastPlayerOnline from Redis: ", err)
@@ -491,22 +491,26 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return
 		}
 	} else if inputString[1] == "chance" {
-		s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+		result := roll1D10()
+		retString := ""
+		switch result {
+		case 10:
+			retString = "Success! Your rolled a 10!"
+		case 1:
+			retString = "Critical Fail! That was a 1!"
+		default:
+			retString = "Fail! Your rolled a " + strconv.Itoa(result) + "!"
+		}
+		s.ChannelMessageSend(m.ChannelID, retString)
 		return
 	} else {
-		// Start Dice Rolling in CoD Mode: Parse 9-again 8-again Rote-quality
-		// Opperate by using Modes like this:
-		// 9 = 9-again
-		// 8 = 8,9-again
-		// r = rote-quality
-		// r9 = rote and 9-again
-		// r8 = rote and 8,9 again
-		// n = roll but nothing is rolled again
-		// nr = roll with rote quality but reroll nothing
-
-		// Init needed variables
-		//var retString strings.Builder
-		//successes := 0
+		var roteQuality, noReroll, eightAgain, nineAgain bool
+		if len(inputString) > 2 {
+			roteQuality = strings.Contains(inputString[2], "r")
+			noReroll = strings.Contains(inputString[2], "n")
+			eightAgain = strings.Contains(inputString[2], "8")
+			nineAgain = strings.Contains(inputString[2], "9")
+		}
 
 		// Catch invalid number of dice to throw
 		throwCount, err := strconv.Atoi(inputString[1])
@@ -518,9 +522,152 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSend(m.ChannelID, "Don't you think that are a few to many dice to throw?")
 			return
 		}
-
-		// Rest of Code here
+		var retSlice [][]int
+		// Use correct Method
+		if len(inputString) < 3 {
+			// Check if special parameters were used
+			retSlice = normalConstructRoll(throwCount)
+		} else {
+			if eightAgain {
+				// Check if 8again -> infers no 9Again -> only check for n and r
+				if roteQuality {
+					if noReroll {
+						retSlice = constructRoll8rn(throwCount)
+					} else {
+						retSlice = constructRoll8r(throwCount)
+					}
+				} else {
+					if noReroll {
+						retSlice = constructRoll8n(throwCount)
+					} else {
+						retSlice = constructRoll8(throwCount)
+					}
+				}
+			} else if nineAgain {
+				if roteQuality {
+					if noReroll {
+						retSlice = constructRoll9rn(throwCount)
+					} else {
+						retSlice = constructRoll9r(throwCount)
+					}
+				} else {
+					if noReroll {
+						retSlice = constructRoll9n(throwCount)
+					} else {
+						retSlice = constructRoll9(throwCount)
+					}
+				}
+			} else if roteQuality {
+				if noReroll {
+					retSlice = constructRollrn(throwCount)
+				} else {
+					retSlice = constructRollr(throwCount)
+				}
+			} else {
+				if noReroll {
+					retSlice = constructRolln(throwCount)
+				} else {
+					log.Println("[Glyph Discord Bot] This should not have been executed! Perhaps an error in syntax?")
+					s.ChannelMessageSend(m.ChannelID, "There was an error while parsing your input!")
+					return
+				}
+			}
+		}
+		// Count Successes and Ones while parsing the return String
+		// Parse Slice here
+		retString := "Results:\n"
+		for i := range retSlice {
+			for j := range retSlice[i] {
+				retString = retString + " - " + strconv.Itoa(retSlice[i][j])
+			}
+			retString = retString + "\n"
+		}
+		fmt.Println(retSlice)
 	}
+}
+
+func normalConstructRoll(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	for i := range retSlice {
+		retSlice[i] = make([]int, 1)
+		repeat := true
+		for repeat {
+			diceResult := roll1D10()
+			if diceResult != 10 {
+				repeat = false
+			}
+			log.Println("Debug-1")
+			tmpSlice := []int{diceResult}
+			retSlice = append(retSlice, tmpSlice)
+		}
+	}
+	return retSlice
+}
+
+func constructRoll8(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
+}
+
+func constructRoll8n(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
+}
+
+func constructRoll8r(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
+}
+
+func constructRoll8rn(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
+}
+
+func constructRoll9(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
+}
+
+func constructRoll9n(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
+}
+
+func constructRoll9r(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
+}
+
+func constructRoll9rn(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
+}
+
+func constructRolln(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
+}
+
+func constructRollr(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
+}
+
+func constructRollrn(throwCount int) [][]int {
+	retSlice := make([][]int, throwCount)
+	// Roll here
+	return retSlice
 }
 
 func roll1D10() int {
@@ -534,6 +681,7 @@ func roll1D10() int {
 
 func pingMC() {
 	// To be edited with a true server ping - finished (more or less) - can still be improved!
+	// ToDo: Ping with http api
 	_, _, err := bot.PingAndList("mc.tasadar.net", 25565)
 	if !mcRunning && err == nil { // Resets Counter if server online trough other means
 		lastPlayerOnline = time.Now()

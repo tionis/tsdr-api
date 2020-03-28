@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -13,18 +11,13 @@ import (
 	"github.com/robfig/cron"
 )
 
-// TODO
-// Check Alpha-telegram-bot
-// Move to postgresql
-// Check for more memory leaks (maybe reduce dependencies?)
-
 var redclient *redis.Client
 var psqlInfo string
 
 // Main and Init
 func main() {
 	// Init postgres
-	if os.Getenv("DATABASE_URL") == "" || os.Getenv("REDIS_URL") == "" {
+	/*if os.Getenv("DATABASE_URL") == "" || os.Getenv("REDIS_URL") == "" {
 		log.Fatal("[Fatal] Error getting Database Information!")
 	}
 	postgresString1 := strings.Split(strings.TrimPrefix(os.Getenv("DATABASE_URL"), "postgres://"), "@")
@@ -42,7 +35,7 @@ func main() {
 	psqlInfo = fmt.Sprintf("host=%s port=%d user=%s "+
 		"password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
-
+	*/
 	// Start Uni-Passau-Bot
 	go uniPassauBot()
 

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"os"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload"
-	_ "github.com/lib/pq"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -45,7 +43,7 @@ func alphaTelegramBot() {
 	}()
 
 	// check for and read config variable, then create bot object
-	token := os.Getenv("AlphaTelegramBot")
+	token := os.Getenv("TELEGRAM_TOKEN")
 	alpha, err := tb.NewBot(tb.Settings{
 		Token:  token,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
@@ -263,7 +261,7 @@ func alphaTelegramBot() {
 			_, _ = alpha.Send(m.Sender, "You are not authorized to execute this command!")
 		}
 	})
-	alpha.Handle("/psqlPing", func(m *tb.Message) {
+	/*alpha.Handle("/psqlPing", func(m *tb.Message) {
 		db, err := sql.Open("postgres", psqlInfo)
 		if err != nil {
 			log.Println("[PostgreSQL] Server Connection failed: ", err)
@@ -285,7 +283,7 @@ func alphaTelegramBot() {
 		if err != nil {
 			log.Println("[PostgreSQL] Error closing Postgres Session")
 		}
-	})
+	})*/
 	alpha.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		fmt.Println("[AlphaTelegramBot] " + "Group Message:")
 		printInfoAlpha(m)
