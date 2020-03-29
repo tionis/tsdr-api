@@ -313,7 +313,6 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 	}
 	time.Sleep(time.Duration(minutes) * time.Minute)
 	if mcStopping {
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Shutting down Server...")
 		client := &http.Client{}
 		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/stop", nil)
 		mcAPIToken := get("mcapi|token")
@@ -456,7 +455,6 @@ func mcStopPlayerOffline() {
 func stopMCServerIn(minutesToShutdown int) {
 	time.Sleep(time.Duration(minutesToShutdown) * time.Minute)
 	if mcStopping {
-		msgDiscordMC <- "Shutting down Server..."
 		client := &http.Client{}
 		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/stop", nil)
 		mcAPIToken := get("mcapi|token")
@@ -467,7 +465,9 @@ func stopMCServerIn(minutesToShutdown int) {
 			msgDiscordMC <- "Error Stopping Server"
 			return
 		}
-		if res.StatusCode != 200 {
+		if res.StatusCode == 200 {
+			msgDiscordMC <- "Shutting down Server..."
+		} else {
 			log.Println("Error connecting to mcAPI")
 			msgDiscordMC <- "Error Stopping Server"
 			return
