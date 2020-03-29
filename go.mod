@@ -16,7 +16,7 @@ require (
 	github.com/markbates/goth v1.63.0 // indirect
 	github.com/pquerna/otp v1.2.0
 	github.com/robfig/cron v1.2.0
-	golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
+	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59
 	golang.org/x/text v0.3.2
 	gopkg.in/tucnak/telebot.v2 v2.0.0-20191005061224-d0707a9d73c4
 )

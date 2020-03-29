@@ -301,6 +301,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes int) {
+	mcStopping = true
 	minutesString := strconv.Itoa(minutes)
 	if !mcRunning {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "The Server is currently not running!\nYou must start the Server to stop it!")
