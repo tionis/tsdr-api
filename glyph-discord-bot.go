@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Tnze/go-mc/bot"
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/heroku/x/hmetrics/onload"
 )
@@ -31,13 +31,11 @@ var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 // Some Constants
 const lastPlayerOnlineLayout = "2006-01-02T15:04:05.000Z"
-const rconAddress = "mc.tasadar.net"
 
 // Main and Init
 func glyphDiscordBot() {
 	mainChannelID = "574959338754670602"
 	discordAdminID = "259076782408335360"
-	rconPassword = os.Getenv("RCON_PASS")
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error creating Discord session,", err)
@@ -215,18 +213,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 				if mcStopping {
 					mcStopping = false
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped!")
-					client, err := newClient(rconAddress, 25575, rconPassword)
-					if err != nil {
-						_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error, please ask an admin to check the logs.")
-						log.Println("[GlyphDiscordBot] Error while trying to create RCON-Client-Object")
-						return
-					}
-					_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown was aborted!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
-					if err != nil {
-						log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-						return
-					}
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped.")
 				} else if mcRunning {
 					_, _ = s.ChannelMessageSend(m.ChannelID, "There is currently no Server Shutdown scheduled!")
 				} else {
@@ -236,40 +223,51 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 				pingMC()
 				if mcRunning {
-					client, err := newClient(rconAddress, 25575, rconPassword)
-					if err != nil {
-						_, _ = s.ChannelMessage(m.ChannelID, "An Error occurred, please contact the administrator!")
-						log.Println("[GlyphDiscordBot] Error while creating rcon client: ", err)
-						return
-					}
 					if !mcRunning {
 						_, _ = s.ChannelMessageSend(m.ChannelID, "Warning! - Server currently not running!")
 						return
 					}
-					resp, err := client.sendCommand("execute if entity @a")
-					if err != nil {
-						log.Println("[GlyphDiscordBot] RCON server command connection failed: : ", err)
-						_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
+					pingMC()
+					client := &http.Client{}
+					req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/creepercount", nil)
+					mcAPIToken := get("mcapi|token")
+					req.Header.Set("TASADAR_SECRET", mcAPIToken)
+					res, err := client.Do(req)
+					if res == nil {
+						log.Println("Error connecting to mcAPI")
+						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
 						return
 					}
-					var creeperCountString string
-					res, err := client.sendCommand("execute if entity @e[type=creeper]")
-					if err != nil {
-						log.Println("[GlyphDiscordBot] RCON server command connection failed: : ", err)
-						_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred while trying to get the status, please contact the administrator.")
+					defer res.Body.Close()
+					if res.StatusCode != 200 {
+						log.Println("Error connecting to mcAPI")
+						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
 						return
 					}
-					if strings.Contains(res, "Test failed") {
-						creeperCountString = "0"
-					} else {
-						creeperCountString = strings.TrimPrefix(res, "Test passed, count: ")
+					bodyBytes, err := ioutil.ReadAll(res.Body)
+					if err != nil {
+						log.Println("Error connecting to mcAPI")
 					}
-					var playerCountString string
-					if strings.Contains(resp, "Test failed") {
-						playerCountString = "0"
-					} else {
-						playerCountString = strings.TrimPrefix(resp, "Test passed, count: ")
+					creeperCountString := string(bodyBytes)
+					req, _ = http.NewRequest("GET", "https://mcapi.tasadar.net/mc/playercount", nil)
+					req.Header.Set("TASADAR_SECRET", mcAPIToken)
+					res, err = client.Do(req)
+					if res == nil {
+						log.Println("Error connecting to mcAPI")
+						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
+						return
 					}
+					defer res.Body.Close()
+					if res.StatusCode != 200 {
+						log.Println("Error connecting to mcAPI")
+						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
+						return
+					}
+					bodyBytes, err = ioutil.ReadAll(res.Body)
+					if err != nil {
+						log.Println("Error connecting to mcAPI")
+					}
+					playerCountString := string(bodyBytes)
 					_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
 				} else {
 					_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently offline!\nTo start it use /mc start")
@@ -308,26 +306,6 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 		_, _ = s.ChannelMessageSend(m.ChannelID, "The Server is currently not running!\nYou must start the Server to stop it!")
 		return
 	}
-	client, err := newClient(rconAddress, 25575, rconPassword)
-	mcStopping = true
-	err = set("mc|isStopping", "true")
-	if err != nil {
-		log.Println("[GlyphDiscordBot] Error saving mc|isStopping to database")
-	}
-	if err != nil {
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error, please ask an admin to check the logs.")
-		log.Println("[GlyphDiscordBot] Error while trying to create RCON-Client-Object")
-		return
-	}
-	_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"" + minutesString + " Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
-	if err != nil {
-		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-		return
-	}
-	_, err = client.sendCommand("tellraw @a [{\"text\":\"Type /mc cancel in the Discord Chat to cancel the shutdown! \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
-	if err != nil {
-		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-	}
 	_, _ = s.ChannelMessageSend(m.ChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
 	if m.ChannelID != mainChannelID {
 		_, _ = s.ChannelMessageSend(mainChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
@@ -335,28 +313,17 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 	time.Sleep(time.Duration(minutes) * time.Minute)
 	if mcStopping {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Shutting down Server...")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server connection failed", err)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/stop", nil)
+		mcAPIToken := get("mcapi|token")
+		req.Header.Set("TASADAR_SECRET", mcAPIToken)
+		res, err := client.Do(req)
+		if res == nil || err != nil {
+			log.Println("Error connecting to mcAPI")
+			s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
 		}
-		_, err = client.sendCommand("title @a title {\"text\":\"Warning!\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-		}
-		_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"10 Seconds!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-		}
-		time.Sleep(3 * time.Second)
-		for i := 10; i >= 0; i-- {
-			time.Sleep(1 * time.Second)
-			_, err = client.sendCommand("title @a title {\"text\":\"" + strconv.Itoa(i) + "\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
-			if err != nil {
-				log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-			}
-		}
-		_, err = client.sendCommand("stop")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
+		if res.StatusCode == 200 {
+			s.ChannelMessageSend(m.ChannelID, "Server shutting down...")
 		}
 	}
 }
@@ -364,7 +331,8 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 func mcStart() bool {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/start", nil)
-	req.Header.Set("TASADAR_SECRET", "JFyMdGUgx3Re2r2VefLYFJeGNosscB98")
+	mcAPIToken := get("mcapi|token")
+	req.Header.Set("TASADAR_SECRET", mcAPIToken)
 	res, err := client.Do(req)
 	if res == nil {
 		log.Println("Error connecting to mcAPI")
@@ -400,36 +368,60 @@ func pingInMinutes(minutes int) {
 
 func updateMC() {
 	if mcRunning && !mcStopping {
-		client, err := newClient(rconAddress, 25575, rconPassword)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/ping", nil)
+		mcAPIToken := get("mcapi|token")
+		req.Header.Set("TASADAR_SECRET", mcAPIToken)
+		res, err := client.Do(req)
+		if res == nil {
+			log.Println("[GlyphDiscordBot] Error in request!")
+			return
+		}
+		defer res.Body.Close()
+		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			mcRunning = false
-			var mcRunningString string
-			if mcRunning {
-				mcRunningString = "true"
+			log.Println("Error connecting to mcAPI")
+		}
+		playerCount := 0
+		bodyString := string(bodyBytes)
+		if res.StatusCode == 200 {
+			if bodyString == "online" {
+				mcRunning = true
+				client := &http.Client{}
+				req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/ping", nil)
+				mcAPIToken := get("mcapi|token")
+				req.Header.Set("TASADAR_SECRET", mcAPIToken)
+				res, err := client.Do(req)
+				if res == nil {
+					log.Println("[GlyphDiscordBot] Error in request!")
+					return
+				}
+				defer res.Body.Close()
+				bodyBytes, err := ioutil.ReadAll(res.Body)
+				if err != nil {
+					log.Println("Error connecting to mcAPI")
+				}
+				bodyString := string(bodyBytes)
+				playerCount, err = strconv.Atoi(bodyString)
+				if err != nil {
+					log.Println("Error reading response from mcAPI")
+				}
+			} else if bodyString == "offline" {
+				mcRunning = false
+				var mcRunningString string
+				if mcRunning {
+					mcRunningString = "true"
+				} else {
+					mcRunningString = "false"
+				}
+				err = set("mc|IsRunning", mcRunningString)
+				if err != nil {
+					log.Println("Error setting mc|IsRunning on Redis: ", err)
+				}
+				return
 			} else {
-				mcRunningString = "false"
+				log.Println("Error interpreting mcAPI response")
 			}
-			err = set("mc|IsRunning", mcRunningString)
-			if err != nil {
-				log.Println("Error setting mc|IsRunning on Redis: ", err)
-			}
-			log.Println("[GlyphDiscordBot] Error while creating rcon client: ", err)
-			return
-		}
-		resp, err := client.sendCommand("execute if entity @a")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-			return
-		}
-		var playerCountString string
-		if strings.Contains(resp, "Test failed") {
-			playerCountString = "0"
-		} else {
-			playerCountString = strings.TrimPrefix(resp, "Test passed, count: ")
-		}
-		playerCount, err := strconv.Atoi(playerCountString)
-		if err != nil {
-			log.Println("[GlyphDiscordBot] Error converting PlayerCountString to int: ", err)
 		}
 		if playerCount > 0 {
 			lastPlayerOnline = time.Now()
@@ -451,74 +443,33 @@ func updateMC() {
 }
 
 func mcStopPlayerOffline() {
-	client, err := newClient(rconAddress, 25575, rconPassword)
-	if err != nil {
-		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-		return
-	}
 	mcStopping = true
-	err = set("mc|isStopping", "true")
+	err := set("mc|isStopping", "true")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error saving mc|isStopping to database")
-	}
-	_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\" 5 Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
-	if err != nil {
-		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-		return
-	}
-	_, err = client.sendCommand("tellraw @a [{\"text\":\"Type /mc cancel in the Discord Chat to cancel the shutdown! \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
-	if err != nil {
-		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-		return
 	}
 	msgDiscordMC <- "There were no players on the Server for quite some time.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
 	stopMCServerIn(5)
 }
 
 func stopMCServerIn(minutesToShutdown int) {
-	client, err := newClient(rconAddress, 25575, rconPassword)
-	if err != nil {
-		log.Println("[GlyphDiscordBot] RCON server shutdown command connection failed: ", err)
-		return
-	}
 	time.Sleep(time.Duration(minutesToShutdown) * time.Minute)
 	if mcStopping {
-		err = client.reconnect()
 		msgDiscordMC <- "Shutting down Server..."
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server connection failed", err)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/stop", nil)
+		mcAPIToken := get("mcapi|token")
+		req.Header.Set("TASADAR_SECRET", mcAPIToken)
+		res, err := client.Do(req)
+		if res == nil || err != nil {
+			log.Println("Error connecting to mcAPI")
+			msgDiscordMC <- "Error Stopping Server"
+			return
 		}
-		_, err = client.sendCommand("title @a title {\"text\":\"Warning!\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-		}
-		_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"10 Seconds!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-		}
-		time.Sleep(3 * time.Second)
-		for i := 10; i >= 0; i-- {
-			time.Sleep(1 * time.Second)
-			_, err = client.sendCommand("title @a title {\"text\":\"" + strconv.Itoa(i) + "\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
-			if err != nil {
-				log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-			}
-		}
-		_, err = client.sendCommand("stop")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server command connection failed - trying again: ", err)
-			_ = client.reconnect()
-			_, err = client.sendCommand("stop")
-			if err != nil {
-				log.Println("[GlyphDiscordBot] RCON server reconnect failed finally: ", err)
-				msgDiscordMC <- "Error while trying to stop Server"
-				msgGlyph <- "Error sending stop command to MC-Server"
-				mcStopping = false
-				err = set("mc|isStopping", "false")
-				if err != nil {
-					log.Println("[GlyphDiscordBot] Error saving mc|isStopping to database")
-				}
-			}
+		if res.StatusCode != 200 {
+			log.Println("Error connecting to mcAPI")
+			msgDiscordMC <- "Error Stopping Server"
+			return
 		}
 	}
 }
@@ -804,10 +755,29 @@ func roll1D10() int {
 }
 
 func pingMC() {
-	// To be edited with a true server ping - finished (more or less) - can still be improved!
-	// TODO: Ping with http api
-	_, _, err := bot.PingAndList("mc.tasadar.net", 25565)
-	if !mcRunning && err == nil { // Resets Counter if server online trough other means
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/ping", nil)
+	mcAPIToken := get("mcapi|token")
+	req.Header.Set("TASADAR_SECRET", mcAPIToken)
+	res, err := client.Do(req)
+	if res == nil {
+		log.Println("[GlyphDiscordBot] Error in request!")
+		return
+	}
+	defer res.Body.Close()
+	var onlineCheck bool
+	if res.StatusCode == 200 {
+		bodyBytes, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			log.Println("Error connecting to mcAPI")
+		}
+		bodyString := string(bodyBytes)
+		onlineCheck = bodyString == "online"
+	} else {
+		log.Println("[GlyphDiscordBot] Error contacting the MC API")
+		return
+	}
+	if !mcRunning && onlineCheck { // Resets Counter if server online trough other means
 		lastPlayerOnline = time.Now()
 		err = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 		if err != nil {

@@ -203,46 +203,6 @@ func glyphTelegramBot() {
 		}
 		printInfo(m)
 	})
-	glyph.Handle("/mc", func(m *tb.Message) {
-		if isTasadarTGAdmin(m.Sender.ID) {
-			s1 := strings.TrimPrefix(m.Text, "/mc ")
-			client, err := newClient(rconAddress, 25575, rconPassword)
-			if err != nil {
-				log.Println("[GlyphTelegramBot] Error occured while building client for connection: ", err)
-				_, _ = glyph.Send(m.Sender, "Error occurred while trying to build a connection")
-			} else {
-				response, err := client.sendCommand(s1)
-				if err != nil {
-					log.Println("[GlyphTelegramBot] Error occured while making connection: ", err)
-					_, _ = glyph.Send(m.Sender, "Error occurred while trying to connect")
-				} else {
-					if response != "" {
-						_, _ = glyph.Send(m.Sender, response)
-					} else {
-						_, _ = glyph.Send(m.Sender, "Empty Response received")
-					}
-				}
-			}
-		} else {
-			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-	})
-	glyph.Handle("/mcStop", func(m *tb.Message) {
-		if isTasadarTGAdmin(m.Sender.ID) {
-			s1 := strings.TrimPrefix(m.Text, "/mcStop ")
-			if s1 == "" {
-				_, _ = glyph.Send(m.Sender, "Please specify a minute count!")
-				return
-			}
-			minutes, err := strconv.Atoi(s1)
-			if err != nil {
-				_, _ = glyph.Send(m.Sender, "Error converting minutes, check your input")
-			}
-			mcShutdownTelegram(glyph, m, minutes)
-		} else {
-			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-	})
 	glyph.Handle("/mcCancel", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			if mcStopping {
@@ -333,65 +293,4 @@ func isTasadarTGAdmin(ID int) bool {
 		return true
 	}
 	return false
-}
-
-func mcShutdownTelegram(glyph *tb.Bot, m *tb.Message, minutes int) {
-	minutesString := strconv.Itoa(minutes)
-	client, err := newClient(rconAddress, 25575, rconPassword)
-	if err != nil {
-		_, _ = glyph.Send(m.Sender, "Error creating RCON Client Object - Check the logs!")
-		return
-	}
-	if !mcRunning {
-		_, _ = glyph.Send(m.Sender, "The Server is currently not running!")
-		return
-	}
-	msgDiscordMC <- "Server shutdown commencing in " + minutesString + " Minutes!\nYou can cancel it with /mc cancel"
-	mcStopping = true
-	_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"" + minutesString + " Minutes!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
-	if err != nil {
-		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-	}
-	_, err = client.sendCommand("tellraw @a [{\"text\":\"Type /mc cancel in the Discord Chat to cancel the shutdown! \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"}]")
-	if err != nil {
-		log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-	}
-	_, _ = glyph.Send(m.Sender, "If you don't say /mcCancel in the next "+minutesString+" Minutes I will shut down the server!")
-	time.Sleep(time.Duration(minutes) * time.Minute)
-	if mcStopping {
-		err = client.reconnect()
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server reconnect failed: ", err)
-		}
-		_, _ = glyph.Send(m.Sender, "Shutting down Server...")
-		msgDiscordMC <- "Shutting down Server..."
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server connection failed")
-		}
-		_, err = client.sendCommand("title @a title {\"text\":\"Warning!\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-		}
-		_, err = client.sendCommand("tellraw @a [{\"text\":\"Server shutdown commencing in \",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"gray\"},{\"text\":\"10 Seconds!\",\"bold\":false,\"italic\":true,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"dark_aqua\"}]")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server command connection failed: ", err)
-		}
-		time.Sleep(3 * time.Second)
-		for i := 10; i >= 0; i-- {
-			time.Sleep(1 * time.Second)
-			_, err = client.sendCommand("title @a title {\"text\":\"" + strconv.Itoa(i) + "\",\"bold\":false,\"italic\":false,\"underlined\":false,\"striketrough\":false,\"obfuscated\":false,\"color\":\"red\"}")
-			if err != nil {
-				log.Println("[GlyphDiscordBot] RCON server command connection failed:", err)
-			}
-		}
-		_, err = client.sendCommand("stop")
-		if err != nil {
-			log.Println("[GlyphDiscordBot] RCON server command connection failed - trying again: ", err)
-			_ = client.reconnect()
-			_, err = client.sendCommand("stop")
-			if err != nil {
-				log.Println("[GlyphDiscordBot] RCON server reconnect failed finally: ", err)
-			}
-		}
-	}
 }
