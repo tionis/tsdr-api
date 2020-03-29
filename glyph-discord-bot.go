@@ -606,31 +606,57 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		// Count Successes and Ones while parsing the return String
 		// Parse Slice here
-		retString := "Results:\n"
+		var successes, ones int
+		retString := "Results: "
 		for i := range retSlice {
+			retString = retString + "["
 			for j := range retSlice[i] {
-				retString = retString + " - " + strconv.Itoa(retSlice[i][j])
+				retString += strconv.Itoa(retSlice[i][j])
+				if j != len(retSlice[i])-1 {
+					retString += " -> "
+				}
+				switch retSlice[i][j] {
+				case 8, 9, 10:
+					successes++
+				case 1:
+					ones++
+				}
 			}
-			retString = retString + "\n"
+			retString += "] "
 		}
-		s.ChannelMessageSend(m.ChannelID, "Feature currently in Development and not ready yet!")
-		//fmt.Println(retSlice)
+		if ones >= (throwCount/2 + 1) {
+			if successes == 0 {
+				retString += "\nWell thats a **critical failure!**"
+			} else {
+				retString += "\nThat was nearly a critical failure! But you had **" + strconv.Itoa(successes) + "** Successes!"
+			}
+		} else {
+			if successes > 0 {
+				retString += "\nThat were **" + strconv.Itoa(successes) + "** Successes!"
+			} else {
+				retString += "\nNo Success for you! Thats bad, isn`t it?"
+			}
+		}
+		s.ChannelMessageSend(m.ChannelID, retString)
 	}
 }
 
 func normalConstructRoll(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	for i := range retSlice {
-		retSlice[i] = make([]int, 1)
+		retSlice[i] = []int{}
 		repeat := true
 		for repeat {
 			diceResult := roll1D10()
 			if diceResult != 10 {
 				repeat = false
 			}
-			//log.Println("Debug-1")
-			tmpSlice := []int{diceResult}
-			retSlice = append(retSlice, tmpSlice)
+			previousSlice := retSlice[i]
+			if previousSlice == nil {
+				previousSlice = []int{}
+			}
+			tmpSlice := append(previousSlice, diceResult)
+			retSlice[i] = tmpSlice
 		}
 	}
 	return retSlice
