@@ -14,12 +14,6 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-//TODO
-// Export and Import Function for Database to text file (modeled after dokuwikis users.auth.php)
-// Should contain dokuwiki information + telegram links + [TO BE EXTENDED]
-// Change database from redis to postgresql for advanced functionality
-// Maybe keep redis for Tokens? - Look into advanced functionality
-
 // Global Variables
 var msgGlyph chan string
 
@@ -302,7 +296,7 @@ func glyphTelegramBot() {
 	go func() {
 		<-botquit
 		glyph.Stop()
-		fmt.Println("[GlyphTelegramBot] " + "Bot was stopped")
+		fmt.Println("[GlyphTelegramBot] " + "Glyph Telegram Bot was stopped")
 		os.Exit(3)
 	}()
 
@@ -317,7 +311,7 @@ func glyphTelegramBot() {
 	}(glyph)
 
 	// print startup message
-	fmt.Println("[GlyphTelegramBot] " + "Starting Glyph-Telegram-Bot...")
+	fmt.Println("[GlyphTelegramBot] " + "Glyph Telegram Bot was started.")
 	glyph.Start()
 }
 

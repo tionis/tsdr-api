@@ -64,6 +64,14 @@ func glyphDiscordBot() {
 		log.Println("Error transforming mc|lastPlayerOnline to time object: ", err)
 		lastPlayerOnline = time.Now()
 	}
+	// Define input channel
+	go func(s *discordgo.Session) {
+		msgDiscordMC = make(chan string)
+		for {
+			toSend := <-msgDiscordMC
+			_, _ = s.ChannelMessageSend(mainChannelID, toSend)
+		}
+	}(dg)
 	// Init mcRunning and mcStopping
 	mcRunningString, err := redclient.Get("mc|IsRunning").Result()
 	if err != nil {
@@ -82,7 +90,8 @@ func glyphDiscordBot() {
 	} else if mcStoppingString == "true" {
 		// Check if it maybe has already been stopped
 		mcStopping = true
-		// ToDo Start new stopping process
+		msgDiscordMC <- "Restarting shutdown sequence...\nYou habe 5 Minutes!"
+		go stopMCServerIn(5)
 	} else if mcStoppingString == "false" {
 		mcStopping = false
 	} else {
@@ -101,17 +110,8 @@ func glyphDiscordBot() {
 	}
 	_ = dg.UpdateStatus(0, dgStatus)
 
-	// Define input channel
-	go func(s *discordgo.Session) {
-		msgDiscordMC = make(chan string)
-		for {
-			toSend := <-msgDiscordMC
-			_, _ = s.ChannelMessageSend(mainChannelID, toSend)
-		}
-	}(dg)
-
 	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("[GlyphDiscordBot] Bot is now running.")
+	fmt.Println("[GlyphDiscordBot] Glyph Discord Bot was started.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
@@ -154,6 +154,40 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/ping":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
+	case "/save":
+		if len(inputString) < 2 {
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Save Data to the Bot. Currently available:\n - /save initmod x - Save you Init Modifier")
+		} else {
+			switch inputString[1] {
+			case "initmod":
+				if len(inputString) < 3 {
+					err := set("initmod|discord:"+m.Author.String()+"|initmod", "")
+					if err != nil {
+						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
+					} else {
+						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+						_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifiert was reset.")
+					}
+				} else {
+					initMod, err := strconv.Atoi(inputString[2])
+					if err != nil {
+						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+					} else {
+						err := set("initmod|discord:"+m.Author.String()+"|initmod", strconv.Itoa(initMod))
+						if err != nil {
+							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
+						} else {
+							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+							_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifiert was set to "+strconv.Itoa(initMod)+".")
+						}
+					}
+				}
+			}
+		}
 	case "/mc":
 		if len(inputString) < 2 {
 			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
@@ -263,6 +297,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		} else {
 			_, _ = s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
 		}
+	case "/whoami":
+		s.ChannelMessageSend(m.ChannelID, m.Author.String())
 	}
 }
 
@@ -436,7 +472,16 @@ func mcStopPlayerOffline() {
 		return
 	}
 	msgDiscordMC <- "There were no players on the Server for quite some time.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
-	time.Sleep(5 * time.Minute)
+	stopMCServerIn(5)
+}
+
+func stopMCServerIn(minutesToShutdown int) {
+	client, err := newClient(rconAddress, 25575, rconPassword)
+	if err != nil {
+		log.Println("[GlyphDiscordBot] RCON server shutdown command connection failed: ", err)
+		return
+	}
+	time.Sleep(time.Duration(minutesToShutdown) * time.Minute)
 	if mcStopping {
 		err = client.reconnect()
 		msgDiscordMC <- "Shutting down Server..."
@@ -479,14 +524,6 @@ func mcStopPlayerOffline() {
 }
 
 func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// ToDO: For this take Inspiration here: https://github.com/further-reading/Dicecord-Chatbot
-	// and here: https://github.com/Celeo/CoD_dice_roller
-	// Should look like this 14 rolls:
-	// 5 10(10(6)) 8 4 3 9 3 1 3 2 2 9 8 10(10))
-	// Or with rote:
-	// 5 10(10(6)) 8 4 3 9 3 1 3 2 2 9 8 10(10)) | Rote: 8 5 3 5 6 8 7 4
-	// x Successes
-
 	// Catch errors in command
 	inputString := strings.Split(m.Content, " ")
 	if len(inputString) < 2 {
@@ -500,9 +537,32 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, "Simple 1D10 = "+strconv.Itoa(roll1D10()))
 		return
 	case "chance":
-		var retString strings.Builder
-		retString.Write([]byte("Chance-Die: "))
-		// ToDo: Code to be added...
+		//var retString strings.Builder
+		//retString.Write([]byte("Chance-Die: "))
+		diceRollResult := roll1D10()
+		switch diceRollResult {
+		case 10:
+			s.ChannelMessageSend(m.ChannelID, "**Success!** Your Chance Die showed a 10!")
+		case 1:
+			s.ChannelMessageSend(m.ChannelID, "**Fail!** Your Chance Die failed spectaculary!")
+		default:
+			s.ChannelMessageSend(m.ChannelID, "Fail! You rolled a **"+strconv.Itoa(diceRollResult)+"** on your Chance die!")
+		}
+		return
+	case "init":
+		initModString := get("initmod|discord:" + m.Author.String() + "|initmod")
+		initMod, err := strconv.Atoi(initModString)
+		if err != nil {
+			initModString = ""
+		}
+		if initModString == "" {
+			s.ChannelMessageSend(m.ChannelID, "No init modifier saved, heres a simple D10 throw:\n1D10 = "+strconv.Itoa(roll1D10()))
+		} else {
+			diceResult := roll1D10()
+			endResult := diceResult + initMod
+			s.ChannelMessageSend(m.ChannelID, "Your Initiative is: **"+strconv.Itoa(endResult)+"**\n"+strconv.Itoa(diceResult)+" + "+strconv.Itoa(initMod)+" = "+strconv.Itoa(endResult))
+		}
+		return
 	}
 
 	// Check which dice designation is used
@@ -562,31 +622,15 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			if eightAgain {
 				// Check if 8again -> infers no 9Again -> only check for n and r
 				if roteQuality {
-					if noReroll {
-						retSlice = constructRoll8rn(throwCount)
-					} else {
-						retSlice = constructRoll8r(throwCount)
-					}
+					retSlice = constructRoll8r(throwCount)
 				} else {
-					if noReroll {
-						retSlice = constructRoll8n(throwCount)
-					} else {
-						retSlice = constructRoll8(throwCount)
-					}
+					retSlice = constructRoll8(throwCount)
 				}
 			} else if nineAgain {
 				if roteQuality {
-					if noReroll {
-						retSlice = constructRoll9rn(throwCount)
-					} else {
-						retSlice = constructRoll9r(throwCount)
-					}
+					retSlice = constructRoll9r(throwCount)
 				} else {
-					if noReroll {
-						retSlice = constructRoll9n(throwCount)
-					} else {
-						retSlice = constructRoll9(throwCount)
-					}
+					retSlice = constructRoll9(throwCount)
 				}
 			} else if roteQuality {
 				if noReroll {
@@ -609,11 +653,11 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		var successes, ones int
 		retString := "Results: "
 		for i := range retSlice {
-			retString = retString + "["
+			//retString += "["
 			for j := range retSlice[i] {
 				retString += strconv.Itoa(retSlice[i][j])
 				if j != len(retSlice[i])-1 {
-					retString += " -> "
+					retString += " ⮞ "
 				}
 				switch retSlice[i][j] {
 				case 8, 9, 10:
@@ -622,7 +666,8 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 					ones++
 				}
 			}
-			retString += "] "
+			//retString += "] "
+			retString += " "
 		}
 		if ones >= (throwCount/2 + 1) {
 			if successes == 0 {
@@ -669,67 +714,83 @@ func normalConstructRoll(throwCount int) [][]int {
 
 func constructRoll8(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// Roll here
-	return retSlice
-}
-
-func constructRoll8n(throwCount int) [][]int {
-	retSlice := make([][]int, throwCount)
-	// Roll here
+	for i := range retSlice {
+		retSlice[i] = []int{}
+		repeat := true
+		for repeat {
+			diceResult := roll1D10()
+			if diceResult < 8 {
+				repeat = false
+			}
+			previousSlice := retSlice[i]
+			if previousSlice == nil {
+				previousSlice = []int{}
+			}
+			tmpSlice := append(previousSlice, diceResult)
+			retSlice[i] = tmpSlice
+		}
+	}
 	return retSlice
 }
 
 func constructRoll8r(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// Roll here
-	return retSlice
-}
-
-func constructRoll8rn(throwCount int) [][]int {
-	retSlice := make([][]int, throwCount)
-	// Roll here
+	// TODO
 	return retSlice
 }
 
 func constructRoll9(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// Roll here
-	return retSlice
-}
-
-func constructRoll9n(throwCount int) [][]int {
-	retSlice := make([][]int, throwCount)
-	// Roll here
+	for i := range retSlice {
+		retSlice[i] = []int{}
+		repeat := true
+		for repeat {
+			diceResult := roll1D10()
+			if diceResult < 9 {
+				repeat = false
+			}
+			previousSlice := retSlice[i]
+			if previousSlice == nil {
+				previousSlice = []int{}
+			}
+			tmpSlice := append(previousSlice, diceResult)
+			retSlice[i] = tmpSlice
+		}
+	}
 	return retSlice
 }
 
 func constructRoll9r(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// Roll here
-	return retSlice
-}
-
-func constructRoll9rn(throwCount int) [][]int {
-	retSlice := make([][]int, throwCount)
-	// Roll here
+	// TODO
 	return retSlice
 }
 
 func constructRolln(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// Roll here
+	for i := range retSlice {
+		retSlice[i] = []int{}
+		diceResult := roll1D10()
+		previousSlice := retSlice[i]
+		if previousSlice == nil {
+			previousSlice = []int{}
+		}
+		tmpSlice := append(previousSlice, diceResult)
+		retSlice[i] = tmpSlice
+
+	}
 	return retSlice
 }
 
 func constructRollr(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// Roll here
+	// TODO
 	return retSlice
 }
 
 func constructRollrn(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// Roll here
+	// TODO
 	return retSlice
 }
 
@@ -744,7 +805,7 @@ func roll1D10() int {
 
 func pingMC() {
 	// To be edited with a true server ping - finished (more or less) - can still be improved!
-	// ToDo: Ping with http api
+	// TODO: Ping with http api
 	_, _, err := bot.PingAndList("mc.tasadar.net", 25565)
 	if !mcRunning && err == nil { // Resets Counter if server online trough other means
 		lastPlayerOnline = time.Now()

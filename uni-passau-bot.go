@@ -197,7 +197,7 @@ func uniPassauBot() {
 	initArray()
 
 	// print startup message
-	fmt.Println("[UniPassauBot] " + "Starting Uni-Passau-Bot...")
+	fmt.Println("[UniPassauBot] " + "Uni Passau Bot was started.")
 	b.Start()
 }
 
