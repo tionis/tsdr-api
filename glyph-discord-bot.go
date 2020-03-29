@@ -632,7 +632,12 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		} else {
 			if successes > 0 {
-				retString += "\nThat were **" + strconv.Itoa(successes) + "** Successes!"
+				if successes >= 5 {
+					mentionString := m.Author.Mention()
+					retString += "\nThat were **" + strconv.Itoa(successes) + "** Successes!\n" + mentionString + " That was exceptional!"
+				} else {
+					retString += "\nThat were **" + strconv.Itoa(successes) + "** Successes!"
+				}
 			} else {
 				retString += "\nNo Success for you! Thats bad, isn`t it?"
 			}
