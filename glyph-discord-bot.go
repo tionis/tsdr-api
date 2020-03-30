@@ -133,7 +133,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	switch inputString[0] {
 	case "/roll":
 		if len(inputString) < 2 {
-			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "To roll construct dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
 		} else {
 			rollHelper(s, m)
@@ -141,39 +141,39 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/r":
 		rollHelper(s, m)
 	case "/help":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	case "/unip":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/tn":
 		if len(inputString) < 2 {
-			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\nNone!")
 		} else {
 			switch inputString[1] {
 			case "pic":
 				tnPicHandler(s, m)
 			default:
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\nNone!")
 			}
 		}
 	case "/pnp":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier")
 	case "/food":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtoday())
 	case "/food tomorrow":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtomorrow())
 	case "/ping":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
 	case "/save":
 		if len(inputString) < 2 {
-			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Save Data to the Bot. Currently available:\n - /save initmod x - Save you Init Modifier")
 		} else {
 			switch inputString[1] {
@@ -181,24 +181,24 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				if len(inputString) < 3 {
 					err := set("initmod|discord:"+m.Author.ID+"|initmod", "")
 					if err != nil {
-						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
 					} else {
-						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifiert was reset.")
 					}
 				} else {
 					initMod, err := strconv.Atoi(inputString[2])
 					if err != nil {
-						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 					} else {
 						err := set("initmod|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
 						if err != nil {
-							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
 						} else {
-							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifiert was set to "+strconv.Itoa(initMod)+".")
 						}
 					}
@@ -207,13 +207,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	case "/mc":
 		if len(inputString) < 2 {
-			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
 
 		} else {
 			switch inputString[1] {
 			case "start":
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 				if mcRunning {
 					_, _ = s.ChannelMessageSend(m.ChannelID, "Server already running!")
 				} else {
@@ -226,10 +226,10 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 				pingInMinutes(2)
 			case "stop":
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 				go mcShutdownDiscord(s, m, 7)
 			case "cancel":
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 				if mcStopping {
 					mcStopping = false
 					_, _ = s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped.")
@@ -239,7 +239,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					_, _ = s.ChannelMessageSend(m.ChannelID, "Server is currently not running!")
 				}
 			case "status":
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 				pingMC()
 				if mcRunning {
 					if !mcRunning {
@@ -293,14 +293,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 
 			default:
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
 			}
 		}
 	case "/id":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
 		//default:
-		//log.Println("[GlyphDiscordBot] Logged Unknown Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		//log.Println("[GlyphDiscordBot] Logged Unknown Command by " + m.Author.Username + ": "+ m.Content)
 	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
@@ -498,7 +498,7 @@ func tnPicHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	inputString := strings.Split(m.Content, " ")
 	tnAddress := ""
 	if len(inputString) != 3 {
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Please Specify a valid TN-Address.")
 		return
 	}
@@ -513,7 +513,7 @@ func tnPicHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	} else if strings.HasPrefix(inputString[2], "/name/") {
 		tnAddress = "/ipns/" + strings.TrimPrefix(inputString[2], "/hash/")
 	} else {
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I couldn't parse your Address.\nPlease Specify a valid TN-Address.")
 		return
 	}

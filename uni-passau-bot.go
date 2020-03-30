@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"encoding/csv"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -41,7 +40,7 @@ func uniPassauBot() {
 		sig := <-signalChannel
 		switch sig {
 		case os.Interrupt:
-			fmt.Println("[UniPassauBot] " + "Interruption Signal received, shutting down...")
+			log.Println("[UniPassauBot] " + "Interruption Signal received, shutting down...")
 			exit(botquit)
 		case syscall.SIGTERM:
 			botquit <- true
@@ -101,7 +100,7 @@ func uniPassauBot() {
 	b.Handle("/food", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = b.Send(m.Chat, foodtoday())
-			fmt.Println("[UniPassauBot] " + "Group Message:")
+			log.Println("[UniPassauBot] " + "Group Message:")
 		} else {
 			_, _ = b.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		}
@@ -111,7 +110,7 @@ func uniPassauBot() {
 	b.Handle("/foodtomorrow", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = b.Send(m.Chat, foodtomorrow())
-			fmt.Println("[UniPassauBot] " + "Group Message:")
+			log.Println("[UniPassauBot] " + "Group Message:")
 		} else {
 			_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		}
@@ -122,7 +121,7 @@ func uniPassauBot() {
 		if !m.Private() {
 			_, _ = b.Send(m.Chat, foodweek())
 			//_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
-			fmt.Println("[UniPassauBot] " + "Group Message:")
+			log.Println("[UniPassauBot] " + "Group Message:")
 		} else {
 			_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 			//_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
@@ -171,13 +170,13 @@ func uniPassauBot() {
 		printAnswer("_pong_")
 	})
 	b.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
-		fmt.Println("[UniPassauBot] " + "Group Message:")
+		log.Println("[UniPassauBot] " + "Group Message:")
 		printInfo(m)
 	})
 	b.Handle(tb.OnText, func(m *tb.Message) {
 		sendstring := "Unknown Command - use help to get a list of available commands"
 		if !m.Private() {
-			fmt.Println("[UniPassauBot] " + "Message from Group:")
+			log.Println("[UniPassauBot] " + "Message from Group:")
 		} else {
 			_, _ = b.Send(m.Sender, sendstring)
 		}
@@ -189,7 +188,7 @@ func uniPassauBot() {
 	go func() {
 		<-botquit
 		b.Stop()
-		fmt.Println("[UniPassauBot] " + "Bot was stopped")
+		log.Println("[UniPassauBot] " + "Bot was stopped")
 		os.Exit(3)
 	}()
 
@@ -197,7 +196,7 @@ func uniPassauBot() {
 	initArray()
 
 	// print startup message
-	fmt.Println("[UniPassauBot] " + "Uni Passau Bot was started.")
+	log.Println("[UniPassauBot] " + "Uni Passau Bot was started.")
 	b.Start()
 }
 
@@ -230,13 +229,13 @@ func initArray() {
 	if _, err := os.Stat(nextweekstring + ".csv"); os.IsNotExist(err) {
 
 		// No actual file found
-		fmt.Print("[UniPassauBot] " + "No File for next week found - starting download --- ")
+		log.Print("[UniPassauBot] " + "No File for next week found - starting download --- ")
 		err := downloadFile(nextweekstring)
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		// fmt.Println("Up-to-date CSV-File found!")
+		// log.Println("Up-to-date CSV-File found!")
 	}
 
 	r := csv.NewReader(bufio.NewReader(openactFile()))
@@ -517,7 +516,7 @@ func isoToUTF(path string) {
 	err = out.Close()
 	err = f.Close()
 	if err != nil {
-		fmt.Println("[UniPassauBot] " + "Error converting csv file to UTF-8")
+		log.Println("[UniPassauBot] " + "Error converting csv file to UTF-8")
 	}
 }
 
@@ -564,18 +563,18 @@ func downloadFile(week string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("[UniPassauBot] " + "Finished Downloading")
+	log.Println("[UniPassauBot] " + "Finished Downloading")
 	isoToUTF(filepath)
 	transformFile(filepath)
 	go func() {
 		time.Sleep(time.Second)
 		err = os.Remove(filepath + ".tmp")
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
-		//fmt.Println("Deleted Temporary File")
+		//log.Println("Deleted Temporary File")
 	}()
-	fmt.Println("[UniPassauBot] " + "File Transformed")
+	log.Println("[UniPassauBot] " + "File Transformed")
 	initArray()
 	err = out.Close()
 	checkmsg("Error closing body for creting file: ", err)
@@ -602,7 +601,7 @@ func updateFile() {
 	if _, err := os.Stat(weekstring + ".csv"); os.IsNotExist(err) {
 
 		// No actual file found
-		fmt.Print("[UniPassauBot] " + "No File for this week found - starting download --- ")
+		log.Print("[UniPassauBot] " + "No File for this week found - starting download --- ")
 		err := downloadFile(weekstring)
 		if err != nil {
 			panic(err)
@@ -612,13 +611,13 @@ func updateFile() {
 		if _, err = os.Stat(prevweekstring + ".csv"); err == nil {
 			err = os.Remove(prevweekstring + ".csv")
 			if err != nil {
-				fmt.Println("[UniPassauBot] " + "Error deleting Old File")
+				log.Println("[UniPassauBot] " + "Error deleting Old File")
 			}
 		} else {
-			fmt.Println("[UniPassauBot] " + "No File from previous week to delete")
+			log.Println("[UniPassauBot] " + "No File from previous week to delete")
 		}
 	} else {
-		// fmt.Println("Up-to-date CSV-File found!")
+		// log.Println("Up-to-date CSV-File found!")
 	}
 
 }
@@ -633,7 +632,7 @@ func exit(quit chan bool) {
 // Exit while ignoring running routines
 func simpleExit() {
 	// Exit without using graceful shutdown channels
-	fmt.Print("[UniPassauBot] " + "Bye!")
+	log.Print("[UniPassauBot] " + "Bye!")
 	os.Exit(3)
 }
 
@@ -646,13 +645,10 @@ func checkmsg(message string, e error) {
 
 // Print info regarding a given message
 func printInfo(m *tb.Message) {
-	loc, _ := time.LoadLocation("Europe/Berlin")
-	fmt.Println("[UniPassauBot] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
-	fmt.Println("[UniPassauBot] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID))
-	fmt.Println("[UniPassauBot] " + "Message: " + m.Text + "\n")
+	log.Println("[UniPassauBot] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID) + "Message: " + m.Text + "\n")
 }
 
 // Answer wrapper
 func printAnswer(input string) {
-	fmt.Println("[UniPassauBot] Answer: " + input)
+	log.Println("[UniPassauBot] Answer: " + input)
 }

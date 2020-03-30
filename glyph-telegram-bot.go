@@ -276,10 +276,7 @@ func glyphTelegramBot() {
 }
 
 func printInfoGlyph(m *tb.Message) {
-	loc, _ := time.LoadLocation("Europe/Berlin")
-	fmt.Println("[GlyphTelegramBot] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
-	fmt.Println("[GlyphTelegramBot] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID))
-	fmt.Println("[GlyphTelegramBot] " + "Message: " + m.Text + "\n")
+	log.Println("[GlyphTelegramBot] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID) + "Message: " + m.Text)
 }
 
 func isTasadarTGAdmin(ID int) bool {

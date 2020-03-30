@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -180,7 +179,7 @@ func httpecho(c *gin.Context) {
 	// Test Code
 	requestDump, err := httputil.DumpRequest(c.Request, true)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 	c.String(200, string(requestDump))
 }
