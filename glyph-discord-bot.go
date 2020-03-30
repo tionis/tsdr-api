@@ -53,7 +53,7 @@ func glyphDiscordBot() {
 	}
 
 	// Init Variables from redis
-	lastPlayerOnlineString, err := redclient.Get("mc|lastPlayerOnline").Result()
+	lastPlayerOnlineString, err := getResult("mc|lastPlayerOnline")
 	if err != nil {
 		log.Println("Error reading mc|lastPlayerOnline from Redis: ", err)
 		lastPlayerOnline = time.Now()
@@ -72,7 +72,7 @@ func glyphDiscordBot() {
 		}
 	}(dg)
 	// Init mcRunning and mcStopping
-	mcRunningString, err := redclient.Get("mc|IsRunning").Result()
+	mcRunningString, err := getResult("mc|IsRunning")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsRunning", err)
 	} else if mcRunningString == "true" {
@@ -83,7 +83,7 @@ func glyphDiscordBot() {
 		mcRunning = false
 		log.Println("[GlyphDiscordBot] Error converting Redis value for mc|IsRunning, expected true or false but got " + mcRunningString)
 	}
-	mcStoppingString, err := redclient.Get("mc|IsStopping").Result()
+	mcStoppingString, err := getResult("mc|IsStopping")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsStopping", err)
 	} else if mcStoppingString == "true" {
@@ -102,7 +102,7 @@ func glyphDiscordBot() {
 	go pingMC()
 
 	// Set some StartUp Stuff
-	dgStatus, err := redclient.Get("dg|status").Result()
+	dgStatus, err := getResult("dg|status")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting dgStatus from redis: ", err)
 		dgStatus = "planning world domination"
@@ -407,7 +407,7 @@ func updateMC() {
 			if bodyString == "online" {
 				mcRunning = true
 				client := &http.Client{}
-				req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/ping", nil)
+				req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/playercount", nil)
 				mcAPIToken := get("mcapi|token")
 				req.Header.Set("TASADAR_SECRET", mcAPIToken)
 				res, err := client.Do(req)
@@ -422,7 +422,6 @@ func updateMC() {
 				}
 				bodyString := string(bodyBytes)
 				playerCount, err = strconv.Atoi(bodyString)
-				log.Println("[GlyphDiscordBot] Special Debug Message 01: " + bodyString)
 				if err != nil {
 					log.Println("Error reading response from mcAPI")
 				}

@@ -85,7 +85,7 @@ func routes(router *gin.Engine) {
 
 	// Minecraft API
 	router.GET("/mc/stopped/:token", func(c *gin.Context) {
-		getAuthorization, err := redclient.Get("mc|token|" + c.Param("token")).Result()
+		getAuthorization, err := getResult("mc|token|" + c.Param("token"))
 		if err != nil {
 			c.File("static/error-pages/500.html")
 		}
@@ -102,9 +102,9 @@ func routes(router *gin.Engine) {
 	router.POST("/contact/tasadar", contactTasadar)
 }
 
-// Google Assistant IFTTT Bindings
+// Google Assistant IFTTT Binding
 func authenticateIFTTTToken(token string) bool {
-	val, err := redclient.Get("token|" + token + "|ifttt").Result()
+	val, err := getResult("token|" + token + "|ifttt")
 	if err != nil {
 		return false
 	}
