@@ -60,28 +60,28 @@ func glyphTelegramBot() {
 	glyph.Handle("/help", func(m *tb.Message) {
 		sendstring := ""
 		if isTasadarTGAdmin(m.Sender.ID) {
-			sendstring = `# Following Commands are Available:==
-## UniPassauBot-Commands:
+			sendstring = `**Following Commands are Available:**
+**UniPassauBot-Commands:**
   - /foodtoday - Food for todayco
   - /foodtomorrow - Food for tomorrow
   - /foodweek - Food for week
-## Redis-Commands:
+**Redis-Commands:**
   - /redisGet x - Get Key x from Redis
   - /redisSet x y - Set Key x to y from Redis
   - /redisPing - Ping redis Server
   - /redisBcryptSet x y - Set passw y for user x
   - /redisBcryptGet x y - Check if pass y is valid for user x
-## TOTP-Commands:
+**TOTP-Commands:**
   - /addTOTP x y - Add key y for account x
   - /gen x - Get TOTP-Code for account x 
-## MC-Commands:
+**MC-Commands:**
   - /mc x - Forward command x to MC-Server 
   - /mcStop n - Shutdown server in n minute
   - /mcCancel - Cancel Server shutdown`
 		} else {
 			sendstring = "There is no help!"
 		}
-		_, _ = glyph.Send(m.Sender, sendstring)
+		_, _ = glyph.Send(m.Sender, sendstring, tb.ModeMarkdown)
 		printInfoGlyph(m)
 	})
 	glyph.Handle("/food", func(m *tb.Message) {
