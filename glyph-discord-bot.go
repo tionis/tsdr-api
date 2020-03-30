@@ -131,18 +131,26 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	inputString := strings.Split(m.Content, " ")
 	switch inputString[0] {
 	case "/roll":
-		rollHelper(s, m)
+		if len(inputString) < 2 {
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+			_, _ = s.ChannelMessageSend(m.ChannelID, "To roll construct dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
+		} else {
+			rollHelper(s, m)
+		}
 	case "/r":
 		rollHelper(s, m)
 	case "/help":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - General Tasadar Network - /tn help")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	case "/unip":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/tn":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\nNone!")
+	case "/pnp":
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier")
 	case "/food":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtoday())
@@ -489,8 +497,6 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, "Simple 1D10 = "+strconv.Itoa(roll1D10()))
 		return
 	case "chance":
-		//var retString strings.Builder
-		//retString.Write([]byte("Chance-Die: "))
 		diceRollResult := roll1D10()
 		switch diceRollResult {
 		case 10:
@@ -525,12 +531,36 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 			return
 		}
+		sides, err := strconv.Atoi(diceIndex[1])
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			return
+		}
+		amount, err := strconv.Atoi(diceIndex[0])
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			return
+		}
 
 		// Catch d-notation and read modifiers
-		switch diceIndex[1] {
-		// Catch error created by using a wrong dice side number: [/roll 1d*34*] | [/roll 1d*4f*]
+		switch sides {
+		case 1:
+			s.ChannelMessageSend(m.ChannelID, "Really? Thats one times "+diceIndex[0]+". I think you can do the math yourself!")
+			return
 		default:
-			s.ChannelMessageSend(m.ChannelID, "Warning! "+diceIndex[1]+"-sided dice are not supported yet!")
+			retSlice := rollXSidedDie(amount, sides)
+			var retString strings.Builder
+			endresult := 0
+			retString.Write([]byte(diceIndex[0] + "d" + diceIndex[1] + ": "))
+			for i := range retSlice {
+				endresult += retSlice[i]
+				if i != len(retSlice)-1 {
+					retString.Write([]byte(strconv.Itoa(retSlice[i]) + " + "))
+				} else {
+					retString.Write([]byte(strconv.Itoa(retSlice[i]) + " = " + strconv.Itoa(endresult)))
+				}
+			}
+			s.ChannelMessageSend(m.ChannelID, retString.String())
 			return
 		}
 	} else if inputString[1] == "chance" {
@@ -643,6 +673,17 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
+func rollXSidedDie(throwCount, sides int) []int {
+	onlyOnce.Do(func() {
+		rand.Seed(time.Now().UnixNano()) // only run once
+	})
+	retSlice := make([]int, throwCount)
+	for i := 0; i < throwCount; i++ {
+		retSlice[i] = rand.Intn(sides) + 1
+	}
+	return retSlice
+}
+
 func normalConstructRoll(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	for i := range retSlice {
@@ -687,7 +728,31 @@ func constructRoll8(throwCount int) [][]int {
 
 func constructRoll8r(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// TODO
+	isFirstReroll := true
+	for i := range retSlice {
+		retSlice[i] = []int{}
+		repeat := true
+		for repeat {
+			diceResult := roll1D10()
+			if isFirstReroll && diceResult < 8 {
+				repeat = true
+				isFirstReroll = false
+			} else {
+				if diceResult < 8 {
+					repeat = false
+				} else {
+					isFirstReroll = false
+				}
+			}
+			previousSlice := retSlice[i]
+			if previousSlice == nil {
+				previousSlice = []int{}
+			}
+			tmpSlice := append(previousSlice, diceResult)
+			retSlice[i] = tmpSlice
+		}
+		isFirstReroll = true
+	}
 	return retSlice
 }
 
@@ -714,7 +779,31 @@ func constructRoll9(throwCount int) [][]int {
 
 func constructRoll9r(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// TODO
+	isFirstReroll := true
+	for i := range retSlice {
+		retSlice[i] = []int{}
+		repeat := true
+		for repeat {
+			diceResult := roll1D10()
+			if isFirstReroll && diceResult < 8 {
+				repeat = true
+				isFirstReroll = false
+			} else {
+				if diceResult < 9 {
+					repeat = false
+				} else {
+					isFirstReroll = false
+				}
+			}
+			previousSlice := retSlice[i]
+			if previousSlice == nil {
+				previousSlice = []int{}
+			}
+			tmpSlice := append(previousSlice, diceResult)
+			retSlice[i] = tmpSlice
+		}
+		isFirstReroll = true
+	}
 	return retSlice
 }
 
@@ -736,13 +825,56 @@ func constructRolln(throwCount int) [][]int {
 
 func constructRollr(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// TODO
+	isFirstReroll := true
+	for i := range retSlice {
+		retSlice[i] = []int{}
+		repeat := true
+		for repeat {
+			diceResult := roll1D10()
+			if isFirstReroll && diceResult < 8 {
+				repeat = true
+				isFirstReroll = false
+			} else {
+				if diceResult < 10 {
+					repeat = false
+				} else {
+					isFirstReroll = false
+				}
+			}
+			previousSlice := retSlice[i]
+			if previousSlice == nil {
+				previousSlice = []int{}
+			}
+			tmpSlice := append(previousSlice, diceResult)
+			retSlice[i] = tmpSlice
+		}
+		isFirstReroll = true
+	}
 	return retSlice
 }
 
 func constructRollrn(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
-	// TODO
+	isFirstReroll := true
+	for i := range retSlice {
+		retSlice[i] = []int{}
+		repeat := true
+		for repeat {
+			repeat = false
+			diceResult := roll1D10()
+			if isFirstReroll && diceResult < 8 {
+				repeat = true
+				isFirstReroll = false
+			}
+			previousSlice := retSlice[i]
+			if previousSlice == nil {
+				previousSlice = []int{}
+			}
+			tmpSlice := append(previousSlice, diceResult)
+			retSlice[i] = tmpSlice
+		}
+		isFirstReroll = true
+	}
 	return retSlice
 }
 
