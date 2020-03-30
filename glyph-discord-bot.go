@@ -168,7 +168,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			switch inputString[1] {
 			case "initmod":
 				if len(inputString) < 3 {
-					err := set("initmod|discord:"+m.Author.String()+"|initmod", "")
+					err := set("initmod|discord:"+m.Author.ID+"|initmod", "")
 					if err != nil {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -182,7 +182,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 					} else {
-						err := set("initmod|discord:"+m.Author.String()+"|initmod", strconv.Itoa(initMod))
+						err := set("initmod|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
 						if err != nil {
 							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -508,7 +508,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		return
 	case "init":
-		initModString := get("initmod|discord:" + m.Author.String() + "|initmod")
+		initModString := get("initmod|discord:" + m.Author.ID + "|initmod")
 		initMod, err := strconv.Atoi(initModString)
 		if err != nil {
 			initModString = ""
@@ -547,7 +547,14 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case 1:
 			s.ChannelMessageSend(m.ChannelID, "Really? Thats one times "+diceIndex[0]+". I think you can do the math yourself!")
 			return
+		case 0:
+			s.ChannelMessageSend(m.ChannelID, "Nice try!")
+			return
 		default:
+			if amount > 1000 {
+				s.ChannelMessageSend(m.ChannelID, "Maybe try a few less dice. We're not playing Warhammer Ultimate here.")
+				return
+			}
 			retSlice := rollXSidedDie(amount, sides)
 			var retString strings.Builder
 			endresult := 0
