@@ -31,6 +31,7 @@ var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 // Some Constants
 const lastPlayerOnlineLayout = "2006-01-02T15:04:05.000Z"
+const tnGatewayAddress = "https://tn.tasadar.net"
 
 // Main and Init
 func glyphDiscordBot() {
@@ -146,8 +147,18 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/tn":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\nNone!")
+		if len(inputString) < 2 {
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\nNone!")
+		} else {
+			switch inputString[1] {
+			case "pic":
+				tnPicHandler(s, m)
+			default:
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\nNone!")
+			}
+		}
 	case "/pnp":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier")
@@ -411,6 +422,7 @@ func updateMC() {
 				}
 				bodyString := string(bodyBytes)
 				playerCount, err = strconv.Atoi(bodyString)
+				log.Println("[GlyphDiscordBot] Special Debug Message 01: " + bodyString)
 				if err != nil {
 					log.Println("Error reading response from mcAPI")
 				}
@@ -481,6 +493,45 @@ func stopMCServerIn(minutesToShutdown int) {
 			return
 		}
 	}
+}
+
+func tnPicHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
+	inputString := strings.Split(m.Content, " ")
+	tnAddress := ""
+	if len(inputString) != 3 {
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Please Specify a valid TN-Address.")
+		return
+	}
+	if strings.HasPrefix(inputString[2], "/ipfs/") {
+		tnAddress = inputString[2]
+	} else if strings.HasPrefix(inputString[2], "Qm") {
+		tnAddress = "/ipfs/" + inputString[2]
+	} else if strings.HasPrefix(inputString[2], "/ipns/") {
+		tnAddress = inputString[2]
+	} else if strings.HasPrefix(inputString[2], "/hash/") {
+		tnAddress = "/ipfs/" + strings.TrimPrefix(inputString[2], "/hash/")
+	} else if strings.HasPrefix(inputString[2], "/name/") {
+		tnAddress = "/ipns/" + strings.TrimPrefix(inputString[2], "/hash/")
+	} else {
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + "\n[GlyphDiscordBot] " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I couldn't parse your Address.\nPlease Specify a valid TN-Address.")
+		return
+	}
+	embed := &discordgo.MessageEmbed{
+		Author:      &discordgo.MessageEmbedAuthor{},
+		Color:       0x00ff00, // Green
+		Description: "Heres a picture from the Tasadar Network:",
+		Image: &discordgo.MessageEmbedImage{
+			URL: tnGatewayAddress + tnAddress,
+		},
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
+			URL: tnGatewayAddress + tnAddress,
+		},
+		Timestamp: time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
+		Title:     "Tasadar Picture",
+	}
+	s.ChannelMessageSendEmbed(m.ChannelID, embed)
 }
 
 func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
