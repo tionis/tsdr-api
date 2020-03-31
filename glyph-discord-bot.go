@@ -257,7 +257,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						_, _ = s.ChannelMessageSend(m.ChannelID, "Warning! - Server currently not running!")
 						return
 					}
-					pingMC()
 					client := &http.Client{}
 					req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/creepercount", nil)
 					mcAPIToken := get("mcapi|token")
@@ -984,8 +983,8 @@ func pingMC() {
 		if err != nil {
 			log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
-		mcRunning = true
 	}
+	mcRunning = onlineCheck
 	var mcRunningString string
 	if mcRunning {
 		mcRunningString = "true"
