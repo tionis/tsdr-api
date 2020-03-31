@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -29,7 +28,7 @@ func glyphTelegramBot() {
 		sig := <-signalChannel
 		switch sig {
 		case os.Interrupt:
-			fmt.Println("[GlyphTelegramBot] " + "Interruption Signal received, shutting down...")
+			log.Println("[GlyphTelegramBot] " + "Interruption Signal received, shutting down...")
 			exit(botquit)
 		case syscall.SIGTERM:
 			botquit <- true
@@ -87,7 +86,7 @@ func glyphTelegramBot() {
 	glyph.Handle("/food", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = glyph.Send(m.Chat, foodtoday())
-			fmt.Println("[GlyphTelegramBot] " + "Group Message:")
+			log.Println("[GlyphTelegramBot] " + "Group Message:")
 		} else {
 			_, _ = glyph.Send(m.Sender, foodtoday(), tb.ModeMarkdown)
 		}
@@ -96,7 +95,7 @@ func glyphTelegramBot() {
 	glyph.Handle("food", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = glyph.Send(m.Chat, foodtoday())
-			fmt.Println("[GlyphTelegramBot] " + "Group Message:")
+			log.Println("[GlyphTelegramBot] " + "Group Message:")
 		} else {
 			_, _ = glyph.Send(m.Sender, foodtoday(), tb.ModeMarkdown)
 		}
@@ -105,7 +104,7 @@ func glyphTelegramBot() {
 	glyph.Handle("/foodtomorrow", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = glyph.Send(m.Chat, foodtomorrow(), tb.ModeMarkdown)
-			fmt.Println("[GlyphTelegramBot] " + "Group Message:")
+			log.Println("[GlyphTelegramBot] " + "Group Message:")
 		} else {
 			_, _ = glyph.Send(m.Sender, foodtomorrow(), tb.ModeMarkdown)
 		}
@@ -114,7 +113,7 @@ func glyphTelegramBot() {
 	glyph.Handle("food tomorrow", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = glyph.Send(m.Chat, foodtomorrow(), tb.ModeMarkdown)
-			fmt.Println("[GlyphTelegramBot] " + "Group Message:")
+			log.Println("[GlyphTelegramBot] " + "Group Message:")
 		} else {
 			_, _ = glyph.Send(m.Sender, foodtomorrow(), tb.ModeMarkdown)
 		}
@@ -123,7 +122,7 @@ func glyphTelegramBot() {
 	glyph.Handle("/foodweek", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = glyph.Send(m.Chat, foodweek())
-			fmt.Println("[GlyphTelegramBot] " + "Group Message:")
+			log.Println("[GlyphTelegramBot] " + "Group Message:")
 		} else {
 			_, _ = glyph.Send(m.Sender, foodweek(), tb.ModeMarkdown)
 		}
@@ -132,7 +131,7 @@ func glyphTelegramBot() {
 	glyph.Handle("food week", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = glyph.Send(m.Chat, foodweek())
-			fmt.Println("[GlyphTelegramBot] " + "Group Message:")
+			log.Println("[GlyphTelegramBot] " + "Group Message:")
 		} else {
 			_, _ = glyph.Send(m.Sender, foodweek(), tb.ModeMarkdown)
 		}
@@ -239,12 +238,12 @@ func glyphTelegramBot() {
 		}
 	})*/
 	glyph.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
-		fmt.Println("[GlyphTelegramBot] " + "Group Message:")
+		log.Println("[GlyphTelegramBot] " + "Group Message:")
 		printInfoGlyph(m)
 	})
 	glyph.Handle(tb.OnText, func(m *tb.Message) {
 		if !m.Private() {
-			fmt.Println("[GlyphTelegramBot] " + "Message from Group:")
+			log.Println("[GlyphTelegramBot] " + "Message from Group:")
 			printInfoGlyph(m)
 		} else {
 			_, _ = glyph.Send(m.Sender, "Unknown Command - use help to get a list of available commands")
@@ -256,7 +255,7 @@ func glyphTelegramBot() {
 	go func() {
 		<-botquit
 		glyph.Stop()
-		fmt.Println("[GlyphTelegramBot] " + "Glyph Telegram Bot was stopped")
+		log.Println("[GlyphTelegramBot] " + "Glyph Telegram Bot was stopped")
 		os.Exit(3)
 	}()
 
@@ -271,7 +270,7 @@ func glyphTelegramBot() {
 	}(glyph)
 
 	// print startup message
-	fmt.Println("[GlyphTelegramBot] " + "Glyph Telegram Bot was started.")
+	log.Println("[GlyphTelegramBot] " + "Glyph Telegram Bot was started.")
 	glyph.Start()
 }
 

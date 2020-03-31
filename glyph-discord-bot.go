@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -48,7 +47,7 @@ func glyphDiscordBot() {
 	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {
-		fmt.Println("[GlyphDiscordBot] Error opening connection,", err)
+		log.Println("[GlyphDiscordBot] Error opening connection,", err)
 		return
 	}
 
@@ -110,7 +109,7 @@ func glyphDiscordBot() {
 	_ = dg.UpdateStatus(0, dgStatus)
 
 	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("[GlyphDiscordBot] Glyph Discord Bot was started.")
+	log.Println("[GlyphDiscordBot] Glyph Discord Bot was started.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
