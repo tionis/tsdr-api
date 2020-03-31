@@ -238,7 +238,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				pingInMinutes(2)
 			case "stop":
 				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-				go mcShutdownDiscord(s, m, 7)
+				go mcShutdownDiscord(s, m, 3)
 			case "cancel":
 				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 				if mcStopping {
