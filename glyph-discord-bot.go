@@ -984,8 +984,8 @@ func pingMC() {
 		if err != nil {
 			log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
+		mcRunning = true
 	}
-	mcRunning = err == nil
 	var mcRunningString string
 	if mcRunning {
 		mcRunningString = "true"
