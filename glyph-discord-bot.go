@@ -264,38 +264,38 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					req.Header.Set("TASADAR_SECRET", mcAPIToken)
 					res, err := client.Do(req)
 					if res == nil {
-						log.Println("Error connecting to mcAPI")
+						log.Println("Error connecting to mcAPI in status-1")
 						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
 						return
 					}
 					defer res.Body.Close()
 					if res.StatusCode != 200 {
-						log.Println("Error connecting to mcAPI")
+						log.Println("Error connecting to mcAPI in status-2")
 						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
 						return
 					}
 					bodyBytes, err := ioutil.ReadAll(res.Body)
 					if err != nil {
-						log.Println("Error connecting to mcAPI")
+						log.Println("Error connecting to mcAPI in status-3")
 					}
 					creeperCountString := string(bodyBytes)
 					req, _ = http.NewRequest("GET", "https://mcapi.tasadar.net/mc/playercount", nil)
 					req.Header.Set("TASADAR_SECRET", mcAPIToken)
 					res, err = client.Do(req)
 					if res == nil {
-						log.Println("Error connecting to mcAPI")
+						log.Println("Error connecting to mcAPI in status-4")
 						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
 						return
 					}
 					defer res.Body.Close()
 					if res.StatusCode != 200 {
-						log.Println("Error connecting to mcAPI")
+						log.Println("Error connecting to mcAPI in status-5")
 						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
 						return
 					}
 					bodyBytes, err = ioutil.ReadAll(res.Body)
 					if err != nil {
-						log.Println("Error connecting to mcAPI")
+						log.Println("Error connecting to mcAPI in status-6")
 					}
 					playerCountString := string(bodyBytes)
 					_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
@@ -349,7 +349,7 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 		req.Header.Set("TASADAR_SECRET", mcAPIToken)
 		res, err := client.Do(req)
 		if res == nil || err != nil {
-			log.Println("Error connecting to mcAPI")
+			log.Println("Error connecting to mcAPI in mcShutdownDiscord")
 			s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
 		}
 		if res.StatusCode == 200 {
@@ -365,7 +365,7 @@ func mcStart() bool {
 	req.Header.Set("TASADAR_SECRET", mcAPIToken)
 	res, err := client.Do(req)
 	if res == nil {
-		log.Println("Error connecting to mcAPI")
+		log.Println("Error connecting to mcAPI in mcStart")
 		return false
 	}
 	if res.StatusCode == 200 {
@@ -410,7 +410,7 @@ func updateMC() {
 		defer res.Body.Close()
 		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			log.Println("Error connecting to mcAPI")
+			log.Println("Error connecting to mcAPI in updateMC-1")
 		}
 		playerCount := 0
 		bodyString := string(bodyBytes)
@@ -429,7 +429,7 @@ func updateMC() {
 				defer res.Body.Close()
 				bodyBytes, err := ioutil.ReadAll(res.Body)
 				if err != nil {
-					log.Println("Error connecting to mcAPI")
+					log.Println("Error connecting to mcAPI in updateMC-2")
 				}
 				bodyString := string(bodyBytes)
 				playerCount, err = strconv.Atoi(bodyString)
@@ -491,14 +491,14 @@ func stopMCServerIn(minutesToShutdown int) {
 		req.Header.Set("TASADAR_SECRET", mcAPIToken)
 		res, err := client.Do(req)
 		if res == nil || err != nil {
-			log.Println("Error connecting to mcAPI")
+			log.Println("Error connecting to mcAPI in stopMcServerIn-1")
 			msgDiscordMC <- "Error Stopping Server"
 			return
 		}
 		if res.StatusCode == 200 {
 			msgDiscordMC <- "Shutting down Server..."
 		} else {
-			log.Println("Error connecting to mcAPI")
+			log.Println("Error connecting to mcAPI in stopMcServerIn-2")
 			msgDiscordMC <- "Error Stopping Server"
 			return
 		}
@@ -970,7 +970,7 @@ func pingMC() {
 	if res.StatusCode == 200 {
 		bodyBytes, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			log.Println("Error connecting to mcAPI")
+			log.Println("Error connecting to mcAPI in pingMC-1")
 		}
 		bodyString := string(bodyBytes)
 		onlineCheck = bodyString == "online"
