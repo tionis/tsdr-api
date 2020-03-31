@@ -23,8 +23,5 @@ https://api.tasadar.net/tn/pin/Hash_here/?name=NameofPinHere
 Should connect to ipfs-cluster api and pin hashes. Save owner of hashes to key value store and ipfs-cluster
 Requires Authentication -> Depends on oAuth Projects
 
-## Dice Bot Implementation
-Roll Custom and Construct Specific Dice
-
 ## oAuth
 oAuth Client Implementation based on work from goth library (has to be adopted -> maybe add Pull Request)

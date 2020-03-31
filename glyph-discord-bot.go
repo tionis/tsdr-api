@@ -129,6 +129,18 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	currentTopic := get("glyph|discord:" + m.Author.ID + "|topic")
+	if currentTopic != "" {
+		switch currentTopic {
+		case "construct-character-creation":
+			// TODO: Character creation dialog
+		default:
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+			_, _ = s.ChannelMessageSend(m.ChannelID, "I encountered an interal error, please contact the administrator.")
+			return
+		}
+	}
+
 	inputString := strings.Split(m.Content, " ")
 	switch inputString[0] {
 	case "/roll":
@@ -179,7 +191,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			switch inputString[1] {
 			case "initmod":
 				if len(inputString) < 3 {
-					err := set("initmod|discord:"+m.Author.ID+"|initmod", "")
+					err := delete("initmod|discord:" + m.Author.ID + "|initmod")
 					if err != nil {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -463,9 +475,9 @@ func updateMC() {
 
 func mcStopPlayerOffline() {
 	mcStopping = true
-	err := set("mc|isStopping", "true")
+	err := set("mc|IsStopping", "true")
 	if err != nil {
-		log.Println("[GlyphDiscordBot] Error saving mc|isStopping to database")
+		log.Println("[GlyphDiscordBot] Error saving mc|IsStopping to database")
 	}
 	msgDiscordMC <- "There were no players on the Server for quite some time.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
 	stopMCServerIn(5)
