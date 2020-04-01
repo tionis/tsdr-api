@@ -25,3 +25,8 @@ Requires Authentication -> Depends on oAuth Projects
 
 ## oAuth
 oAuth Client Implementation based on work from goth library (has to be adopted -> maybe add Pull Request)
+
+## S3 For persistent storage
+Use S3 (Region eu-west-1 for heroku eu) for persistent storage
+--> Make this modular so it can bbe switched to local storage backed or s3-compatible storage
+Maybe even write a ipns backed version over tn-gateway -> for better availability 

@@ -161,7 +161,7 @@ func glyphTelegramBot() {
 				s1 := strings.TrimPrefix(m.Text, "/redisSet ")
 				s := strings.Split(s1, " ")
 				val := strings.TrimPrefix(m.Text, "/redisSet "+s[0]+" ")
-				err := set(s[0], val)
+				err := kvset(s[0], val)
 				if err != nil {
 					log.Println("[GlyphTelegramBot] Error while executing redis command: ", err)
 					_, _ = glyph.Send(m.Sender, "There was an error! Check the logs!")
@@ -177,7 +177,7 @@ func glyphTelegramBot() {
 	glyph.Handle("/redisGet", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/redisGet ")
-			val, err := getResult(s1)
+			val, err := kvgetResult(s1)
 			if err != nil {
 				log.Println("[GlyphTelegramBot] Error while executing redis command: ", err)
 				_, _ = glyph.Send(m.Sender, "Error! Maybe the value does not exist?")
@@ -214,29 +214,6 @@ func glyphTelegramBot() {
 			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
 		}
 	})
-	/*glyph.Handle("/psqlPing", func(m *tb.Message) {
-		db, err := sql.Open("postgres", psqlInfo)
-		if err != nil {
-			log.Println("[PostgreSQL] Server Connection failed: ", err)
-			_, _ = glyph.Send(m.Sender, "An error occurred!\nCheck the logs!")
-			return
-		}
-		err = db.Ping()
-		if err != nil {
-			log.Println("[PostgreSQL] Server Ping failed: ", err)
-			_, _ = glyph.Send(m.Sender, "An error occurred!\nCheck the logs!")
-			err = db.Close()
-			if err != nil {
-				log.Println("[PostgreSQL] Error closing Postgres Session")
-			}
-			return
-		}
-		_, _ = glyph.Send(m.Sender, "Ping successfull!")
-		err = db.Close()
-		if err != nil {
-			log.Println("[PostgreSQL] Error closing Postgres Session")
-		}
-	})*/
 	glyph.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		log.Println("[GlyphTelegramBot] " + "Group Message:")
 		printInfoGlyph(m)
@@ -282,8 +259,8 @@ func isTasadarTGAdmin(ID int) bool {
 	if ID == 248533143 {
 		return true
 	}
-	username := get("tg|" + strconv.Itoa(ID) + "|username")
-	groups := get("auth|" + username + "|groups")
+	username := kvget("tg|" + strconv.Itoa(ID) + "|username")
+	groups := kvget("auth|" + username + "|groups")
 	// Should transform into array and then check through it
 	if strings.Contains(groups, "admin,") || strings.Contains(groups, ",admin") /*|| strings.Contains(groups, "admin")*/ {
 		return true

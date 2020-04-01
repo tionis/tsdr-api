@@ -62,7 +62,7 @@ type loginForm struct {
 	Password string `form:"password" binding:"required"`
 }
 
-func routes(router *gin.Engine) {
+func apiRoutes(router *gin.Engine) {
 	// Default Stuff
 	router.GET("/favicon.svg", favicon)
 	router.GET("/", index)
@@ -84,7 +84,7 @@ func routes(router *gin.Engine) {
 
 	// Minecraft API
 	router.GET("/mc/stopped/:token", func(c *gin.Context) {
-		getAuthorization, err := getResult("mc|token|" + c.Param("token"))
+		getAuthorization, err := kvgetResult("mc|token|" + c.Param("token"))
 		if err != nil {
 			c.File("static/error-pages/500.html")
 		}
@@ -103,7 +103,7 @@ func routes(router *gin.Engine) {
 
 // Google Assistant IFTTT Binding
 func authenticateIFTTTToken(token string) bool {
-	val, err := getResult("token|" + token + "|ifttt")
+	val, err := kvgetResult("token|" + token + "|ifttt")
 	if err != nil {
 		return false
 	}

@@ -52,7 +52,7 @@ func glyphDiscordBot() {
 	}
 
 	// Init Variables from redis
-	lastPlayerOnlineString, err := getResult("mc|lastPlayerOnline")
+	lastPlayerOnlineString, err := kvgetResult("mc|lastPlayerOnline")
 	if err != nil {
 		log.Println("Error reading mc|lastPlayerOnline from Redis: ", err)
 		lastPlayerOnline = time.Now()
@@ -71,7 +71,7 @@ func glyphDiscordBot() {
 		}
 	}(dg)
 	// Init mcRunning and mcStopping
-	mcRunningString, err := getResult("mc|IsRunning")
+	mcRunningString, err := kvgetResult("mc|IsRunning")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsRunning", err)
 	} else if mcRunningString == "true" {
@@ -82,7 +82,7 @@ func glyphDiscordBot() {
 		mcRunning = false
 		log.Println("[GlyphDiscordBot] Error converting Redis value for mc|IsRunning, expected true or false but got " + mcRunningString)
 	}
-	mcStoppingString, err := getResult("mc|IsStopping")
+	mcStoppingString, err := kvgetResult("mc|IsStopping")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsStopping", err)
 	} else if mcStoppingString == "true" {
@@ -101,7 +101,7 @@ func glyphDiscordBot() {
 	go pingMC()
 
 	// Set some StartUp Stuff
-	dgStatus, err := getResult("dg|status")
+	dgStatus, err := kvgetResult("dg|status")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting dgStatus from redis: ", err)
 		dgStatus = "planning world domination"
@@ -128,7 +128,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	currentTopic := get("glyph|discord:" + m.Author.ID + "|topic")
+	// Check if glyph is currently in a conversation with user
+	currentTopic := kvget("glyph|discord:" + m.Author.ID + "|topic")
 	if currentTopic != "" {
 		switch currentTopic {
 		case "construct-character-creation":
@@ -140,6 +141,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	}
 
+	// Check if a known command was written
 	inputString := strings.Split(m.Content, " ")
 	switch inputString[0] {
 	case "/roll":
@@ -172,7 +174,19 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	case "/pnp":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier\n - /construct or /co - get construct-specific help")
+	case "/co", "construct":
+		if len(inputString) < 2 {
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /co trait TRAITNAME - Get Description for specified trait")
+		} else {
+			switch inputString[1] {
+
+			default:
+				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Invalid Command Syntax")
+			}
+		}
 	case "/food":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtoday())
@@ -190,7 +204,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			switch inputString[1] {
 			case "initmod":
 				if len(inputString) < 3 {
-					err := delete("initmod|discord:" + m.Author.ID + "|initmod")
+					err := kvdelete("initmod|discord:" + m.Author.ID + "|initmod")
 					if err != nil {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -204,7 +218,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 					} else {
-						err := set("initmod|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
+						err := kvset("initmod|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
 						if err != nil {
 							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -259,7 +273,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					}
 					client := &http.Client{}
 					req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/creepercount", nil)
-					mcAPIToken := get("mcapi|token")
+					mcAPIToken := kvget("mcapi|token")
 					req.Header.Set("TASADAR_SECRET", mcAPIToken)
 					res, err := client.Do(req)
 					if res == nil {
@@ -314,7 +328,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
-			err := set("dg|status", newStatus)
+			err := kvset("dg|status", newStatus)
 			if err != nil {
 				log.Println("Error setting dg|status on Redis: ", err)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
@@ -344,7 +358,7 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 	if mcStopping {
 		client := &http.Client{}
 		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/stop", nil)
-		mcAPIToken := get("mcapi|token")
+		mcAPIToken := kvget("mcapi|token")
 		req.Header.Set("TASADAR_SECRET", mcAPIToken)
 		res, err := client.Do(req)
 		if res == nil || err != nil {
@@ -360,7 +374,7 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 func mcStart() bool {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/start", nil)
-	mcAPIToken := get("mcapi|token")
+	mcAPIToken := kvget("mcapi|token")
 	req.Header.Set("TASADAR_SECRET", mcAPIToken)
 	res, err := client.Do(req)
 	if res == nil {
@@ -375,12 +389,12 @@ func mcStart() bool {
 		} else {
 			mcRunningString = "false"
 		}
-		_ = set("mc|IsRunning", mcRunningString)
+		_ = kvset("mc|IsRunning", mcRunningString)
 		if err != nil {
 			log.Println("[GlyphDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 		}
 		lastPlayerOnline = time.Now()
-		_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
+		_ = kvset("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 		if err != nil {
 			log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
@@ -399,7 +413,7 @@ func updateMC() {
 	if mcRunning && !mcStopping {
 		client := &http.Client{}
 		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/ping", nil)
-		mcAPIToken := get("mcapi|token")
+		mcAPIToken := kvget("mcapi|token")
 		req.Header.Set("TASADAR_SECRET", mcAPIToken)
 		res, err := client.Do(req)
 		if res == nil {
@@ -418,7 +432,7 @@ func updateMC() {
 				mcRunning = true
 				client := &http.Client{}
 				req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/playercount", nil)
-				mcAPIToken := get("mcapi|token")
+				mcAPIToken := kvget("mcapi|token")
 				req.Header.Set("TASADAR_SECRET", mcAPIToken)
 				res, err := client.Do(req)
 				if res == nil {
@@ -443,7 +457,7 @@ func updateMC() {
 				} else {
 					mcRunningString = "false"
 				}
-				err = set("mc|IsRunning", mcRunningString)
+				err = kvset("mc|IsRunning", mcRunningString)
 				if err != nil {
 					log.Println("Error setting mc|IsRunning on Redis: ", err)
 				}
@@ -454,14 +468,14 @@ func updateMC() {
 		}
 		if playerCount > 0 {
 			lastPlayerOnline = time.Now()
-			_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
+			_ = kvset("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 			if err != nil {
 				log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 			}
 		} else {
 			if time.Now().Sub(lastPlayerOnline).Minutes() > 30 {
 				lastPlayerOnline = time.Now()
-				_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
+				_ = kvset("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 				if err != nil {
 					log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 				}
@@ -473,7 +487,7 @@ func updateMC() {
 
 func mcStopPlayerOffline() {
 	mcStopping = true
-	err := set("mc|IsStopping", "true")
+	err := kvset("mc|IsStopping", "true")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error saving mc|IsStopping to database")
 	}
@@ -486,7 +500,7 @@ func stopMCServerIn(minutesToShutdown int) {
 	if mcStopping {
 		client := &http.Client{}
 		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/stop", nil)
-		mcAPIToken := get("mcapi|token")
+		mcAPIToken := kvget("mcapi|token")
 		req.Header.Set("TASADAR_SECRET", mcAPIToken)
 		res, err := client.Do(req)
 		if res == nil || err != nil {
@@ -568,7 +582,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		return
 	case "init":
-		initModString := get("initmod|discord:" + m.Author.ID + "|initmod")
+		initModString := kvget("initmod|discord:" + m.Author.ID + "|initmod")
 		initMod, err := strconv.Atoi(initModString)
 		if err != nil {
 			initModString = ""
@@ -957,7 +971,7 @@ func roll1D10() int {
 func pingMC() {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/ping", nil)
-	mcAPIToken := get("mcapi|token")
+	mcAPIToken := kvget("mcapi|token")
 	req.Header.Set("TASADAR_SECRET", mcAPIToken)
 	res, err := client.Do(req)
 	if res == nil {
@@ -979,7 +993,7 @@ func pingMC() {
 	}
 	if !mcRunning && onlineCheck { // Resets Counter if server online trough other means
 		lastPlayerOnline = time.Now()
-		err = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
+		err = kvset("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 		if err != nil {
 			log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
@@ -991,7 +1005,7 @@ func pingMC() {
 	} else {
 		mcRunningString = "false"
 	}
-	err = set("mc|IsRunning", mcRunningString)
+	err = kvset("mc|IsRunning", mcRunningString)
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 	}
