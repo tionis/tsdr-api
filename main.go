@@ -86,6 +86,7 @@ func main() {
 		//hs["auth.tasadar.net"] = authRouter
 	} else {
 		hs["api.localhost:"+os.Getenv("PORT")] = apiRouter
+		hs["api.localhost"] = apiRouter
 		//hs["auth.localhost:8082"] = authRouter
 	}
 

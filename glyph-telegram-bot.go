@@ -256,14 +256,15 @@ func printInfoGlyph(m *tb.Message) {
 }
 
 func isTasadarTGAdmin(ID int) bool {
-	if ID == 248533143 {
+	return ID == 248533143
+	/*if ID == 248533143 {
 		return true
 	}
 	username := kvget("tg|" + strconv.Itoa(ID) + "|username")
 	groups := kvget("auth|" + username + "|groups")
 	// Should transform into array and then check through it
-	if strings.Contains(groups, "admin,") || strings.Contains(groups, ",admin") /*|| strings.Contains(groups, "admin")*/ {
+	if strings.Contains(groups, "admin,") || strings.Contains(groups, ",admin") //|| strings.Contains(groups, "admin")// {
 		return true
 	}
-	return false
+	return false*/
 }

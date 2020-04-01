@@ -20,13 +20,19 @@ import (
 // Global Variables
 var mcStopping bool
 var mcRunning bool
-var mainChannelID string
+var mainChannelID int
 var msgDiscordMC chan string
+var msgDiscord chan glyphDiscordMsg
 var lastPlayerOnline time.Time
 var discordAdminID string
 var rconPassword string
 var onlyOnce sync.Once
 var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+
+type glyphDiscordMsg struct {
+	ChannelID int
+	Message   string
+}
 
 // Some Constants
 const lastPlayerOnlineLayout = "2006-01-02T15:04:05.000Z"
@@ -34,7 +40,7 @@ const tnGatewayAddress = "https://tn.tasadar.net"
 
 // Main and Init
 func glyphDiscordBot() {
-	mainChannelID = "574959338754670602"
+	mainChannelID = 574959338754670602
 	discordAdminID = "259076782408335360"
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
@@ -62,12 +68,13 @@ func glyphDiscordBot() {
 		log.Println("Error transforming mc|lastPlayerOnline to time object: ", err)
 		lastPlayerOnline = time.Now()
 	}
-	// Define input channel
+
+	// Define Input Channel for discord messages outside from normal responses
 	go func(s *discordgo.Session) {
-		msgDiscordMC = make(chan string)
+		msgDiscord = make(chan glyphDiscordMsg)
 		for {
-			toSend := <-msgDiscordMC
-			_, _ = s.ChannelMessageSend(mainChannelID, toSend)
+			toSend := <-msgDiscord
+			_, _ = s.ChannelMessageSend(strconv.Itoa(toSend.ChannelID), toSend.Message)
 		}
 	}(dg)
 	// Init mcRunning and mcStopping
@@ -88,7 +95,10 @@ func glyphDiscordBot() {
 	} else if mcStoppingString == "true" {
 		// Check if it maybe has already been stopped
 		mcStopping = true
-		msgDiscordMC <- "Restarting shutdown sequence...\nYou habe 5 Minutes!"
+		var message glyphDiscordMsg
+		message.Message = "Restarting shutdown sequence...\nYou habe 5 Minutes!"
+		message.ChannelID = mainChannelID
+		msgDiscord <- message
 		go stopMCServerIn(5)
 	} else if mcStoppingString == "false" {
 		mcStopping = false
@@ -101,7 +111,7 @@ func glyphDiscordBot() {
 	go pingMC()
 
 	// Set some StartUp Stuff
-	dgStatus, err := kvgetResult("dg|status")
+	dgStatus, err := kvgetResult("dgStatus")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting dgStatus from redis: ", err)
 		dgStatus = "planning world domination"
@@ -204,7 +214,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			switch inputString[1] {
 			case "initmod":
 				if len(inputString) < 3 {
-					err := kvdelete("initmod|discord:" + m.Author.ID + "|initmod")
+					err := kvdelete("udata|discord:" + m.Author.ID + "|initmod")
 					if err != nil {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -218,7 +228,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 					} else {
-						err := kvset("initmod|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
+						err := kvset("udata|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
 						if err != nil {
 							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -328,9 +338,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
-			err := kvset("dg|status", newStatus)
+			err := kvset("dgStatus", newStatus)
 			if err != nil {
-				log.Println("Error setting dg|status on Redis: ", err)
+				log.Println("Error setting dgStatus on Redis: ", err)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
 			}
 			_ = s.UpdateStatus(0, newStatus)
@@ -351,8 +361,13 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 		return
 	}
 	_, _ = s.ChannelMessageSend(m.ChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
-	if m.ChannelID != mainChannelID {
-		_, _ = s.ChannelMessageSend(mainChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
+	channelID, err := strconv.Atoi(m.ChannelID)
+	if err != nil {
+		log.Println("[GlyphDiscordBot] Received non parseable response from bot api, weird internal error:", err)
+		return
+	}
+	if channelID != mainChannelID {
+		_, _ = s.ChannelMessageSend(strconv.Itoa(mainChannelID), "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
 	}
 	time.Sleep(time.Duration(minutes) * time.Minute)
 	if mcStopping {
@@ -491,7 +506,10 @@ func mcStopPlayerOffline() {
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error saving mc|IsStopping to database")
 	}
-	msgDiscordMC <- "There were no players on the Server for quite some time.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
+	var message glyphDiscordMsg
+	message.Message = "There were no players on the Server for quite some time.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
+	message.ChannelID = mainChannelID
+	msgDiscord <- message
 	stopMCServerIn(5)
 }
 
@@ -505,14 +523,23 @@ func stopMCServerIn(minutesToShutdown int) {
 		res, err := client.Do(req)
 		if res == nil || err != nil {
 			log.Println("Error connecting to mcAPI in stopMcServerIn-1")
-			msgDiscordMC <- "Error Stopping Server"
+			var message glyphDiscordMsg
+			message.Message = "Error stopping Server"
+			message.ChannelID = mainChannelID
+			msgDiscord <- message
 			return
 		}
 		if res.StatusCode == 200 {
-			msgDiscordMC <- "Shutting down Server..."
+			var message glyphDiscordMsg
+			message.Message = "Shutting down Server..."
+			message.ChannelID = mainChannelID
+			msgDiscord <- message
 		} else {
 			log.Println("Error connecting to mcAPI in stopMcServerIn-2")
-			msgDiscordMC <- "Error Stopping Server"
+			var message glyphDiscordMsg
+			message.Message = "Error stopping Server!"
+			message.ChannelID = mainChannelID
+			msgDiscord <- message
 			return
 		}
 	}
@@ -582,7 +609,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		return
 	case "init":
-		initModString := kvget("initmod|discord:" + m.Author.ID + "|initmod")
+		initModString := kvget("udata|discord:" + m.Author.ID + "|initmod")
 		initMod, err := strconv.Atoi(initModString)
 		if err != nil {
 			initModString = ""

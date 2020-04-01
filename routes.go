@@ -5,9 +5,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httputil"
-	"net/smtp"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -17,21 +15,15 @@ import (
 	_ "github.com/heroku/x/hmetrics/onload"
 )
 
-const smtpHost = "smtp.eu.mailgun.org"
-const smtpPort = "25"
-const smtpUser = "postmaster@mail.tasadar.net"
-const smtpFrom = "do-no-reply@mail.tasadar.net"
-
-var hs = jwt.NewHS256([]byte("v09AoteRzfUEDbxqjDFFyWaSPrNeDqOj"))
-
 type tasadarToken struct {
 	jwt.Payload
 	Groups string `json:"groups,omitempty"`
 }
 
-type alphaMsgStruct struct {
-	Message string `form:"message" json:"message" binding:"required"`
-	Token   string `form:"token" json:"token" binding:"required"`
+type glyphDiscordMsgAPIObject struct {
+	ChannelID string `form:"channelid" json:"channelid" binding:"required"`
+	Message   string `form:"message" json:"message" binding:"required"`
+	Token     string `form:"token" json:"token" binding:"required"`
 }
 
 type mcWhitelistStruct struct {
@@ -42,24 +34,6 @@ type mcWhitelistStruct struct {
 
 type tokenStruct struct {
 	Token string `json:"token"`
-}
-
-type contactForm struct {
-	Name    string `form:"name" binding:"required"`
-	Mail    string `form:"mail" binding:"required"`
-	Message string `form:"message" binding:"required"`
-}
-
-type pwChangeForm struct {
-	Username         string `form:"username" binding:"required"`
-	OldPassword      string `form:"oldPassword" binding:"required"`
-	NewPassword      string `form:"newPassword" binding:"required"`
-	NewPasswordAgain string `form:"newPasswordAgain" binding:"required"`
-}
-
-type loginForm struct {
-	Username string `form:"username" binding:"required"`
-	Password string `form:"password" binding:"required"`
 }
 
 func apiRoutes(router *gin.Engine) {
@@ -82,6 +56,16 @@ func apiRoutes(router *gin.Engine) {
 	router.GET("/mensa/tomorrow", retFoodTomorow)
 	router.GET("/mensa/week", retFoodWeek)
 
+	// Glyph Communication API
+	router.POST("/glyph/discord/send", glyphDiscordHandler)
+	//router.GET("/glyph/telegram/send", glyphTelegramHandler)
+	//router.GET("/glyph/matrix/send", glyphMatrixHandler)
+
+	// Authenticate an User
+	// TODO Read the callback uri and give the user an session key
+	// Then let user choose a auth provider(only if there are more than one)
+	// If auth successfull set session key to authenticated and then forward user back to his original request
+
 	// Minecraft API
 	router.GET("/mc/stopped/:token", func(c *gin.Context) {
 		getAuthorization, err := kvgetResult("mc|token|" + c.Param("token"))
@@ -96,9 +80,6 @@ func apiRoutes(router *gin.Engine) {
 
 	// Google Assitant IFTTT API - tokenization
 	router.POST("/iot/assistant/order/:number", assistantOrderHandler)
-
-	// Receive Message from contact form
-	router.POST("/contact/tasadar", contactTasadar)
 }
 
 // Google Assistant IFTTT Binding
@@ -146,32 +127,15 @@ func assistantOrder(orderNumber string) error {
 	return nil
 }
 
-// contactTasadar
-func contactTasadar(c *gin.Context) {
-	auth := smtp.PlainAuth("", smtpUser, os.Getenv("SMTP_PASSWORD"), smtpHost)
-	var contact contactForm
-	err := c.Bind(&contact) // This will infer what binder to use depending on the content-type header.
+func glyphDiscordHandler(c *gin.Context) {
+	var messageData glyphDiscordMsgAPIObject
+	err := c.Bind(messageData) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
-		log.Println("[TasadarAPI] Error in contact form handling at c.Bind(&contact): ", err)
+		log.Println("[TasadarAPI] Error while trying to bind glyph discord message:", err)
 		c.String(401, "Error in your request")
 		return
 	}
-	name := c.PostForm("name")
-	email := c.PostForm("email")
-	message := c.PostForm("message")
-	to := []string{"support@tasadar.net"}
-	msg := []byte("To: support@tasadar.net\r\n" +
-		"Subject: New Message over Contact Form\r\n" +
-		"\r\nNew Message from " + name + "\r\n Email: " + email + "\r\n---\r\n" +
-		message + "\r\n")
-	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, smtpFrom, to, msg)
-	if err != nil {
-		log.Println("[TasadarAPI] Error sending mail: ", err)
-		c.String(500, "Error sending mail, please send an email to support@tasadar.net")
-	} else {
-		c.Redirect(302, "https://contact.tasadar.net/success")
-	}
-
+	c.String(200, messageData.ChannelID)
 }
 
 // handle test case
