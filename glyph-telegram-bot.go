@@ -177,25 +177,12 @@ func glyphTelegramBot() {
 	glyph.Handle("/redisGet", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/redisGet ")
-			val, err := kvgetResult(s1)
+			val, err := kvgetError(s1)
 			if err != nil {
 				log.Println("[GlyphTelegramBot] Error while executing redis command: ", err)
 				_, _ = glyph.Send(m.Sender, "Error! Maybe the value does not exist?")
 			} else {
 				_, _ = glyph.Send(m.Sender, "Value "+s1+" is set to:\n\n"+val)
-			}
-		} else {
-			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-		printInfo(m)
-	})
-	glyph.Handle("/redisPing", func(m *tb.Message) {
-		if isTasadarTGAdmin(m.Sender.ID) {
-			pong, err := redclient.Ping().Result()
-			if err != nil {
-				_, _ = glyph.Send(m.Sender, "An Error occurred!")
-			} else {
-				_, _ = glyph.Send(m.Sender, "Everything normal: "+pong)
 			}
 		} else {
 			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")

@@ -7,7 +7,9 @@ require (
 	github.com/gbrlsnchs/jwt/v3 v3.0.0-rc.1
 	github.com/gin-gonic/gin v1.6.2
 	github.com/go-redis/redis/v7 v7.2.0
+	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/heroku/x v0.0.22
+	github.com/mediocregopher/radix/v3 v3.4.2 // indirect
 	github.com/robfig/cron v1.2.0
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59 // indirect
 	golang.org/x/text v0.3.2

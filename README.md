@@ -10,23 +10,40 @@ Tasadar API and Bot network, designed to be run on Heroku Platform, but should r
  - DISCORD_TOKEN
  - TELEGRAM_TOKEN
  - UNIPASSAUBOT_TOKEN
- - DATABASE_URL - may be removed in the future
- - GIN_MODE = release
- - RCON_PASS - shall be removed in the future
+ - MODE = production 
  - REDIS_URL - important for central functions of the bot
- - SMTP_PASSWORD - for sending of emails over mailgun
+ - DISCORD_ADMIN
+ - MAIN_CHANNEL_ID
 
 # ToDo
 ## Tasadar Network Specifics
+### Overview
 Add Handling of Pinning event and similar tn integrations like this:
 https://api.tasadar.net/tn/pin/Hash_here/?name=NameofPinHere
 Should connect to ipfs-cluster api and pin hashes. Save owner of hashes to key value store and ipfs-cluster
 Requires Authentication -> Depends on oAuth Projects
+### Authentication for this szenario:
+ 1. Check if user has valid session header
+ 2. If not forward to login route with callback to original link (with hash to pin) else go to step 5
+ 3. Authenticate user there
+ 4. Go to step 1
+ 5. Check if user is allowed to use this service and which limits shall apply
+ 6. check if user has enough capacity in his limits
+ 7. pin it via the ipfs-cluster rest api and set owner to user-id
+ 8. forward to pinned content
 
-## oAuth
-oAuth Client Implementation based on work from goth library (has to be adopted -> maybe add Pull Request)
+## Persistent storage
+Get persistent storage
+ - Make this modular so it can be switched to local storage backend or s3-compatible storage, maybe even directly use ipfs node
+ - Make a list of use cases for various dynamic szenarios
 
-## S3 For persistent storage
-Use S3 (Region eu-west-1 for heroku eu) for persistent storage
---> Make this modular so it can bbe switched to local storage backed or s3-compatible storage
-Maybe even write a ipns backed version over tn-gateway -> for better availability 
+## API Authentication
+Strictly divide Code between Auth Code and API Code. Use different subdomains for both.
+API could use goth for client implementation and hydra for server implementation.
+API can be developed before server is implemented as external provide can be used.
+This may even be the better solution user experience-wise.
+
+## Glyph Discord Bot
+### Construct Specifics
+ - Get rule sets from wiki/git-provider and transform them into machine readable form
+ - Query these rule sets when question occurr and during character creation(the second part may need some special syntax in the markdown files)

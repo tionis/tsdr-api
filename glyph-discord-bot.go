@@ -58,7 +58,7 @@ func glyphDiscordBot() {
 	}
 
 	// Init Variables from redis
-	lastPlayerOnlineString, err := kvgetResult("mc|lastPlayerOnline")
+	lastPlayerOnlineString, err := kvgetError("mc|lastPlayerOnline")
 	if err != nil {
 		log.Println("Error reading mc|lastPlayerOnline from Redis: ", err)
 		lastPlayerOnline = time.Now()
@@ -78,7 +78,7 @@ func glyphDiscordBot() {
 		}
 	}(dg)
 	// Init mcRunning and mcStopping
-	mcRunningString, err := kvgetResult("mc|IsRunning")
+	mcRunningString, err := kvgetError("mc|IsRunning")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsRunning", err)
 	} else if mcRunningString == "true" {
@@ -89,7 +89,7 @@ func glyphDiscordBot() {
 		mcRunning = false
 		log.Println("[GlyphDiscordBot] Error converting Redis value for mc|IsRunning, expected true or false but got " + mcRunningString)
 	}
-	mcStoppingString, err := kvgetResult("mc|IsStopping")
+	mcStoppingString, err := kvgetError("mc|IsStopping")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsStopping", err)
 	} else if mcStoppingString == "true" {
@@ -111,7 +111,7 @@ func glyphDiscordBot() {
 	go pingMC()
 
 	// Set some StartUp Stuff
-	dgStatus, err := kvgetResult("dgStatus")
+	dgStatus, err := kvgetError("dgStatus")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting dgStatus from redis: ", err)
 		dgStatus = "planning world domination"
@@ -350,7 +350,53 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	case "/whoami":
 		s.ChannelMessageSend(m.ChannelID, m.Author.String())
+	case "/todo":
+		s.ChannelMessageSend(m.ChannelID, "Feature still in Development")
+	case "/amiadmin":
+		if isServerAdmin(m.GuildID, m.Author.ID) {
+			s.ChannelMessageSend(m.ChannelID, "TRUE")
+		} else {
+			s.ChannelMessageSend(m.ChannelID, "FALSE")
+		}
+	case "/inoadmin":
+		srem("discord|"+m.GuildID+"|admins", m.Author.ID)
+	case "/makeadmin":
+		sadd("discord|"+m.GuildID+"|admins", m.Author.ID)
+		/*s.ChannelMessageDelete(m.ChannelID, m.Message.ID)
+		if isTasadarDiscordAdmin(m.Author.ID) {
+			roles, err := s.GuildRoles(m.GuildID)
+			roleid := ""
+			if err != nil {
+				log.Println("[GlyphDiscordBot] Error while making admin: ", err)
+				return
+			}
+			for i := range roles {
+				if roles[i].Permissions == 8 {
+					roleid = roles[i].ID
+				}
+			}
+			if roleid == "" {
+				// TODO Discord requires permissions on create but it seems like the library doesnt provide an option for this
+				// This has to be investigated further
+				newRole, err := s.GuildRoleCreate(m.GuildID)
+				if err != nil {
+					log.Println("[GlyphDiscordBot] Error while making admin: ", err)
+					return
+				}
+				roleid = newRole.ID
+			}
+			s.GuildMemberRoleAdd(m.GuildID, m.Author.ID, roleid)
+		}*/
 	}
+}
+
+func isServerAdmin(guildID, userID string) bool {
+	isAdmin, _ := sismember("discord|"+guildID+"|admins", userID)
+	return isAdmin
+}
+
+func isTasadarDiscordAdmin(ID string) bool {
+	return ID == "259076782408335360"
 }
 
 func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes int) {
@@ -644,12 +690,16 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 
 		// Catch d-notation and read modifiers
-		switch sides {
-		case 1:
-			s.ChannelMessageSend(m.ChannelID, "Really? Thats one times "+diceIndex[0]+". I think you can do the math yourself!")
-			return
-		case 0:
+		if amount < 1 {
 			s.ChannelMessageSend(m.ChannelID, "Nice try!")
+			return
+		}
+		switch {
+		case sides < 1:
+			s.ChannelMessageSend(m.ChannelID, "Nice try!")
+			return
+		case sides == 1:
+			s.ChannelMessageSend(m.ChannelID, "Really? Thats one times "+diceIndex[0]+". I think you can do the math yourself!")
 			return
 		default:
 			if amount > 1000 {
