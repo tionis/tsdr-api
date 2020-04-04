@@ -5,7 +5,12 @@
 
 Tasadar API and Bot network, designed to be run on Heroku Platform, but should run on any Linux Platform, where an https load balancer is loaded, the dns record of api.tasadar.net points to the load balancer and the load balancers addressed port is specified on $PORT together with the tokens.
 
-# Environment Variables needed for this application
+# Things needed for Operation
+This API needs Tokens to use its bot bindings and a RESP compatible Database defined by REDIS_URL.
+This database could for example be ardb or simply redis.
+Below are listed all requesits that are needed
+
+## Environment Variables needed for this application
  - PORT
  - DISCORD_TOKEN
  - TELEGRAM_TOKEN

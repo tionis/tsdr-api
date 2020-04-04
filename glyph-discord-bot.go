@@ -20,7 +20,7 @@ import (
 // Global Variables
 var mcStopping bool
 var mcRunning bool
-var mainChannelID int
+var mainChannelID string
 var msgDiscordMC chan string
 var msgDiscord chan glyphDiscordMsg
 var lastPlayerOnline time.Time
@@ -30,7 +30,7 @@ var onlyOnce sync.Once
 var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 type glyphDiscordMsg struct {
-	ChannelID int
+	ChannelID string
 	Message   string
 }
 
@@ -40,8 +40,9 @@ const tnGatewayAddress = "https://tn.tasadar.net"
 
 // Main and Init
 func glyphDiscordBot() {
-	mainChannelID = 574959338754670602
+	mainChannelID = "574959338754670602"
 	discordAdminID = "259076782408335360"
+
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error creating Discord session,", err)
@@ -74,9 +75,10 @@ func glyphDiscordBot() {
 		msgDiscord = make(chan glyphDiscordMsg)
 		for {
 			toSend := <-msgDiscord
-			_, _ = s.ChannelMessageSend(strconv.Itoa(toSend.ChannelID), toSend.Message)
+			_, _ = s.ChannelMessageSend(toSend.ChannelID, toSend.Message)
 		}
 	}(dg)
+
 	// Init mcRunning and mcStopping
 	mcRunningString, err := kvgetError("mc|IsRunning")
 	if err != nil {
@@ -126,6 +128,12 @@ func glyphDiscordBot() {
 
 	// Cleanly close down the Discord session.
 	_ = dg.Close()
+}
+
+func getMCMainChannelID(guildID string) string {
+	// TODO add setting thingie
+	return "574959338754670602"
+	//return kvget("mc|" + guildID + "|mainchannel")
 }
 
 // This function will be called (due to AddHandler above) every time a new
@@ -407,13 +415,8 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 		return
 	}
 	_, _ = s.ChannelMessageSend(m.ChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
-	channelID, err := strconv.Atoi(m.ChannelID)
-	if err != nil {
-		log.Println("[GlyphDiscordBot] Received non parseable response from bot api, weird internal error:", err)
-		return
-	}
-	if channelID != mainChannelID {
-		_, _ = s.ChannelMessageSend(strconv.Itoa(mainChannelID), "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
+	if MCMainChannelID := getMCMainChannelID(m.GuildID); m.ChannelID != MCMainChannelID {
+		_, _ = s.ChannelMessageSend(MCMainChannelID, "If nobody says /mc cancel in the next "+minutesString+" Minutes I will shut down the server!")
 	}
 	time.Sleep(time.Duration(minutes) * time.Minute)
 	if mcStopping {
@@ -554,7 +557,7 @@ func mcStopPlayerOffline() {
 	}
 	var message glyphDiscordMsg
 	message.Message = "There were no players on the Server for quite some time.\nIf nobody says /mc cancel in the next 5 Minutes I will shut down the server!"
-	message.ChannelID = mainChannelID
+	message.ChannelID = mainChannelID // TODO: Move this code to mcapi
 	msgDiscord <- message
 	stopMCServerIn(5)
 }
