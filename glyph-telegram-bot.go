@@ -161,7 +161,7 @@ func glyphTelegramBot() {
 				s1 := strings.TrimPrefix(m.Text, "/redisSet ")
 				s := strings.Split(s1, " ")
 				val := strings.TrimPrefix(m.Text, "/redisSet "+s[0]+" ")
-				err := kvset(s[0], val)
+				err := set(s[0], val)
 				if err != nil {
 					log.Println("[GlyphTelegramBot] Error while executing redis command: ", err)
 					_, _ = glyph.Send(m.Sender, "There was an error! Check the logs!")
@@ -177,7 +177,7 @@ func glyphTelegramBot() {
 	glyph.Handle("/redisGet", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			s1 := strings.TrimPrefix(m.Text, "/redisGet ")
-			val, err := kvgetError(s1)
+			val, err := getError(s1)
 			if err != nil {
 				log.Println("[GlyphTelegramBot] Error while executing redis command: ", err)
 				_, _ = glyph.Send(m.Sender, "Error! Maybe the value does not exist?")

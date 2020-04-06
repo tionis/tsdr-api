@@ -68,7 +68,7 @@ func apiRoutes(router *gin.Engine) {
 
 	// Minecraft API
 	router.GET("/mc/stopped/:token", func(c *gin.Context) {
-		getAuthorization, err := kvgetError("mc|token|" + c.Param("token"))
+		getAuthorization, err := getError("mc|token|" + c.Param("token"))
 		if err != nil {
 			c.File("static/error-pages/500.html")
 		}
@@ -84,7 +84,7 @@ func apiRoutes(router *gin.Engine) {
 
 // Google Assistant IFTTT Binding
 func authenticateIFTTTToken(token string) bool {
-	val, err := kvgetError("token|" + token + "|ifttt")
+	val, err := getError("token|" + token + "|ifttt")
 	if err != nil {
 		return false
 	}

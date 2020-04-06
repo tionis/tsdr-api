@@ -59,7 +59,7 @@ func glyphDiscordBot() {
 	}
 
 	// Init Variables from redis
-	lastPlayerOnlineString, err := kvgetError("mc|lastPlayerOnline")
+	lastPlayerOnlineString, err := getError("mc|lastPlayerOnline")
 	if err != nil {
 		log.Println("Error reading mc|lastPlayerOnline from Redis: ", err)
 		lastPlayerOnline = time.Now()
@@ -80,7 +80,7 @@ func glyphDiscordBot() {
 	}(dg)
 
 	// Init mcRunning and mcStopping
-	mcRunningString, err := kvgetError("mc|IsRunning")
+	mcRunningString, err := getError("mc|IsRunning")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsRunning", err)
 	} else if mcRunningString == "true" {
@@ -91,7 +91,7 @@ func glyphDiscordBot() {
 		mcRunning = false
 		log.Println("[GlyphDiscordBot] Error converting Redis value for mc|IsRunning, expected true or false but got " + mcRunningString)
 	}
-	mcStoppingString, err := kvgetError("mc|IsStopping")
+	mcStoppingString, err := getError("mc|IsStopping")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsStopping", err)
 	} else if mcStoppingString == "true" {
@@ -113,7 +113,7 @@ func glyphDiscordBot() {
 	go pingMC()
 
 	// Set some StartUp Stuff
-	dgStatus, err := kvgetError("dgStatus")
+	dgStatus, err := getError("dgStatus")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error getting dgStatus from redis: ", err)
 		dgStatus = "planning world domination"
@@ -147,7 +147,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// Check if glyph is currently in a conversation with user
-	currentTopic := kvget("glyph|discord:" + m.Author.ID + "|topic")
+	currentTopic := get("glyph|discord:" + m.Author.ID + "|topic")
 	if currentTopic != "" {
 		switch currentTopic {
 		case "construct-character-creation":
@@ -222,7 +222,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			switch inputString[1] {
 			case "initmod":
 				if len(inputString) < 3 {
-					err := kvdelete("udata|discord:" + m.Author.ID + "|initmod")
+					err := del("udata|discord:" + m.Author.ID + "|initmod")
 					if err != nil {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -236,7 +236,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 					} else {
-						err := kvset("udata|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
+						err := set("udata|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
 						if err != nil {
 							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -291,7 +291,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					}
 					client := &http.Client{}
 					req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/creepercount", nil)
-					mcAPIToken := kvget("mcapi|token")
+					mcAPIToken := get("mcapi|token")
 					req.Header.Set("TASADAR_SECRET", mcAPIToken)
 					res, err := client.Do(req)
 					if res == nil {
@@ -346,7 +346,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
-			err := kvset("dgStatus", newStatus)
+			err := set("dgStatus", newStatus)
 			if err != nil {
 				log.Println("Error setting dgStatus on Redis: ", err)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
@@ -422,7 +422,7 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 	if mcStopping {
 		client := &http.Client{}
 		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/stop", nil)
-		mcAPIToken := kvget("mcapi|token")
+		mcAPIToken := get("mcapi|token")
 		req.Header.Set("TASADAR_SECRET", mcAPIToken)
 		res, err := client.Do(req)
 		if res == nil || err != nil {
@@ -430,6 +430,9 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 			s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
 		}
 		if res.StatusCode == 200 {
+			mcStopping = false
+			mcRunning = false
+			set("mc|IsStopping", "false")
 			s.ChannelMessageSend(m.ChannelID, "Server shutting down...")
 		}
 	}
@@ -438,7 +441,7 @@ func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes
 func mcStart() bool {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/start", nil)
-	mcAPIToken := kvget("mcapi|token")
+	mcAPIToken := get("mcapi|token")
 	req.Header.Set("TASADAR_SECRET", mcAPIToken)
 	res, err := client.Do(req)
 	if res == nil {
@@ -453,12 +456,12 @@ func mcStart() bool {
 		} else {
 			mcRunningString = "false"
 		}
-		_ = kvset("mc|IsRunning", mcRunningString)
+		_ = set("mc|IsRunning", mcRunningString)
 		if err != nil {
 			log.Println("[GlyphDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 		}
 		lastPlayerOnline = time.Now()
-		_ = kvset("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
+		_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 		if err != nil {
 			log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
@@ -477,7 +480,7 @@ func updateMC() {
 	if mcRunning && !mcStopping {
 		client := &http.Client{}
 		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/ping", nil)
-		mcAPIToken := kvget("mcapi|token")
+		mcAPIToken := get("mcapi|token")
 		req.Header.Set("TASADAR_SECRET", mcAPIToken)
 		res, err := client.Do(req)
 		if res == nil {
@@ -496,7 +499,7 @@ func updateMC() {
 				mcRunning = true
 				client := &http.Client{}
 				req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/playercount", nil)
-				mcAPIToken := kvget("mcapi|token")
+				mcAPIToken := get("mcapi|token")
 				req.Header.Set("TASADAR_SECRET", mcAPIToken)
 				res, err := client.Do(req)
 				if res == nil {
@@ -521,7 +524,7 @@ func updateMC() {
 				} else {
 					mcRunningString = "false"
 				}
-				err = kvset("mc|IsRunning", mcRunningString)
+				err = set("mc|IsRunning", mcRunningString)
 				if err != nil {
 					log.Println("Error setting mc|IsRunning on Redis: ", err)
 				}
@@ -532,14 +535,14 @@ func updateMC() {
 		}
 		if playerCount > 0 {
 			lastPlayerOnline = time.Now()
-			_ = kvset("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
+			_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 			if err != nil {
 				log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 			}
 		} else {
 			if time.Now().Sub(lastPlayerOnline).Minutes() > 30 {
 				lastPlayerOnline = time.Now()
-				_ = kvset("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
+				_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 				if err != nil {
 					log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 				}
@@ -551,7 +554,7 @@ func updateMC() {
 
 func mcStopPlayerOffline() {
 	mcStopping = true
-	err := kvset("mc|IsStopping", "true")
+	err := set("mc|IsStopping", "true")
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error saving mc|IsStopping to database")
 	}
@@ -567,7 +570,7 @@ func stopMCServerIn(minutesToShutdown int) {
 	if mcStopping {
 		client := &http.Client{}
 		req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/stop", nil)
-		mcAPIToken := kvget("mcapi|token")
+		mcAPIToken := get("mcapi|token")
 		req.Header.Set("TASADAR_SECRET", mcAPIToken)
 		res, err := client.Do(req)
 		if res == nil || err != nil {
@@ -658,7 +661,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		return
 	case "init":
-		initModString := kvget("udata|discord:" + m.Author.ID + "|initmod")
+		initModString := get("udata|discord:" + m.Author.ID + "|initmod")
 		initMod, err := strconv.Atoi(initModString)
 		if err != nil {
 			initModString = ""
@@ -1051,7 +1054,7 @@ func roll1D10() int {
 func pingMC() {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/ping", nil)
-	mcAPIToken := kvget("mcapi|token")
+	mcAPIToken := get("mcapi|token")
 	req.Header.Set("TASADAR_SECRET", mcAPIToken)
 	res, err := client.Do(req)
 	if res == nil {
@@ -1073,7 +1076,7 @@ func pingMC() {
 	}
 	if !mcRunning && onlineCheck { // Resets Counter if server online trough other means
 		lastPlayerOnline = time.Now()
-		err = kvset("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
+		err = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 		if err != nil {
 			log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 		}
@@ -1085,7 +1088,7 @@ func pingMC() {
 	} else {
 		mcRunningString = "false"
 	}
-	err = kvset("mc|IsRunning", mcRunningString)
+	err = set("mc|IsRunning", mcRunningString)
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 	}

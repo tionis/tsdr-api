@@ -8,7 +8,6 @@ import (
 	"github.com/go-redis/redis/v7"
 )
 
-var psqlInfo string
 var redclient *redis.Client
 
 func dbInit() {
@@ -28,7 +27,7 @@ func dbInit() {
 	}
 }
 
-// Direct Redis Commands
+// Direct Database Interaction Funtions
 func sadd(key, value string) error {
 	return redclient.SAdd(key, value).Err()
 }
@@ -41,18 +40,18 @@ func srem(key, value string) error {
 	return redclient.SRem(key, value).Err()
 }
 
-func kvset(key string, value string) error {
+func set(key string, value string) error {
 	return redclient.Set(key, value, 0).Err()
 }
 
-func kvdelete(key string) error {
+func del(key string) error {
 	return redclient.Del(key).Err()
 }
 
-func kvget(key string) string {
+func get(key string) string {
 	return redclient.Get(key).Val()
 }
 
-func kvgetError(key string) (string, error) {
+func getError(key string) (string, error) {
 	return redclient.Get(key).Result()
 }

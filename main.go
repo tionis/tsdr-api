@@ -17,21 +17,9 @@ type hostSwitch map[string]http.Handler
 
 var isProduction bool
 
-// Implement the ServeHTTP method on our new type
-func (hs hostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Check if a http.Handler is registered for the given host.
-	// If yes, use it to handle the request.
-	if handler := hs[r.Host]; handler != nil {
-		handler.ServeHTTP(w, r)
-	} else {
-		// Handle host names for which no handler is registered
-		http.Error(w, "Forbidden", 403)
-	}
-}
-
-// Main and Init
+// Initialize Main Functions
 func main() {
-	// Init very important bits
+	// Initialize basic requirements
 	dbInit()
 
 	// Detect Development Mode
@@ -69,9 +57,7 @@ func main() {
 	c.Start()
 	defer c.Stop()
 
-	// Creates a gin router with default middleware:
-	// logger and recovery (crash-free) middleware
-	// passes it to routes for setting of the routes
+	// Create Default gin router
 	port := os.Getenv("PORT")
 	if port == "" {
 		log.Println("[Tasadar] Failed to detect Port Variable, switching to default :8081")
@@ -80,6 +66,7 @@ func main() {
 	apiRouter := gin.Default()
 	apiRoutes(apiRouter) // Initialize API Routes
 
+	// Create HostSwitch Handling for Virtual Hosts support
 	hs := make(hostSwitch)
 	if isProduction {
 		hs["api.tasadar.net"] = apiRouter
@@ -90,5 +77,18 @@ func main() {
 		//hs["auth.localhost:8082"] = authRouter
 	}
 
+	// Start Webserver
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), hs))
+}
+
+// Functions implementing helper methods for main initialization:
+
+// Hostswitch HTTP Handler that enables the use in a standard lib way
+func (hs hostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if handler := hs[r.Host]; handler != nil {
+		handler.ServeHTTP(w, r)
+	} else {
+		// Handle host names for which no handler is registered
+		http.Error(w, "Forbidden", 403)
+	}
 }
