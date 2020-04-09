@@ -146,6 +146,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	// Ignore development text channel
+	if isProduction && m.ChannelID == "697899304916090920" {
+		return
+	}
+
 	// Check if glyph is currently in a conversation with user
 	currentTopic := get("glyph|discord:" + m.Author.ID + "|topic")
 	if currentTopic != "" {
