@@ -587,6 +587,11 @@ func stopMCServerIn(minutesToShutdown int) {
 			return
 		}
 		if res.StatusCode == 200 {
+			mcRunning = false
+			err = set("mc|IsRunning", "false")
+			if err != nil {
+				log.Println("[GlyphDiscordBot] Error setting mc|IsRunning on Redis: ", err)
+			}
 			var message glyphDiscordMsg
 			message.Message = "Shutting down Server..."
 			message.ChannelID = mainChannelID
