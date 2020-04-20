@@ -106,7 +106,7 @@ func glyphDiscordBot() {
 		mcStopping = false
 	} else {
 		mcStopping = false
-		log.Println("[GlyphDiscordBot] Error converting Redis value for mc|IsRunning, expected true or false but got " + mcRunningString)
+		log.Println("[GlyphDiscordBot] Error converting Redis value for mc|IsStopping, expected true or false but got " + mcRunningString)
 	}
 
 	// Get Server State
@@ -262,17 +262,21 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			switch inputString[1] {
 			case "start":
 				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-				if mcRunning {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Server already running!")
-				} else {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Starting MC-Server...")
-					success := mcStart()
-					if !success {
-						_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
-						log.Println("[GlyphDiscordBot] Error starting mc-server")
+				if m.ChannelID == mainChannelID {
+					if mcRunning {
+						_, _ = s.ChannelMessageSend(m.ChannelID, "Server already running!")
+					} else {
+						_, _ = s.ChannelMessageSend(m.ChannelID, "Starting MC-Server...")
+						success := mcStart()
+						if !success {
+							_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
+							log.Println("[GlyphDiscordBot] Error starting mc-server")
+						}
+						pingInMinutes(2)
 					}
+				} else {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Please use this command in the minecraft channel!")
 				}
-				pingInMinutes(2)
 			case "stop":
 				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 				go mcShutdownDiscord(s, m, 3)
