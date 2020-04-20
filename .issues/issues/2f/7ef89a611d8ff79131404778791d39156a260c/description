@@ -1,0 +1,6 @@
+Add gitpod config
+
+this commit adds support for Gitpod.io, a free automated
+dev environment that makes contributing and generally working on GitHub
+projects much easier. It allows anyone to start a ready-to-code dev
+environment for any branch, issue and pull request with a single click.
