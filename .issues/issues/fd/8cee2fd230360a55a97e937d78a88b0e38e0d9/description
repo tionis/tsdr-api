@@ -1,0 +1,2 @@
+Replace `time.Now().Sub` with `time.Since`
+
