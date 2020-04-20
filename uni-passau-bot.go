@@ -505,11 +505,11 @@ func isoToUTF(path string) {
 	// Change the encoding and save file under non .tmp name
 	f, err := os.Open(path + ".tmp")
 	if err != nil {
-		// handle file open error
+		log.Fatal("[UniPassauBot] Error opening file for isoToUTF: ", err)
 	}
 	out, err := os.Create(path)
 	if err != nil {
-		// handler error
+		log.Fatal("[UniPassauBot] Error creating path for isoToUTF: ", err)
 	}
 	r := charmap.ISO8859_1.NewDecoder().Reader(f)
 	_, err = io.Copy(out, r)
@@ -616,9 +616,9 @@ func updateFile() {
 		} else {
 			log.Println("[UniPassauBot] " + "No File from previous week to delete")
 		}
-	} else {
-		// log.Println("Up-to-date CSV-File found!")
-	}
+	} //else {
+	//	log.Println("Up-to-date CSV-File found!")
+	//}
 
 }
 

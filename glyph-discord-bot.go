@@ -21,11 +21,9 @@ import (
 var mcStopping bool
 var mcRunning bool
 var mainChannelID string
-var msgDiscordMC chan string
 var msgDiscord chan glyphDiscordMsg
 var lastPlayerOnline time.Time
 var discordAdminID string
-var rconPassword string
 var onlyOnce sync.Once
 var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
@@ -123,7 +121,7 @@ func glyphDiscordBot() {
 	// Wait here until CTRL-C or other term signal is received.
 	log.Println("[GlyphDiscordBot] Glyph Discord Bot was started.")
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
 	// Cleanly close down the Discord session.
@@ -198,13 +196,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/pnp":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier\n - /construct or /co - get construct-specific help")
-	case "/co", "construct":
+	case "/co", "/construct":
 		if len(inputString) < 2 {
 			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /co trait TRAITNAME - Get Description for specified trait")
 		} else {
 			switch inputString[1] {
-
+			// Construct command here
 			default:
 				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Invalid Command Syntax")
@@ -251,6 +249,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						}
 					}
 				}
+			default:
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I dont know what to save here!")
 			}
 		}
 	case "/mc":

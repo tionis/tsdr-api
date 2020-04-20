@@ -10,26 +10,19 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gbrlsnchs/jwt/v3"
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
 )
 
-type tasadarToken struct {
+/*type tasadarToken struct {
 	jwt.Payload
 	Groups string `json:"groups,omitempty"`
-}
+}*/
 
 type glyphDiscordMsgAPIObject struct {
 	ChannelID string `form:"channelid" json:"channelid" binding:"required"`
 	Message   string `form:"message" json:"message" binding:"required"`
 	Token     string `form:"token" json:"token" binding:"required"`
-}
-
-type mcWhitelistStruct struct {
-	User     string `form:"user" json:"user" binding:"required"`
-	Password string `form:"password" json:"password" binding:"required"`
-	MCUser   string `form:"mcuser" json:"mcuser" binding:"required"`
 }
 
 type tokenStruct struct {
