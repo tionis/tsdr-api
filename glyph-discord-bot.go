@@ -549,7 +549,7 @@ func updateMC() {
 				log.Println("[GlyphDiscordBot] Error setting mc|lastPlayerOnline on Redis: ", err)
 			}
 		} else {
-			if time.Now().Sub(lastPlayerOnline).Minutes() > 30 {
+			if time.Since(lastPlayerOnline).Minutes() > 30 {
 				lastPlayerOnline = time.Now()
 				_ = set("mc|lastPlayerOnline", lastPlayerOnline.Format(lastPlayerOnlineLayout))
 				if err != nil {
