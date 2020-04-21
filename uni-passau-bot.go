@@ -98,36 +98,46 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle("/food", func(m *tb.Message) {
-		if !m.Private() {
-			_, _ = b.Send(m.Chat, foodtoday())
-			log.Println("[UniPassauBot] " + "Group Message:")
+		if get("isCorona") != "true" {
+			if !m.Private() {
+				_, _ = b.Send(m.Chat, foodtoday())
+				log.Println("[UniPassauBot] " + "Group Message:")
+			} else {
+				_, _ = b.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+			}
 		} else {
-			_, _ = b.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
 		}
 		printInfo(m)
-		printAnswer(foodtoday())
+		//printAnswer(foodtoday())
 	})
 	b.Handle("/foodtomorrow", func(m *tb.Message) {
-		if !m.Private() {
-			_, _ = b.Send(m.Chat, foodtomorrow())
-			log.Println("[UniPassauBot] " + "Group Message:")
+		if get("isCorona") != "true" {
+			if !m.Private() {
+				_, _ = b.Send(m.Chat, foodtomorrow())
+				log.Println("[UniPassauBot] " + "Group Message:")
+			} else {
+				_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+			}
 		} else {
-			_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
 		}
 		printInfo(m)
-		printAnswer(foodtomorrow())
 	})
 	b.Handle("/foodweek", func(m *tb.Message) {
-		if !m.Private() {
-			_, _ = b.Send(m.Chat, foodweek())
-			//_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
-			log.Println("[UniPassauBot] " + "Group Message:")
+		if get("isCorona") != "true" {
+			if !m.Private() {
+				_, _ = b.Send(m.Chat, foodweek())
+				//_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
+				log.Println("[UniPassauBot] " + "Group Message:")
+			} else {
+				_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+				//_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
+			}
 		} else {
-			_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
-			//_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
+			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
 		}
 		printInfo(m)
-		printAnswer(foodweek())
 	})
 	b.Handle("/contact", func(m *tb.Message) {
 		sendstring := ""
