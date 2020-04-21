@@ -1,0 +1,12 @@
+Dependabot can't parse your go.mod
+
+Dependabot couldn't parse the go.mod found at `/go.mod`.
+
+The error Dependabot encountered was:
+
+```
+go: github.com/gbrlsnchs/jwt/v3@v3.0.0-rc.1 requires
+	golang.org/x/tools/gopls@v0.1.7: reading golang.org/x/tools/gopls/gopls/go.mod at revision gopls/v0.1.7: unknown revision gopls/v0.1.7
+```
+
+[View the update logs](https://app.dependabot.com/accounts/tionis/update-logs/28962220).
