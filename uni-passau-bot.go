@@ -68,15 +68,27 @@ func uniPassauBot() {
 	// Command Handlers
 	// handle special keyboard commands
 	b.Handle(&replyBtn, func(m *tb.Message) {
-		_, _ = b.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+		if get("isCorona") != "true" {
+			_, _ = b.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+		} else {
+			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
+		}
 		printInfo(m)
 	})
 	b.Handle(&replyBtn2, func(m *tb.Message) {
-		_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+		if get("isCorona") != "true" {
+			_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+		} else {
+			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
+		}
 		printInfo(m)
 	})
 	b.Handle(&replyBtn3, func(m *tb.Message) {
-		_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+		if get("isCorona") != "true" {
+			_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
+		} else {
+			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
+		}
 		printInfo(m)
 	})
 	// handle standard text commands
