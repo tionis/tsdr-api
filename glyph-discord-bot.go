@@ -596,6 +596,10 @@ func stopMCServerIn(minutesToShutdown int) {
 			if err != nil {
 				log.Println("[GlyphDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 			}
+			err = set("mc|IsStopping", "false")
+			if err != nil {
+				log.Println("[GlyphDiscordBot] Error setting mc|IsStopping on Redis: ", err)
+			}
 			var message glyphDiscordMsg
 			message.Message = "Shutting down Server..."
 			message.ChannelID = mainChannelID
@@ -606,6 +610,13 @@ func stopMCServerIn(minutesToShutdown int) {
 			message.Message = "Error stopping Server!"
 			message.ChannelID = mainChannelID
 			msgDiscord <- message
+			// TODO
+			// Retry later
+			mcStopping = false
+			err = set("mc|IsStopping", "false")
+			if err != nil {
+				log.Println("[GlyphDiscordBot] Error setting mc|IsRunning on Redis: ", err)
+			}
 			return
 		}
 	}
