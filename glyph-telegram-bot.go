@@ -15,6 +15,7 @@ import (
 
 // Global Variables
 var msgGlyph chan string
+var glyphToken string
 
 // GlyphTelegramBot handles all the legacy Glyph-Telegram-Bot code for telegram
 func glyphTelegramBot() {
@@ -36,9 +37,9 @@ func glyphTelegramBot() {
 	}()
 
 	// check for and read config variable, then create bot object
-	token := os.Getenv("TELEGRAM_TOKEN")
+	glyphToken := os.Getenv("TELEGRAM_TOKEN")
 	glyph, err := tb.NewBot(tb.Settings{
-		Token:  token,
+		Token:  glyphToken,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {

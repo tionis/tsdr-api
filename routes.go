@@ -221,9 +221,8 @@ func whatsapp(c *gin.Context) {
 }
 
 func checkTelegramAuthorization(params map[string][]string) bool {
-	token := "536417314:AAHjFTwRZ5puLNSQCAg2QiQA-WX4Lq0Vms4"
 	keyHash := sha256.New()
-	keyHash.Write([]byte(token))
+	keyHash.Write([]byte(glyphToken))
 	secretkey := keyHash.Sum(nil)
 
 	var checkparams []string
