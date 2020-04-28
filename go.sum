@@ -136,6 +136,7 @@ github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
+github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/ugorji/go v1.1.7 h1:/68gy2h+1mWMrwZFeD1kQialdSzAb432dtpeJ42ovdo=
 github.com/ugorji/go v1.1.7/go.mod h1:kZn38zHttfInRq0xu/PH0az30d+z6vm202qpg1oXVMw=
 github.com/ugorji/go/codec v1.1.7 h1:2SvQaVZ1ouYrrKKwoSk2pzd4A9evlKJb9oTL+OaLUSs=
@@ -255,6 +256,8 @@ gopkg.in/tucnak/telebot.v2 v2.0.0-20200329125927-3458aeb2e7be h1:1BkJvjGaxzbvdmt
 gopkg.in/tucnak/telebot.v2 v2.0.0-20200329125927-3458aeb2e7be/go.mod h1:+//wyPtHTeW2kfyEBwB05Hqnxev7AGrsLIyylSH++KU=
 gopkg.in/tucnak/telebot.v2 v2.0.0-20200416071717-f096d2b1adbc h1:z7yuKmmSW1B3t3yMctsHBrQtYAR3bLmZRXrZsqjsD94=
 gopkg.in/tucnak/telebot.v2 v2.0.0-20200416071717-f096d2b1adbc/go.mod h1:+//wyPtHTeW2kfyEBwB05Hqnxev7AGrsLIyylSH++KU=
+gopkg.in/tucnak/telebot.v2 v2.0.0-20200426184946-59629fe0483e h1:b9xwpngyOzAgWsFzw+kknHd/XZAnEsohHcGfu+z/LZA=
+gopkg.in/tucnak/telebot.v2 v2.0.0-20200426184946-59629fe0483e/go.mod h1:+2HaHCMjzfvC3MVOSmgRKeAPruYl4PEcSxywvP8GipU=
 gopkg.in/yaml.v2 v2.0.0-20170812160011-eb3733d160e7/go.mod h1:JAlM8MvJe8wmxCU4Bli9HhUf9+ttbYbLASfIpnQbh74=
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=

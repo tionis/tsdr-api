@@ -9,5 +9,5 @@ require (
 	github.com/heroku/x v0.0.22
 	github.com/robfig/cron v1.2.0
 	golang.org/x/text v0.3.2
-	gopkg.in/tucnak/telebot.v2 v2.0.0-20200416071717-f096d2b1adbc
+	gopkg.in/tucnak/telebot.v2 v2.0.0-20200426184946-59629fe0483e
 )
