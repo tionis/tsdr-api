@@ -233,6 +233,7 @@ func checkTelegramAuthorization(params map[string][]string) bool {
 	}
 	sort.Strings(checkparams)
 	checkString := strings.Join(checkparams, "\n")
+	fmt.Println(checkString)
 	hash := hmac.New(sha256.New, secretkey)
 	hash.Write([]byte(checkString))
 	hashstr := hex.EncodeToString(hash.Sum(nil))
