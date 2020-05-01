@@ -1,18 +1,23 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"os"
 	"strings"
 
 	"github.com/go-redis/redis/v7"
+	_ "github.com/lib/pq"
 )
 
 var redclient *redis.Client
+var psqlInfo string
+var databaseURL string
 
 func dbInit() {
-	// Check if REDIS_URL is defined
-	if os.Getenv("REDIS_URL") == "" {
+	// Init postgres
+	if os.Getenv("DATABASE_URL") == "" || os.Getenv("REDIS_URL") == "" {
+		log.Println("Database: " + os.Getenv("DATABASE_URL") + "  |Redis:  " + os.Getenv("REDIS_URL"))
 		log.Fatal("[Tasadar] Fatal Error getting Database Information!")
 	}
 	redisS1 := strings.Split(strings.TrimPrefix(os.Getenv("REDIS_URL"), "redis://"), "@")
@@ -24,6 +29,31 @@ func dbInit() {
 	})
 	if _, err := redclient.Ping().Result(); err != nil {
 		log.Fatal("[Tasadar] Fatal Error connecting to redis database! err: ", err)
+	}
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	if err != nil {
+		log.Println("[PostgreSQL] Server Connection failed: ", err)
+	}
+	databaseURL = os.Getenv("DATABASE_URL")
+	db.Ping()
+	if err != nil {
+		log.Println("[PostgreSQL] Server Ping failed: ", err)
+		err = db.Close()
+		if err != nil {
+			log.Println("[PostgreSQL] Error closing Postgres Session")
+		}
+		return
+	}
+
+	// Check the database
+	// Quotator Database
+	_, err = db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text)`)
+	if err != nil {
+		log.Fatal("[Tasadar] Error creating table quotes: ", err)
+	}
+	err = db.Close()
+	if err != nil {
+		log.Println("[Tasadar] Error closing connection to database")
 	}
 }
 

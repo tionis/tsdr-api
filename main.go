@@ -49,6 +49,9 @@ func main() {
 	// Start Alpha Telegram Bot
 	go glyphTelegramBot()
 
+	// Start Quotator Telegram Bot
+	go quotatorTelegramBot()
+
 	// Cronjob Definitions
 	// MC Cronjobs
 	c := cron.New()
