@@ -2,10 +2,13 @@ package main
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -65,13 +68,18 @@ func quotatorTelegramBot() {
 	})
 	quotator.Handle("/help", func(m *tb.Message) {
 		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
-		_, _ = quotator.Send(m.Sender, "Following Commands are available:\n/help - Show this message\n/getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language:german\n/setquote - add a quote to the database", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+		_, _ = quotator.Send(m.Sender, "Following Commands are available:\n/help - Show this message\n/getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language german author \"Emanuel Kant\" \n/setquote - add a quote to the database", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/getquote", func(m *tb.Message) {
 		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
-		_, _ = quotator.Send(m.Sender, getRandomQuote("", "", ""), &tb.ReplyMarkup{ReplyKeyboardRemove: true})
-
+		author, language, universe, err := parseGetQuote(strings.TrimPrefix(m.Text, "/getquote "))
+		if err != nil {
+			log.Println("[Quotator] Error parsing getQuote: ", err)
+			_, _ = quotator.Send(m.Sender, "There was an error please check your command and try again later.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+		} else {
+			_, _ = quotator.Send(m.Sender, getRandomQuote(author, language, universe), &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+		}
 	})
 	quotator.Handle("/setquote", func(m *tb.Message) {
 		set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired")
@@ -103,6 +111,7 @@ func quotatorTelegramBot() {
 				set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text)
 				del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 				quotator.Send(m.Sender, addQuote(m))
+				printInfoQuotator(m)
 			}
 
 		}
@@ -121,17 +130,122 @@ func quotatorTelegramBot() {
 	quotator.Start()
 }
 
+func parseGetQuote(message string) (string, string, string, error) {
+	if message == "/getquote" {
+		return "", "", "", nil
+	}
+	args, err := parseString(message)
+	if err != nil {
+		return "", "", "", err
+	}
+	var author, language, universe string // These shall be handles below as 1, 2, 3 respectivly
+	var variableToSet int
+	for i, current := range args {
+		if i%2 == 0 {
+			switch current {
+			case "author":
+				variableToSet = 1
+			case "language":
+				variableToSet = 2
+			case "universe":
+				variableToSet = 3
+			default:
+				log.Println(current)
+				return "", "", "", errors.New("Invalid quote selector")
+			}
+		} else {
+			switch variableToSet {
+			case 1:
+				author = current
+			case 2:
+				language = current
+			case 3:
+				universe = current
+			}
+		}
+	}
+	return author, language, universe, nil
+}
+
+func parseString(command string) ([]string, error) {
+	var args []string
+	state := "start"
+	current := ""
+	quote := "\""
+	escapeNext := true
+	for i := 0; i < len(command); i++ {
+		c := command[i]
+
+		if state == "quotes" {
+			if string(c) != quote {
+				current += string(c)
+			} else {
+				args = append(args, current)
+				current = ""
+				state = "start"
+			}
+			continue
+		}
+
+		if escapeNext {
+			current += string(c)
+			escapeNext = false
+			continue
+		}
+
+		if c == '\\' {
+			escapeNext = true
+			continue
+		}
+
+		if c == '"' || c == '\'' {
+			state = "quotes"
+			quote = string(c)
+			continue
+		}
+
+		if state == "arg" {
+			if c == ' ' || c == '\t' {
+				args = append(args, current)
+				current = ""
+				state = "start"
+			} else {
+				current += string(c)
+			}
+			continue
+		}
+
+		if c != ' ' && c != '\t' {
+			state = "arg"
+			current += string(c)
+		}
+	}
+
+	if state == "quotes" {
+		return []string{}, fmt.Errorf("Unclosed quote in command line: %s", command)
+	}
+
+	if current != "" {
+		args = append(args, current)
+	}
+
+	return args, nil
+}
+
 func getRandomQuote(byAuthor, inLanguage, inUniverse string) string {
 	db, err := sql.Open("postgres", databaseURL)
 	if err != nil {
 		log.Println("[Quotator] Couldn't connect to database: ", err)
 		return "Sorry, an internal error occurred!"
 	}
-	row := db.QueryRow("SELECT quote, author FROM quotes ORDER BY RANDOM() LIMIT 1")
+
+	stmt, err := db.Prepare(`SELECT quote, author FROM quotes WHERE (length($1)=0 OR author=$1) AND (length($2)=0 OR language=$2) AND (length($3)=0 OR universe=$3) ORDER BY RANDOM() LIMIT 1`)
 	if err != nil {
-		log.Println("[Quotator] Couldn't get random quote from database: ", err)
+		log.Println("[Quotator] Couldn't prepare statement: ", err)
 		return "Sorry, an internal error occurred!"
 	}
+	row := stmt.QueryRow(byAuthor, inLanguage, inUniverse)
+
 	var quote, author string
 	err = row.Scan(&quote, &author)
 	if err != nil {
