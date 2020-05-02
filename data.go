@@ -13,6 +13,7 @@ import (
 var redclient *redis.Client
 var psqlInfo string
 var databaseURL string
+var db *sql.DB
 
 func dbInit() {
 	// Init postgres
@@ -30,7 +31,8 @@ func dbInit() {
 	if _, err := redclient.Ping().Result(); err != nil {
 		log.Fatal("[Tasadar] Fatal Error connecting to redis database! err: ", err)
 	}
-	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	var err error
+	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Println("[PostgreSQL] Server Connection failed: ", err)
 	}
@@ -51,10 +53,10 @@ func dbInit() {
 	if err != nil {
 		log.Fatal("[Tasadar] Error creating table quotes: ", err)
 	}
-	err = db.Close()
-	if err != nil {
-		log.Println("[Tasadar] Error closing connection to database")
-	}
+	//err = db.Close()
+	//if err != nil {
+	//	log.Println("[Tasadar] Error closing connection to database")
+	//}
 }
 
 // Direct Database Interaction Funtions
