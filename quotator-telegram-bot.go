@@ -68,7 +68,7 @@ func quotatorTelegramBot() {
 	})
 	quotator.Handle("/help", func(m *tb.Message) {
 		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
-		_, _ = quotator.Send(m.Sender, "Following Commands are available:\n/help - Show this message\n/getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language german author \"Emanuel Kant\" \n/setquote - add a quote to the database", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+		_, _ = quotator.Send(m.Sender, "Following Commands are available:\n/help - Show this message\n/getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language german author \"Emanuel Kant\" \n/setquote - add a quote to the database\n/quoteoftheday - Get your personal quote of the day", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/getquote", func(m *tb.Message) {
@@ -84,6 +84,20 @@ func quotatorTelegramBot() {
 	quotator.Handle("/setquote", func(m *tb.Message) {
 		set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired")
 		_, _ = quotator.Send(m.Sender, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+	})
+	quotator.Handle("/quoteoftheday", func(m *tb.Message) {
+		quote := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|dayquote")
+		if quote != "" {
+			_, _ = quotator.Send(m.Sender, quote)
+		} else {
+			quote = getRandomQuote("", "", "")
+			now := time.Now()
+			year, month, day := now.Date()
+			midnight := time.Date(year, month, day+1, 0, 0, 0, 0, now.Location())
+			redclient.Set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
+			_, _ = quotator.Send(m.Sender, quote)
+		}
+		printInfoQuotator(m)
 	})
 	quotator.Handle(tb.OnText, func(m *tb.Message) {
 		context := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")

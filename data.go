@@ -11,8 +11,6 @@ import (
 )
 
 var redclient *redis.Client
-var psqlInfo string
-var databaseURL string
 var db *sql.DB
 
 func dbInit() {
@@ -33,11 +31,10 @@ func dbInit() {
 	}
 	var err error
 	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	db.SetMaxOpenConns(19)
+	db.SetMaxOpenConns(19) // Heroku free plan limit - 1 debug connection
 	if err != nil {
 		log.Println("[PostgreSQL] Server Connection failed: ", err)
 	}
-	databaseURL = os.Getenv("DATABASE_URL")
 	db.Ping()
 	if err != nil {
 		log.Println("[PostgreSQL] Server Ping failed: ", err)
