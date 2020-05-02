@@ -33,6 +33,7 @@ func dbInit() {
 	}
 	var err error
 	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db.SetMaxOpenConns(19)
 	if err != nil {
 		log.Println("[PostgreSQL] Server Connection failed: ", err)
 	}
