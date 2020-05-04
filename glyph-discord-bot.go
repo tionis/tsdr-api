@@ -17,6 +17,9 @@ import (
 	_ "github.com/heroku/x/hmetrics/onload"
 )
 
+// Global constants
+const councilman = "706782033090707497"
+
 // Global Variables
 var mcStopping bool
 var mcRunning bool
@@ -370,50 +373,51 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/todo":
 		s.ChannelMessageSend(m.ChannelID, "Feature still in Development")
 	case "/amiadmin":
-		if isServerAdmin(m.GuildID, m.Author.ID) {
+		hasRole, err := memberHasRole(s, m.GuildID, m.Author.ID, councilman)
+		if err != nil {
+			log.Println("[GlyphDiscordBot] Error while checking if member has role: ", err)
+			s.ChannelMessageSend(m.ChannelID, "An error occurred!")
+		}
+		if hasRole {
 			s.ChannelMessageSend(m.ChannelID, "TRUE")
 		} else {
 			s.ChannelMessageSend(m.ChannelID, "FALSE")
 		}
-	case "/inoadmin":
-		srem("discord|"+m.GuildID+"|admins", m.Author.ID)
-	case "/makeadmin":
-		sadd("discord|"+m.GuildID+"|admins", m.Author.ID)
-		/*s.ChannelMessageDelete(m.ChannelID, m.Message.ID)
-		if isTasadarDiscordAdmin(m.Author.ID) {
-			roles, err := s.GuildRoles(m.GuildID)
-			roleid := ""
-			if err != nil {
-				log.Println("[GlyphDiscordBot] Error while making admin: ", err)
-				return
-			}
-			for i := range roles {
-				if roles[i].Permissions == 8 {
-					roleid = roles[i].ID
-				}
-			}
-			if roleid == "" {
-				// TODO Discord requires permissions on create but it seems like the library doesnt provide an option for this
-				// This has to be investigated further
-				newRole, err := s.GuildRoleCreate(m.GuildID)
-				if err != nil {
-					log.Println("[GlyphDiscordBot] Error while making admin: ", err)
-					return
-				}
-				roleid = newRole.ID
-			}
-			s.GuildMemberRoleAdd(m.GuildID, m.Author.ID, roleid)
-		}*/
+	case "/kick":
+		hasRole, err := memberHasRole(s, m.GuildID, m.Author.ID, councilman)
+		if err != nil {
+			log.Println("[GlyphDiscordBot] Error while checking if member has role: ", err)
+			s.ChannelMessageSend(m.ChannelID, "An error occurred!")
+		}
+		if hasRole {
+			s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+		} else {
+			s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!")
+		}
 	}
 }
 
-func isServerAdmin(guildID, userID string) bool {
-	isAdmin, _ := sismember("discord|"+guildID+"|admins", userID)
-	return isAdmin
-}
+func memberHasRole(s *discordgo.Session, guildID string, userID string, roleID string) (bool, error) {
+	member, err := s.State.Member(guildID, userID)
+	if err != nil {
+		if member, err = s.GuildMember(guildID, userID); err != nil {
+			return false, err
+		}
+	}
 
-func isTasadarDiscordAdmin(ID string) bool {
-	return ID == "259076782408335360"
+	// Iterate through the role IDs stored in member.Roles
+	// to check permissions
+	for _, roleID := range member.Roles {
+		role, err := s.State.Role(guildID, roleID)
+		if err != nil {
+			return false, err
+		}
+		if role.ID == roleID {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes int) {

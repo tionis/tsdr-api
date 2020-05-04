@@ -58,17 +58,17 @@ func quotatorTelegramBot() {
 	// handle standard text commands
 	quotator.Handle("/hello", func(m *tb.Message) {
 		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
-		_, _ = quotator.Send(m.Sender, "What do you want?", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+		_, _ = quotator.Send(m.Chat, "What do you want?", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/start", func(m *tb.Message) {
 		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
-		_, _ = quotator.Send(m.Sender, "Hello.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+		_, _ = quotator.Send(m.Chat, "Hello.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/help", func(m *tb.Message) {
 		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
-		_, _ = quotator.Send(m.Sender, "Following Commands are available:\n/help - Show this message\n/getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language german author \"Emanuel Kant\" \n/setquote - add a quote to the database\n/quoteoftheday - Get your personal quote of the day", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+		_, _ = quotator.Send(m.Chat, "Following Commands are available:\n/help - Show this message\n/getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language german author \"Emanuel Kant\" \n/setquote - add a quote to the database\n/quoteoftheday - Get your personal quote of the day", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/getquote", func(m *tb.Message) {
@@ -76,34 +76,38 @@ func quotatorTelegramBot() {
 		author, language, universe, err := parseGetQuote(strings.TrimPrefix(m.Text, "/getquote "))
 		if err != nil {
 			log.Println("[Quotator] Error parsing getQuote: ", err)
-			_, _ = quotator.Send(m.Sender, "There was an error please check your command and try again later.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+			_, _ = quotator.Send(m.Chat, "There was an error please check your command and try again later.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		} else {
-			_, _ = quotator.Send(m.Sender, getRandomQuote(author, language, universe), &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+			_, _ = quotator.Send(m.Chat, getRandomQuote(author, language, universe), &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		}
 	})
 	quotator.Handle("/setquote", func(m *tb.Message) {
 		set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired")
-		_, _ = quotator.Send(m.Sender, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+		_, _ = quotator.Send(m.Chat, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 	})
 	quotator.Handle("/quoteoftheday", func(m *tb.Message) {
 		quote := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|dayquote")
 		if quote != "" {
-			_, _ = quotator.Send(m.Sender, quote)
+			_, _ = quotator.Send(m.Chat, quote)
 		} else {
 			quote = getRandomQuote("", "", "")
 			now := time.Now()
 			year, month, day := now.Date()
 			midnight := time.Date(year, month, day+1, 0, 0, 0, 0, now.Location())
 			redclient.Set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
-			_, _ = quotator.Send(m.Sender, quote)
+			_, _ = quotator.Send(m.Chat, quote)
 		}
 		printInfoQuotator(m)
 	})
 	quotator.Handle(tb.OnText, func(m *tb.Message) {
 		context := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 		if context == "" {
-			_, _ = quotator.Send(m.Sender, "Unknown Command - use help to get a list of available commands", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
-			printInfoGlyph(m)
+			if !m.Private() {
+				printInfoGlyph(m)
+			} else {
+				_, _ = quotator.Send(m.Chat, "Unknown Command - use help to get a list of available commands", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+				printInfoGlyph(m)
+			}
 		} else {
 			switch context {
 			case "quoteRequired":
