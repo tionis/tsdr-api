@@ -176,11 +176,22 @@ func parseGetQuote(message string) (string, string, string, error) {
 			case 1:
 				author = current
 			case 2:
-				language = current
+				language = strings.ToLower(current)
 			case 3:
 				universe = current
 			}
 		}
+	}
+
+	switch language {
+	case "deutsch", "aleman", "alemán":
+		language = "german"
+	case "englisch", "ingles", "inglés":
+		language = "english"
+	case "latein":
+		language = "latin"
+	case "spanisch", "espanol", "español":
+		language = "spanish"
 	}
 	return author, language, universe, nil
 }
@@ -285,7 +296,7 @@ func addQuote(m *tb.Message) string {
 	}*/
 	quote := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentQuote")
 	author := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentAuthor")
-	language := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentLanguage")
+	language := strings.ToLower(get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentLanguage"))
 	universe := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentUniverse")
 	stmt, err := db.Prepare(`INSERT INTO quotes (quote, author, language, universe) VALUES ($1, $2, $3, $4)`)
 	if err != nil {
@@ -302,5 +313,5 @@ func addQuote(m *tb.Message) string {
 }
 
 func printInfoQuotator(m *tb.Message) {
-	log.Println("[Quotator] Telegram: " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID) + "Message: " + m.Text)
+	log.Println("[Quotator] Telegram: " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID) + " Message: " + m.Text)
 }
