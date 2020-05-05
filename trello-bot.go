@@ -51,7 +51,7 @@ func trelloTelegramBot() {
 	// handle standard text commands
 	trelloBot.Handle("/start", func(m *tb.Message) {
 		del("trellobot|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
-		_, _ = trelloBot.Send(m.Chat, "Please set the [Token](https://trello.com/1/authorize?expiration=never&scope=read,write,account&response_type=token&name=Tasadar%20Trello%20Bot&key="+appKey+") and List now!", tb.ModeMarkdownV2)
+		_, _ = trelloBot.Send(m.Chat, "Please set the [Token](https://trello.com/1/authorize?expiration=never&scope=read,write,account&response_type=token&name=Tasadar%20Trello%20Bot&key="+appKey+") and List now!", tb.ModeMarkdown)
 		printInfoTrelloBot(m)
 	})
 	trelloBot.Handle("/settoken", func(m *tb.Message) {
