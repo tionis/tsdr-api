@@ -101,7 +101,7 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle("/app", func(m *tb.Message) {
-		_, _ = b.Send(m.Sender, "Du kannst dir die Android-App im [Play Store](https://play.google.com/store/apps/details?id=studip_uni_passau.femtopedia.de.unipassaustudip) gratis herunterladen.\nHinweis: Diese App wird von einer anderen Person entwickelt, bitte kontaktiere den App-Entwickler für Support!")
+		_, _ = b.Send(m.Sender, "Du kannst dir die Android-App im [Play Store](https://play.google.com/store/apps/details?id=studip_uni_passau.femtopedia.de.unipassaustudip) gratis herunterladen.\nHinweis: Diese App wird von einer anderen Person entwickelt, bitte kontaktiere den App-Entwickler für Support!", tb.ModeMarkdown)
 		printInfo(m)
 
 	})
