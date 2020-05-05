@@ -11,4 +11,5 @@ require (
 	github.com/robfig/cron v1.2.0
 	golang.org/x/text v0.3.2
 	gopkg.in/tucnak/telebot.v2 v2.0.0-20200426184946-59629fe0483e
+	github.com/VojtechVitek/go-trello v0.0.0-20161023024849-28ebf2756ecc
 )

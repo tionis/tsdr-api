@@ -139,7 +139,7 @@ func quotatorTelegramBot() {
 	go func() {
 		<-botquit
 		quotator.Stop()
-		log.Println("[GlyphTelegramBot] " + "Glyph Telegram Bot was stopped")
+		log.Println("[Quotator] " + "Glyph Telegram Bot was stopped")
 		os.Exit(3)
 	}()
 
