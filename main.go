@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
 )
 
 const defaultPort = "8081"
@@ -58,8 +58,9 @@ func main() {
 	// Cronjob Definitions
 	// MC Cronjobs
 	c := cron.New()
-	_ = c.AddFunc("@every 5m", func() { pingMC() })
-	_ = c.AddFunc("@every 5m", func() { updateMC() })
+	c.AddFunc("@every 5m", func() { pingMC() })
+	c.AddFunc("@every 5m", func() { updateMC() })
+	loadTrelloBotJobs(c)
 	c.Start()
 	defer c.Stop()
 

@@ -10,10 +10,21 @@ import (
 	"time"
 
 	trello "github.com/VojtechVitek/go-trello"
+	"github.com/robfig/cron/v3"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+type telegramMessage struct {
+	Text        string `json:"text"`
+	RecipientID int    `json:"recipientid"`
+}
+
 var appKey string
+var msgTrello chan telegramMessage
+
+func loadTrelloBotJobs(c *cron.Cron) {
+	c.AddFunc("0 22 * * *", func() { trelloReminderHandler(248533143) })
+}
 
 func trelloTelegramBot() {
 	appKey = os.Getenv("TRELLO_APP_KEY")
@@ -46,6 +57,17 @@ func trelloTelegramBot() {
 		log.Fatal(err)
 		return
 	}
+
+	// go routine message backend
+	msgTrello = make(chan telegramMessage)
+	go func() {
+		for {
+			messageToSend := <-msgTrello
+			recID := int64(messageToSend.RecipientID)
+			rec := tb.Chat{ID: recID}
+			trelloBot.Send(&rec, messageToSend.Text)
+		}
+	}()
 
 	// Command Handlers
 	// handle standard text commands
@@ -136,6 +158,32 @@ func trelloTelegramBot() {
 	// Start the bot
 	log.Println("[TrelloBot] " + "Telegram Bot was started.")
 	trelloBot.Start()
+}
+
+func trelloReminderHandler(telegramID int) {
+	ListID := get("trellobot|telegram:" + strconv.Itoa(telegramID) + "|list")
+	token := get("trellobot|telegram:" + strconv.Itoa(telegramID) + "|token")
+	trelloclient, err := trello.NewAuthClient(appKey, &token)
+	if err != nil {
+		log.Println("[Trellobot] Error creating New Trello auth client: ", err)
+		return
+	}
+	list, err := trelloclient.List(ListID)
+	if err != nil {
+		log.Println("[Trellobot] Error getting trello list: ", err)
+		return
+	}
+	cards, err := list.Cards()
+	if err != nil {
+		log.Println("[Trellobot] Error getting trello list: ", err)
+		return
+	}
+	if len(cards) > 0 {
+		var message telegramMessage
+		message.Text = "You have Cards in your Inbox!"
+		message.RecipientID = telegramID
+		msgTrello <- message
+	}
 }
 
 func addTrelloCard(token, ListID, name string) string {
