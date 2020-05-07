@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-redis/redis/v7"
 	_ "github.com/lib/pq"
@@ -58,6 +59,10 @@ func dbInit() {
 }
 
 // Direct Database Interaction Funtions
+func setWithTimer(key, value string, time time.Duration) error {
+	return redclient.Set(key, value, time).Err()
+}
+
 func sadd(key, value string) error {
 	return redclient.SAdd(key, value).Err()
 }

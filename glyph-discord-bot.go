@@ -142,19 +142,13 @@ func getMCMainChannelID(guildID string) string {
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Ignore all messages created by the bot itself
-	// This isn't required in this specific example but it's a good practice.
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
 
-	// Ignore development text channel
-	if isProduction && m.ChannelID == "697899304916090920" {
-		return
-	}
-
 	// Check if glyph is currently in a conversation with user
-	currentTopic := get("glyph|discord:" + m.Author.ID + "|topic")
-	if currentTopic != "" {
+	context := get("glyph|discord:" + m.Author.ID + "|context")
+	if context != "" {
 		switch currentTopic {
 		case "construct-character-creation":
 			// TODO: Character creation dialog

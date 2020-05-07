@@ -13,7 +13,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-// Global Variables
+const glyphTelegramContextDelay = time.Hour * 24
+
 var msgGlyph chan string
 var glyphToken string
 
@@ -50,7 +51,7 @@ func glyphTelegramBot() {
 	// Command Handlers
 	// handle standard text commands
 	glyph.Handle("/hello", func(m *tb.Message) {
-		_, _ = glyph.Send(m.Sender, "What do you want?", tb.ModeMarkdown)
+		_, _ = glyph.Send(m.Sender, "What do you want?", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoGlyph(m)
 	})
 	glyph.Handle("/start", func(m *tb.Message) {
@@ -202,6 +203,10 @@ func glyphTelegramBot() {
 			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
 		}
 	})
+	glyph.Handle("/addReminder", func(m *tb.Message) {
+		setWithTimer("glyph|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "TimeRequired", glyphTelegramContextDelay)
+
+	})
 	glyph.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		log.Println("[GlyphTelegramBot] " + "Group Message:")
 		printInfoGlyph(m)
@@ -211,7 +216,16 @@ func glyphTelegramBot() {
 			log.Println("[GlyphTelegramBot] " + "Message from Group:")
 			printInfoGlyph(m)
 		} else {
-			_, _ = glyph.Send(m.Sender, "Unknown Command - use help to get a list of available commands")
+			context := get("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+			switch context {
+			case "TimeRequired":
+				del("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+				// TODO Parse Message and add result to queue: Add to relevant minute
+				// Add reminder to user data
+				_, _ = glyph.Send(m.Sender, "Whaaat!")
+			default:
+				_, _ = glyph.Send(m.Sender, "Unknown Command - use help to get a list of available commands")
+			}
 			printInfoGlyph(m)
 		}
 	})

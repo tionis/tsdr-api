@@ -15,6 +15,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+const quotatorContextDelay = time.Hour * 24
+
 func quotatorTelegramBot() {
 	token := os.Getenv("QUOTATOR_TOKEN")
 	if token == "" {
@@ -68,7 +70,7 @@ func quotatorTelegramBot() {
 	})
 	quotator.Handle("/help", func(m *tb.Message) {
 		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
-		_, _ = quotator.Send(m.Chat, "Following Commands are available:\n/help - Show this message\n/getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language german author \"Emanuel Kant\" \n/setquote - add a quote to the database\n/quoteoftheday - Get your personal quote of the day", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+		_, _ = quotator.Send(m.Chat, "Following Commands are available:\n/help - Show this message\n/getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language german author \"Emanuel Kant\" \n/addquote - add a quote to the database\n/quoteoftheday - Get your personal quote of the day", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/getquote", func(m *tb.Message) {
@@ -82,7 +84,11 @@ func quotatorTelegramBot() {
 		}
 	})
 	quotator.Handle("/setquote", func(m *tb.Message) {
-		set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired")
+		setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", quotatorContextDelay)
+		_, _ = quotator.Send(m.Chat, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
+	})
+	quotator.Handle("/addquote", func(m *tb.Message) {
+		setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", quotatorContextDelay)
 		_, _ = quotator.Send(m.Chat, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 	})
 	quotator.Handle("/quoteoftheday", func(m *tb.Message) {
@@ -111,23 +117,23 @@ func quotatorTelegramBot() {
 		} else {
 			switch context {
 			case "quoteRequired":
-				set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote", m.Text)
-				set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "authorRequired")
+				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote", m.Text, quotatorContextDelay)
+				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "authorRequired", quotatorContextDelay)
 				_, _ = quotator.Send(m.Sender, "Thanks, now the author please.")
 				printInfoGlyph(m)
 			case "authorRequired":
-				set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor", m.Text)
-				set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "languageRequired")
+				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor", m.Text, quotatorContextDelay)
+				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "languageRequired", quotatorContextDelay)
 				_, _ = quotator.Send(m.Sender, "Thanks, now the language please.", &tb.ReplyMarkup{ReplyKeyboard: replyKeysLanguage})
 				printInfoGlyph(m)
 			case "languageRequired":
-				set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage", m.Text)
-				set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "universeRequired")
+				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage", m.Text, quotatorContextDelay)
+				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "universeRequired", quotatorContextDelay)
 				_, _ = quotator.Send(m.Sender, "And now the universe it comes from please:", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 				printInfoQuotator(m)
 			case "universeRequired":
-				set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text)
-				del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text, quotatorContextDelay)
+				del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context", quotatorContextDelay)
 				quotator.Send(m.Sender, addQuote(m))
 				printInfoQuotator(m)
 			}

@@ -60,6 +60,7 @@ func main() {
 	c := cron.New()
 	c.AddFunc("@every 5m", func() { pingMC() })
 	c.AddFunc("@every 5m", func() { updateMC() })
+	//c.AddFunc("@every 1m", func() { remindChecker() })
 	loadTrelloBotJobs(c)
 	c.Start()
 	defer c.Stop()
