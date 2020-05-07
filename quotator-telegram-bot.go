@@ -133,7 +133,7 @@ func quotatorTelegramBot() {
 				printInfoQuotator(m)
 			case "universeRequired":
 				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text, quotatorContextDelay)
-				del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context", quotatorContextDelay)
+				del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 				quotator.Send(m.Sender, addQuote(m))
 				printInfoQuotator(m)
 			}

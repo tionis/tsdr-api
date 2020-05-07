@@ -605,7 +605,7 @@ func stopMCServerIn(minutesToShutdown int) {
 		} else {
 			log.Println("Error connecting to mcAPI in stopMcServerIn-2")
 			var message glyphDiscordMsg
-			message.Message = "Error stopping Server! Retrying in " + strconv.Atoi(minutesToShutdown) + " Minutes!"
+			message.Message = "Error stopping Server! Retrying in " + strconv.Itoa(minutesToShutdown) + " Minutes!"
 			message.ChannelID = mainChannelID
 			msgDiscord <- message
 			if minutesToShutdown < 60 {
