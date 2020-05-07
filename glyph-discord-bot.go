@@ -222,7 +222,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			switch inputString[1] {
 			case "initmod":
 				if len(inputString) < 3 {
-					err := del("glyph:udata|discord:" + m.Author.ID + "|initmod")
+					err := del("glyph|discord:" + m.Author.ID + "|initmod")
 					if err != nil {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -236,7 +236,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 					} else {
-						err := set("glyph:udata|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
+						err := set("glyph|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
 						if err != nil {
 							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -609,8 +609,8 @@ func stopMCServerIn(minutesToShutdown int) {
 			message.ChannelID = mainChannelID
 			msgDiscord <- message
 			if minutesToShutdown < 60 {
-				stopMCServerIn(minutesToShutdown*2)
-			}else{
+				stopMCServerIn(minutesToShutdown * 2)
+			} else {
 				message.Message = "Error stopping Server! Maximum retries reached. I will stop trying now."
 				message.ChannelID = mainChannelID
 				msgDiscord <- message
@@ -689,7 +689,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		return
 	case "init":
-		initModString := get("glyph:udata|discord:" + m.Author.ID + "|initmod")
+		initModString := get("glyph|discord:" + m.Author.ID + "|initmod")
 		initMod, err := strconv.Atoi(initModString)
 		if err != nil {
 			initModString = ""

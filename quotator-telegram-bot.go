@@ -100,7 +100,7 @@ func quotatorTelegramBot() {
 			now := time.Now()
 			year, month, day := now.Date()
 			midnight := time.Date(year, month, day+1, 0, 0, 0, 0, now.Location())
-			redclient.Set("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
+			setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
 			_, _ = quotator.Send(m.Chat, quote)
 		}
 		printInfoQuotator(m)

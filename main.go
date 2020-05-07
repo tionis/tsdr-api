@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
@@ -57,7 +58,11 @@ func main() {
 
 	// Cronjob Definitions
 	// MC Cronjobs
-	c := cron.New()
+	loc, err := time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		log.Println("[Tasadar] Error loadin correct time zone!")
+	}
+	c := cron.New(cron.WithLocation(loc))
 	c.AddFunc("@every 5m", func() { pingMC() })
 	c.AddFunc("@every 5m", func() { updateMC() })
 	//c.AddFunc("@every 1m", func() { remindChecker() })

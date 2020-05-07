@@ -24,7 +24,7 @@ COPY . .
 RUN go get -d -v # Using go mod.
 RUN go mod download
 RUN go mod verify# Build the binary.
-RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/hello############################
+RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/tasadar############################
 
 ##############################
 # STEP 2 build a small image #
@@ -34,7 +34,7 @@ FROM scratch
 COPY --from=builder /etc/passwd /etc/passwd
 COPY --from=builder /etc/group /etc/group
 # Copy our static executable.
-COPY --from=builder /go/bin/hello /go/bin/hello
+COPY --from=builder /go/bin/tasadar /go/bin/tasadar
 # Use an unprivileged user.
 USER appuser:appuser# Run the hello binary.
-ENTRYPOINT ["/go/bin/hello"]
+ENTRYPOINT ["/go/bin/tasadar"]
