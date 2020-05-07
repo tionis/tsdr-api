@@ -149,7 +149,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Check if glyph is currently in a conversation with user
 	context := get("glyph|discord:" + m.Author.ID + "|context")
 	if context != "" {
-		switch currentTopic {
+		switch context {
 		case "construct-character-creation":
 			// TODO: Character creation dialog
 		default:
@@ -605,11 +605,16 @@ func stopMCServerIn(minutesToShutdown int) {
 		} else {
 			log.Println("Error connecting to mcAPI in stopMcServerIn-2")
 			var message glyphDiscordMsg
-			message.Message = "Error stopping Server!"
+			message.Message = "Error stopping Server! Retrying in " + strconv.Atoi(minutesToShutdown) + " Minutes!"
 			message.ChannelID = mainChannelID
 			msgDiscord <- message
-			// TODO
-			// Retry later
+			if minutesToShutdown < 60 {
+				stopMCServerIn(minutesToShutdown*2)
+			}else{
+				message.Message = "Error stopping Server! Maximum retries reached. I will stop trying now."
+				message.ChannelID = mainChannelID
+				msgDiscord <- message
+			}
 			mcStopping = false
 			err = set("mc|IsStopping", "false")
 			if err != nil {
