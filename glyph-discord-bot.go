@@ -390,6 +390,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	case "onlinecheck":
 		s.ChannelMessageSend(m.ChannelID, "I'm online")
+	case "amazoncheck":
+		s.ChannelMessageSend(m.ChannelID, "Hello Amazon!")
 	}
 }
 

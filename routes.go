@@ -38,7 +38,8 @@ type tokenStruct struct {
 func apiRoutes(router *gin.Engine) {
 	// Default Stuff
 	router.GET("/favicon.svg", favicon)
-	router.GET("/", index)
+	router.GET("/", glyphRedirect) // TODO temporary fix to be changed to index
+	router.GET("/glyph", glyphRedirect)
 	router.NoRoute(notFound)
 	router.GET("/echo", httpecho)
 
@@ -167,9 +168,11 @@ func favicon(c *gin.Context) {
 }
 
 func index(c *gin.Context) {
-	// TODO Temporary fix for bot
+	c.File("static/index.html")
+}
+
+func glyphRedirect(c *gin.Context) {
 	c.Redirect(302, "https://discordapp.com/oauth2/authorize?client_id=635860503041802253&scope=bot&permissions=8")
-	//c.File("static/index.html")
 }
 
 func notFound(c *gin.Context) {
