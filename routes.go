@@ -167,7 +167,9 @@ func favicon(c *gin.Context) {
 }
 
 func index(c *gin.Context) {
-	c.File("static/index.html")
+	// TODO Temporary fix for bot
+	c.Redirect(302, "https://discordapp.com/oauth2/authorize?client_id=635860503041802253&scope=bot&permissions=8")
+	//c.File("static/index.html")
 }
 
 func notFound(c *gin.Context) {

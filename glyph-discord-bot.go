@@ -388,6 +388,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		} else {
 			s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!")
 		}
+	case "onlinecheck":
+		s.ChannelMessageSend(m.ChannelID, "I'm online")
 	}
 }
 
