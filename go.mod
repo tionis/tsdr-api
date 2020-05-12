@@ -7,7 +7,7 @@ require (
 	github.com/bwmarrin/discordgo v0.20.3
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-redis/redis/v7 v7.2.0
-	github.com/heroku/x v0.0.23
+	github.com/heroku/x v0.0.24
 	github.com/lib/pq v1.5.2
 	github.com/robfig/cron/v3 v3.0.1
 	golang.org/x/text v0.3.2
