@@ -1,0 +1,73 @@
+Bump github.com/go-redis/redis/v7 from 7.2.0 to 7.3.0
+
+[//]: # (dependabot-start)
+⚠️  **Dependabot is rebasing this PR** ⚠️ 
+
+If you make any changes to it yourself then they will take precedence over the rebase.
+
+---
+
+[//]: # (dependabot-end)
+
+Bumps [github.com/go-redis/redis/v7](https://github.com/go-redis/redis) from 7.2.0 to 7.3.0.
+<details>
+<summary>Commits</summary>
+<ul>
+<li><a href="https://github.com/go-redis/redis/commit/8f52186ce7bae8731c03bf6b2f1c54f375d6cd19"><code>8f52186</code></a> Merge pull request <a href="https://github-redirect.dependabot.com/go-redis/redis/issues/1332">#1332</a> from go-redis/feature/cluster-new-client</li>
+<li><a href="https://github.com/go-redis/redis/commit/0c500078e52d3811bb9af66cdcb0a2b0b4ebd1bc"><code>0c50007</code></a> Merge pull request <a href="https://github-redirect.dependabot.com/go-redis/redis/issues/1273">#1273</a> from theo-delaune-argus/time-nanoseconds</li>
+<li><a href="https://github.com/go-redis/redis/commit/6e98832781f2ea92eb282f1ffc8f940d1fec4079"><code>6e98832</code></a> Merge pull request <a href="https://github-redirect.dependabot.com/go-redis/redis/issues/1331">#1331</a> from go-redis/feature/redis-error</li>
+<li><a href="https://github.com/go-redis/redis/commit/f8e2e89878e3b531c5d1606c1c4bbfbb678f3a8b"><code>f8e2e89</code></a> Add ClusterOptions.NewClient hook</li>
+<li><a href="https://github.com/go-redis/redis/commit/07656a01bf00af52fa2484908a4c97a5feb16125"><code>07656a0</code></a> Add redis.Error interface and export ErrClosed</li>
+<li><a href="https://github.com/go-redis/redis/commit/2960952204ec94c8f64149bfce136b9f9272df63"><code>2960952</code></a> Merge pull request <a href="https://github-redirect.dependabot.com/go-redis/redis/issues/1316">#1316</a> from YiweiZhuang/yzhuang/add_limiter_in_cluster_client</li>
+<li><a href="https://github.com/go-redis/redis/commit/eecd319ee3dd8306e8f015cc429b43e140eec06b"><code>eecd319</code></a> Fix nil type assertion</li>
+<li><a href="https://github.com/go-redis/redis/commit/cf6cf7f450fc8aceb7794beab2dfbc37ff2f22ff"><code>cf6cf7f</code></a> Add AuthACL</li>
+<li><a href="https://github.com/go-redis/redis/commit/64bb0b7f3af460ebd9c860f2ad3a9e574a540dfa"><code>64bb0b7</code></a> Merge pull request <a href="https://github-redirect.dependabot.com/go-redis/redis/issues/1315">#1315</a> from lwightmoon/master</li>
+<li><a href="https://github.com/go-redis/redis/commit/e63a32f316cceefecce87ee8ff839d91a4aad162"><code>e63a32f</code></a> Merge pull request <a href="https://github-redirect.dependabot.com/go-redis/redis/issues/1323">#1323</a> from dengliming/patch-1</li>
+<li>Additional commits viewable in <a href="https://github.com/go-redis/redis/compare/v7.2.0...v7.3.0">compare view</a></li>
+</ul>
+</details>
+<br />
+
+
+[![Dependabot compatibility score](https://api.dependabot.com/badges/compatibility_score?dependency-name=github.com/go-redis/redis/v7&package-manager=go_modules&previous-version=7.2.0&new-version=7.3.0)](https://dependabot.com/compatibility-score/?dependency-name=github.com/go-redis/redis/v7&package-manager=go_modules&previous-version=7.2.0&new-version=7.3.0)
+
+Dependabot will resolve any conflicts with this PR as long as you don't alter it yourself. You can also trigger a rebase manually by commenting `@dependabot rebase`.
+
+[//]: # (dependabot-automerge-start)
+If all status checks pass Dependabot will automatically merge this pull request.
+
+[//]: # (dependabot-automerge-end)
+
+---
+
+<details>
+<summary>Dependabot commands and options</summary>
+<br />
+
+You can trigger Dependabot actions by commenting on this PR:
+- `@dependabot rebase` will rebase this PR
+- `@dependabot recreate` will recreate this PR, overwriting any edits that have been made to it
+- `@dependabot merge` will merge this PR after your CI passes on it
+- `@dependabot squash and merge` will squash and merge this PR after your CI passes on it
+- `@dependabot cancel merge` will cancel a previously requested merge and block automerging
+- `@dependabot reopen` will reopen this PR if it is closed
+- `@dependabot close` will close this PR and stop Dependabot recreating it. You can achieve the same result by closing it manually
+- `@dependabot ignore this major version` will close this PR and stop Dependabot creating any more for this major version (unless you reopen the PR or upgrade to it yourself)
+- `@dependabot ignore this minor version` will close this PR and stop Dependabot creating any more for this minor version (unless you reopen the PR or upgrade to it yourself)
+- `@dependabot ignore this dependency` will close this PR and stop Dependabot creating any more for this dependency (unless you reopen the PR or upgrade to it yourself)
+- `@dependabot use these labels` will set the current labels as the default for future PRs for this repo and language
+- `@dependabot use these reviewers` will set the current reviewers as the default for future PRs for this repo and language
+- `@dependabot use these assignees` will set the current assignees as the default for future PRs for this repo and language
+- `@dependabot use this milestone` will set the current milestone as the default for future PRs for this repo and language
+- `@dependabot badge me` will comment on this PR with code to add a "Dependabot enabled" badge to your readme
+
+Additionally, you can set the following in your Dependabot [dashboard](https://app.dependabot.com):
+- Update frequency (including time of day and day of week)
+- Pull request limits (per update run and/or open at any time)
+- Automerge options (never/patch/minor, and dev/runtime dependencies)
+- Out-of-range updates (receive only lockfile updates, if desired)
+- Security updates (receive only security updates, if desired)
+
+
+
+</details>
