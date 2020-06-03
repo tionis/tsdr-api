@@ -103,6 +103,15 @@ func glyphTelegramBot() {
 		}
 		printInfoGlyph(m)
 	})
+	glyph.Handle("/foodtoday", func(m *tb.Message) {
+		if !m.Private() {
+			_, _ = glyph.Send(m.Chat, foodtoday(), tb.ModeMarkdown)
+			log.Println("[GlyphTelegramBot] " + "Group Message:")
+		} else {
+			_, _ = glyph.Send(m.Sender, foodtoday(), tb.ModeMarkdown)
+		}
+		printInfoGlyph(m)
+	})
 	glyph.Handle("/foodtomorrow", func(m *tb.Message) {
 		if !m.Private() {
 			_, _ = glyph.Send(m.Chat, foodtomorrow(), tb.ModeMarkdown)
