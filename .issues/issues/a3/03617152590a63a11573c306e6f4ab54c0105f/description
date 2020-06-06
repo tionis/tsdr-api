@@ -1,0 +1,3 @@
+Move all logic for minecraft to local gateway
+
+Logic for the minecraft server should be moved downstream to the mc-api
