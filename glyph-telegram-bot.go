@@ -220,6 +220,18 @@ func glyphTelegramBot() {
 		log.Println("[GlyphTelegramBot] " + "Group Message:")
 		printInfoGlyph(m)
 	})
+	/**glyph.Handle(tb.OnVideo, func(m *tb.Message) {
+		if !m.Private() {
+			log.Println("[GlyphTelegramBot] " + "Message from Group:")
+			printInfoGlyph(m)
+		} else {
+			collection := get("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|collection")
+			if collection == "" {
+				collection = "default"
+			}
+			filepath := m.Video.FileLocal
+		}
+	})*/
 	glyph.Handle(tb.OnText, func(m *tb.Message) {
 		if !m.Private() {
 			log.Println("[GlyphTelegramBot] " + "Message from Group:")
