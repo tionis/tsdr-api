@@ -1,5 +1,0 @@
-More robust mensa csv parser
-
-The current mensa csv parser doesnt have any checks for the validity of the file besides very basic error checking. Thus following changes should be implemented:
- - Check if plan is same as one year ago (to prevent corona bug)
- - Check if line counts match up, and maybe parse it with dictionary

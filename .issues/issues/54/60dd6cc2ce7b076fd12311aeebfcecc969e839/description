@@ -1,6 +1,0 @@
-Build Platform Independence
-
-Build scripts for higher platform independence, like:
- - Dockerfiles
- - Deploy Readme
- - Bare Metal Ubuntu Server install scripts

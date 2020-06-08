@@ -1,5 +1,0 @@
-One of your CI runs failed on this pull request, so Dependabot won't merge it.
-
-- [ci/circleci: build](https://circleci.com/gh/tionis/tasadar-heroku/111?utm_campaign=vcs-integration-link&utm_medium=referral&utm_source=github-build-link)
-
-Dependabot will still automatically merge this pull request if you amend it and your tests pass.
