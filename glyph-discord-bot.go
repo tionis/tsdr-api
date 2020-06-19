@@ -1,10 +1,8 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 	"math/rand"
-	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -60,7 +58,7 @@ func glyphDiscordBot() {
 	}
 
 	// Init Variables from redis
-	lastPlayerOnlineString, err := getError("mc|lastPlayerOnline")
+	/*lastPlayerOnlineString, err := getError("mc|lastPlayerOnline")
 	if err != nil {
 		log.Println("Error reading mc|lastPlayerOnline from Redis: ", err)
 		lastPlayerOnline = time.Now()
@@ -111,7 +109,7 @@ func glyphDiscordBot() {
 	}
 
 	// Get Server State
-	go pingMC()
+	go pingMC()*/
 
 	// Set some StartUp Stuff
 	dgStatus, err := getError("dgStatus")
@@ -173,7 +171,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		rollHelper(s, m)
 	case "/help":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	case "/unip":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
@@ -250,101 +248,101 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I dont know what to save here!")
 			}
 		}
-	case "/mc":
-		if len(inputString) < 2 {
+	/*case "/mc":
+	if len(inputString) < 2 {
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
+
+	} else {
+		switch inputString[1] {
+		case "start":
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+			if m.ChannelID == mainChannelID {
+				if mcRunning {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Server already running!")
+				} else {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Starting MC-Server...")
+					success := mcStart()
+					if !success {
+						_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
+						log.Println("[GlyphDiscordBot] Error starting mc-server")
+					}
+					pingInMinutes(2)
+				}
+			} else {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Please use this command in the minecraft channel!")
+			}
+		case "stop":
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+			go mcShutdownDiscord(s, m, 3)
+		case "cancel":
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+			if mcStopping {
+				mcStopping = false
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped.")
+			} else if mcRunning {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "There is currently no Server Shutdown scheduled!")
+			} else {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Server is currently not running!")
+			}
+		case "status":
+			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+			pingMC()
+			if mcRunning {
+				if !mcRunning {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Warning! - Server currently not running!")
+					return
+				}
+				client := &http.Client{}
+				req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/creepercount", nil)
+				mcAPIToken := get("mcapi|token")
+				req.Header.Set("TASADAR_SECRET", mcAPIToken)
+				res, err := client.Do(req)
+				if res == nil {
+					log.Println("Error connecting to mcAPI in status-1")
+					s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
+					return
+				}
+				defer res.Body.Close()
+				if res.StatusCode != 200 {
+					log.Println("Error connecting to mcAPI in status-2")
+					s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
+					return
+				}
+				bodyBytes, err := ioutil.ReadAll(res.Body)
+				if err != nil {
+					log.Println("Error connecting to mcAPI in status-3")
+				}
+				creeperCountString := string(bodyBytes)
+				req, _ = http.NewRequest("GET", "https://mcapi.tasadar.net/mc/playercount", nil)
+				req.Header.Set("TASADAR_SECRET", mcAPIToken)
+				res, err = client.Do(req)
+				if res == nil {
+					log.Println("Error connecting to mcAPI in status-4")
+					s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
+					return
+				}
+				defer res.Body.Close()
+				if res.StatusCode != 200 {
+					log.Println("Error connecting to mcAPI in status-5")
+					s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
+					return
+				}
+				bodyBytes, err = ioutil.ReadAll(res.Body)
+				if err != nil {
+					log.Println("Error connecting to mcAPI in status-6")
+				}
+				playerCountString := string(bodyBytes)
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
+			} else {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently offline!\nTo start it use /mc start")
+			}
+
+		default:
 			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
-
-		} else {
-			switch inputString[1] {
-			case "start":
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-				if m.ChannelID == mainChannelID {
-					if mcRunning {
-						_, _ = s.ChannelMessageSend(m.ChannelID, "Server already running!")
-					} else {
-						_, _ = s.ChannelMessageSend(m.ChannelID, "Starting MC-Server...")
-						success := mcStart()
-						if !success {
-							_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
-							log.Println("[GlyphDiscordBot] Error starting mc-server")
-						}
-						pingInMinutes(2)
-					}
-				} else {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Please use this command in the minecraft channel!")
-				}
-			case "stop":
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-				go mcShutdownDiscord(s, m, 3)
-			case "cancel":
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-				if mcStopping {
-					mcStopping = false
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Server shutdown stopped.")
-				} else if mcRunning {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "There is currently no Server Shutdown scheduled!")
-				} else {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Server is currently not running!")
-				}
-			case "status":
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-				pingMC()
-				if mcRunning {
-					if !mcRunning {
-						_, _ = s.ChannelMessageSend(m.ChannelID, "Warning! - Server currently not running!")
-						return
-					}
-					client := &http.Client{}
-					req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/creepercount", nil)
-					mcAPIToken := get("mcapi|token")
-					req.Header.Set("TASADAR_SECRET", mcAPIToken)
-					res, err := client.Do(req)
-					if res == nil {
-						log.Println("Error connecting to mcAPI in status-1")
-						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
-						return
-					}
-					defer res.Body.Close()
-					if res.StatusCode != 200 {
-						log.Println("Error connecting to mcAPI in status-2")
-						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
-						return
-					}
-					bodyBytes, err := ioutil.ReadAll(res.Body)
-					if err != nil {
-						log.Println("Error connecting to mcAPI in status-3")
-					}
-					creeperCountString := string(bodyBytes)
-					req, _ = http.NewRequest("GET", "https://mcapi.tasadar.net/mc/playercount", nil)
-					req.Header.Set("TASADAR_SECRET", mcAPIToken)
-					res, err = client.Do(req)
-					if res == nil {
-						log.Println("Error connecting to mcAPI in status-4")
-						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
-						return
-					}
-					defer res.Body.Close()
-					if res.StatusCode != 200 {
-						log.Println("Error connecting to mcAPI in status-5")
-						s.ChannelMessageSend(m.ChannelID, "I'm having problems reaching the Server, please try again later.\nIf this problem persists contact the admin.")
-						return
-					}
-					bodyBytes, err = ioutil.ReadAll(res.Body)
-					if err != nil {
-						log.Println("Error connecting to mcAPI in status-6")
-					}
-					playerCountString := string(bodyBytes)
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently online\nAt the moment there are "+playerCountString+" players on the server and there are "+creeperCountString+" Creepers loaded.")
-				} else {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Server currently offline!\nTo start it use /mc start")
-				}
-
-			default:
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/mc start - Starts the Minecraft Server\n/mc status - Get the current status of the Minecraft Server\n/mc stop - Stop the Minecraft Server")
-			}
 		}
+	}*/
 	case "/id":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
 		//default:
@@ -418,7 +416,7 @@ func memberHasRole(s *discordgo.Session, guildID string, userID string, roleID s
 	return false, nil
 }
 
-func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes int) {
+/*func mcShutdownDiscord(s *discordgo.Session, m *discordgo.MessageCreate, minutes int) {
 	mcStopping = true
 	minutesString := strconv.Itoa(minutes)
 	if !mcRunning {
@@ -627,7 +625,7 @@ func stopMCServerIn(minutesToShutdown int) {
 			return
 		}
 	}
-}
+}*/
 
 func tnPicHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	inputString := strings.Split(m.Content, " ")
@@ -1083,7 +1081,7 @@ func roll1D10() int {
 	return dice[rand.Intn(len(dice))]
 }
 
-func pingMC() {
+/*func pingMC() {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", "https://mcapi.tasadar.net/mc/ping", nil)
 	mcAPIToken := get("mcapi|token")
@@ -1124,4 +1122,4 @@ func pingMC() {
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error setting mc|IsRunning on Redis: ", err)
 	}
-}
+}*/

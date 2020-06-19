@@ -5,4 +5,4 @@ name = "go"
 enabled = true
 
   [analyzers.meta]
-  import_path = "github.com/tionis/tasadar-heroku"
+  import_path = "gitlab.com/tionis/tasadar-api"

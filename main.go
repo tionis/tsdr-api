@@ -63,8 +63,8 @@ func main() {
 		log.Println("[Tasadar] Error loadin correct time zone!")
 	}
 	c := cron.New(cron.WithLocation(loc))
-	c.AddFunc("@every 5m", func() { pingMC() })
-	c.AddFunc("@every 5m", func() { updateMC() })
+	//c.AddFunc("@every 5m", func() { pingMC() })
+	//c.AddFunc("@every 5m", func() { updateMC() })
 	//c.AddFunc("@every 1m", func() { remindChecker() })
 	loadTrelloBotJobs(c)
 	c.Start()
