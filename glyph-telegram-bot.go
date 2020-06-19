@@ -74,11 +74,7 @@ func glyphTelegramBot() {
   - /redisBcryptGet x y - Check if pass y is valid for user x
 **TOTP-Commands:**
   - /addTOTP x y - Add key y for account x
-  - /gen x - Get TOTP-Code for account x 
-**MC-Commands:**
-  - /mc x - Forward command x to MC-Server 
-  - /mcStop n - Shutdown server in n minute
-  - /mcCancel - Cancel Server shutdown`
+  - /gen x - Get TOTP-Code for account x `
 		} else {
 			sendstring = "There is no help!"
 		}
@@ -200,7 +196,7 @@ func glyphTelegramBot() {
 		}
 		printInfo(m)
 	})
-	glyph.Handle("/mcCancel", func(m *tb.Message) {
+	/*glyph.Handle("/mcCancel", func(m *tb.Message) {
 		if isTasadarTGAdmin(m.Sender.ID) {
 			if mcStopping {
 				mcStopping = false
@@ -211,7 +207,7 @@ func glyphTelegramBot() {
 		} else {
 			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
 		}
-	})
+	})*/
 	glyph.Handle("/addReminder", func(m *tb.Message) {
 		setWithTimer("glyph|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "TimeRequired", glyphTelegramContextDelay)
 

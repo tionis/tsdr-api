@@ -171,7 +171,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		rollHelper(s, m)
 	case "/help":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Minecraft Server - /mc help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	case "/unip":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
