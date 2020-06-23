@@ -1,17 +1,11 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -38,24 +32,10 @@ type tokenStruct struct {
 func apiRoutes(router *gin.Engine) {
 	// Default Stuff
 	router.GET("/favicon.svg", favicon)
-	router.GET("/", glyphRedirect) // TODO temporary fix to be changed to index
+	router.GET("/", index) // TODO temporary fix to be changed to index
 	router.GET("/glyph", glyphRedirect)
 	router.NoRoute(notFound)
 	router.GET("/echo", httpecho)
-
-	// Login Handler
-	router.GET("/login", func(c *gin.Context) { c.File("static/login.html") })
-	router.GET("/auth/telegram", func(c *gin.Context) {
-		params := c.Request.URL.Query()
-		ok := checkTelegramAuthorization(params)
-		if ok {
-			info, _ := json.MarshalIndent(params, "", "  ")
-			c.String(http.StatusOK, "%s", info)
-		} else {
-			c.String(http.StatusBadRequest, "bad request")
-		}
-
-	})
 
 	// Handle Status Watch
 	router.GET("/onlinecheck", func(c *gin.Context) {
@@ -79,18 +59,6 @@ func apiRoutes(router *gin.Engine) {
 	// TODO Read the callback uri and give the user an session key
 	// Then let user choose a auth provider(only if there are more than one)
 	// If auth successfull set session key to authenticated and then forward user back to his original request
-
-	// Minecraft API
-	router.GET("/mc/stopped/:token", func(c *gin.Context) {
-		getAuthorization, err := getError("mc|token|" + c.Param("token"))
-		if err != nil {
-			c.File("static/error-pages/500.html")
-		}
-		if getAuthorization == "true" {
-			mcRunning = false
-			c.String(200, "OK")
-		}
-	})
 
 	// Google Assitant IFTTT API - tokenization
 	router.POST("/iot/assistant/order/:number", assistantOrderHandler)
@@ -225,24 +193,39 @@ func whatsapp(c *gin.Context) {
 	}
 }
 
-func checkTelegramAuthorization(params map[string][]string) bool {
-	keyHash := sha256.New()
-	keyHash.Write([]byte(glyphToken))
-	secretkey := keyHash.Sum(nil)
+func corsRoutes(router *gin.Engine) {
+	router.Any("/*proxyPath", corsProxy)
+}
 
-	var checkparams []string
-	for k, v := range params {
-		if k != "hash" {
-			checkparams = append(checkparams, fmt.Sprintf("%s=%s", k, v[0]))
-		}
+type corsTransport http.Header
+
+func (t corsTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	resp, err := http.DefaultTransport.RoundTrip(r)
+	if err != nil {
+		return nil, err
 	}
-	sort.Strings(checkparams)
-	checkString := strings.Join(checkparams, "\n")
-	hash := hmac.New(sha256.New, secretkey)
-	hash.Write([]byte(checkString))
-	hashstr := hex.EncodeToString(hash.Sum(nil))
-	if hashstr == params["hash"][0] {
-		return true
+	resp.Header = http.Header(t)
+	return resp, nil
+}
+
+func corsProxy(c *gin.Context) {
+	remote, err := url.Parse(strings.TrimPrefix(c.Param("proxyPath"), "/"))
+	if err != nil {
+		panic(err)
 	}
-	return false
+
+	headers := http.Header{}
+	headers.Set("Access-Control-Allow-Origin", "*")
+	headers.Set("Access-Control-Allow-Methods", "POST, GET")
+	headers.Set("Access-Control-Allow-Headers", "Content-Type")
+
+	proxy := httputil.ReverseProxy{Director: func(req *http.Request) {
+		req.Header = c.Request.Header
+		req.Host = remote.Host
+		req.URL.Scheme = remote.Scheme
+		req.URL.Host = remote.Host
+		req.URL.Path = remote.Path
+	}, Transport: corsTransport(headers),
+	}
+	proxy.ServeHTTP(c.Writer, c.Request)
 }

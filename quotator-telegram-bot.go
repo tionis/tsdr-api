@@ -268,12 +268,6 @@ func parseString(command string) ([]string, error) {
 }
 
 func getRandomQuote(byAuthor, inLanguage, inUniverse string) string {
-	/*db, err := sql.Open("postgres", databaseURL)
-	if err != nil {
-		log.Println("[Quotator] Couldn't connect to database: ", err)
-		return "Sorry, an internal error occurred!"
-	}*/
-
 	stmt, err := db.Prepare(`SELECT quote, author FROM quotes WHERE (length($1)=0 OR author=$1) AND (length($2)=0 OR language=$2) AND (length($3)=0 OR universe=$3) ORDER BY RANDOM() LIMIT 1`)
 	if err != nil {
 		log.Println("[Quotator] Couldn't prepare statement: ", err)
@@ -290,16 +284,10 @@ func getRandomQuote(byAuthor, inLanguage, inUniverse string) string {
 		log.Println("[Quotator] Error getting random quote from database: ", err)
 		return "There was an internal error!"
 	}
-	//db.Close()
 	return quote + "\n- " + author
 }
 
 func addQuote(m *tb.Message) string {
-	/*db, err := sql.Open("postgres", databaseURL)
-	if err != nil {
-		log.Println("[Quotator] Couldn't connect to database: ", err)
-		return "Sorry, an internal error occurred!"
-	}*/
 	quote := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentQuote")
 	author := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentAuthor")
 	language := strings.ToLower(get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentLanguage"))
@@ -314,7 +302,6 @@ func addQuote(m *tb.Message) string {
 		log.Println("[Quotator] Error executing database statement: ", err)
 		return "Sorry, there was an internal error!"
 	}
-	//db.Close()
 	return "Added quote from " + author + " to database"
 }
 
