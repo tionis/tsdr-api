@@ -204,7 +204,9 @@ func (t corsTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp.Header = http.Header(t)
+	resp.Header.Set("Access-Control-Allow-Origin", "*")
+	resp.Header.Set("Access-Control-Allow-Methods", "POST, GET")
+	resp.Header.Set("Access-Control-Allow-Headers", "Content-Type")
 	return resp, nil
 }
 
@@ -214,18 +216,13 @@ func corsProxy(c *gin.Context) {
 		panic(err)
 	}
 
-	headers := http.Header{}
-	headers.Set("Access-Control-Allow-Origin", "*")
-	headers.Set("Access-Control-Allow-Methods", "POST, GET")
-	headers.Set("Access-Control-Allow-Headers", "Content-Type")
-
 	proxy := httputil.ReverseProxy{Director: func(req *http.Request) {
 		req.Header = c.Request.Header
 		req.Host = remote.Host
 		req.URL.Scheme = remote.Scheme
 		req.URL.Host = remote.Host
 		req.URL.Path = remote.Path
-	}, Transport: corsTransport(headers),
+	}, Transport: corsTransport(http.Header{}),
 	}
 	proxy.ServeHTTP(c.Writer, c.Request)
 }
