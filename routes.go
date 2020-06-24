@@ -211,6 +211,9 @@ func (t corsTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 }
 
 func corsProxy(c *gin.Context) {
+	if c.Param("proxyPath") == "/" {
+		c.String(200, "Just append the url(including protocol) you want to call to the domain.\nAttention: For legal reasons requests are logged!")
+	}
 	remote, err := url.Parse(strings.TrimPrefix(c.Param("proxyPath"), "/"))
 	if err != nil {
 		panic(err)
