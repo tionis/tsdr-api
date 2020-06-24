@@ -46,7 +46,7 @@ func dbInit() {
 		return
 	}
 
-	// Check the database
+	// Init the Database
 	// Quotator Database
 	_, err = db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text)`)
 	if err != nil {

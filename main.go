@@ -91,8 +91,6 @@ func main() {
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), hs))
 }
 
-// Functions implementing helper methods for main initialization:
-
 // Hostswitch HTTP Handler that enables the use in a standard lib way
 func (hs hostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if handler := hs[r.Host]; handler != nil {
