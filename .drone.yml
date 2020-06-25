@@ -18,12 +18,6 @@ steps:
         path: /go
       commands:
       - go build
-
-    - name: deploy
-    image: node:latest
-    commands: 
-        - apt-get update -qy
-        - apt-get 
     
     volumes:
     - name: deps
