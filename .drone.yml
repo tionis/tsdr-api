@@ -1,0 +1,30 @@
+kind: pipeline
+type: docker
+name: tasadar-api
+
+steps:
+    - name: test
+      image: golang
+      volumes:
+      - name: deps
+        path: /go
+      commands:
+      - go test
+    
+    - name: build
+      image: golang
+      volumes:
+      - name: deps
+        path: /go
+      commands:
+      - go build
+
+    - name: deploy
+    image: node:latest
+    commands: 
+        - apt-get update -qy
+        - apt-get 
+    
+    volumes:
+    - name: deps
+      temp: {}

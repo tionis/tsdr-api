@@ -129,12 +129,6 @@ func glyphDiscordBot() {
 	_ = dg.Close()
 }
 
-func getMCMainChannelID(guildID string) string {
-	// TODO add setting thingie
-	return "574959338754670602"
-	//return kvget("mc|" + guildID + "|mainchannel")
-}
-
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the autenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {

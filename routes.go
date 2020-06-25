@@ -31,7 +31,7 @@ type tokenStruct struct {
 func apiRoutes(router *gin.Engine) {
 	// Default Stuff
 	router.GET("/favicon.svg", favicon)
-	router.GET("/", index) // TODO temporary fix to be changed to index
+	router.GET("/", index)
 	router.GET("/glyph", glyphRedirect)
 	router.NoRoute(notFound)
 	router.GET("/echo", httpecho)
@@ -50,11 +50,6 @@ func apiRoutes(router *gin.Engine) {
 	router.POST("/glyph/discord/send", glyphDiscordHandler)
 	//router.GET("/glyph/telegram/send", glyphTelegramHandler)
 	//router.GET("/glyph/matrix/send", glyphMatrixHandler)
-
-	// Authenticate an User
-	// TODO Read the callback uri and give the user an session key
-	// Then let user choose a auth provider(only if there are more than one)
-	// If auth successfull set session key to authenticated and then forward user back to his original request
 
 	// Google Assitant IFTTT API - tokenization
 	router.POST("/iot/assistant/order/:number", assistantOrderHandler)

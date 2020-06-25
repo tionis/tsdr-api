@@ -20,8 +20,6 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-//TODO: Add checking command for nextweek - refer to implementation of food tomorrow where daynum = 8
-
 // Global Variables
 // Matrix Slice for food handling (should be replaced in future??)
 var values [][]string
