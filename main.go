@@ -5,11 +5,9 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
-	"github.com/robfig/cron/v3"
 )
 
 const defaultPort = "8081"
@@ -53,22 +51,18 @@ func main() {
 	// Start Quotator Telegram Bot
 	go quotatorTelegramBot()
 
-	// Start Telegram Trello Bot
-	go trelloTelegramBot()
-
 	// Cronjob Definitions
 	// MC Cronjobs
-	loc, err := time.LoadLocation("Europe/Berlin")
-	if err != nil {
-		log.Println("[Tasadar] Error loadin correct time zone!")
-	}
-	c := cron.New(cron.WithLocation(loc))
+	//loc, err := time.LoadLocation("Europe/Berlin")
+	//if err != nil {
+	//	log.Println("[Tasadar] Error loadin correct time zone!")
+	//}
+	//c := cron.New(cron.WithLocation(loc))
 	//c.AddFunc("@every 5m", func() { pingMC() })
 	//c.AddFunc("@every 5m", func() { updateMC() })
 	//c.AddFunc("@every 1m", func() { remindChecker() })
-	loadTrelloBotJobs(c)
-	c.Start()
-	defer c.Stop()
+	//c.Start()
+	//defer c.Stop()
 
 	// Create Default gin router
 	port := os.Getenv("PORT")
@@ -78,23 +72,24 @@ func main() {
 	}
 	apiRouter := gin.Default()
 	apiRoutes(apiRouter) // Initialize API Routes
+	corsRouter := gin.Default()
+	corsRoutes(corsRouter)
 
 	// Create HostSwitch Handling for Virtual Hosts support
 	hs := make(hostSwitch)
 	if isProduction {
 		hs["api.tasadar.net"] = apiRouter
-		//hs["auth.tasadar.net"] = authRouter
+		hs["cors.tasadar.net"] = corsRouter
 	} else {
 		hs["api.localhost:"+os.Getenv("PORT")] = apiRouter
 		hs["api.localhost"] = apiRouter
-		//hs["auth.localhost:8082"] = authRouter
+		hs["cors.localhost:"+os.Getenv("PORT")] = corsRouter
+		hs["cors.localhost"] = corsRouter
 	}
 
 	// Start Webserver
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), hs))
 }
-
-// Functions implementing helper methods for main initialization:
 
 // Hostswitch HTTP Handler that enables the use in a standard lib way
 func (hs hostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {

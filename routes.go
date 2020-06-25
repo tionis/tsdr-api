@@ -1,20 +1,13 @@
 package main
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
@@ -38,32 +31,15 @@ type tokenStruct struct {
 func apiRoutes(router *gin.Engine) {
 	// Default Stuff
 	router.GET("/favicon.svg", favicon)
-	router.GET("/", glyphRedirect) // TODO temporary fix to be changed to index
+	router.GET("/", index)
 	router.GET("/glyph", glyphRedirect)
 	router.NoRoute(notFound)
 	router.GET("/echo", httpecho)
-
-	// Login Handler
-	router.GET("/login", func(c *gin.Context) { c.File("static/login.html") })
-	router.GET("/auth/telegram", func(c *gin.Context) {
-		params := c.Request.URL.Query()
-		ok := checkTelegramAuthorization(params)
-		if ok {
-			info, _ := json.MarshalIndent(params, "", "  ")
-			c.String(http.StatusOK, "%s", info)
-		} else {
-			c.String(http.StatusBadRequest, "bad request")
-		}
-
-	})
 
 	// Handle Status Watch
 	router.GET("/onlinecheck", func(c *gin.Context) {
 		c.String(418, "I'm online")
 	})
-
-	// WhatsApp Bot
-	router.POST("/twilio/uni-passau-bot/whatsapp", whatsapp)
 
 	// CURL API
 	router.GET("/mensa/today", retFoodToday)
@@ -74,23 +50,6 @@ func apiRoutes(router *gin.Engine) {
 	router.POST("/glyph/discord/send", glyphDiscordHandler)
 	//router.GET("/glyph/telegram/send", glyphTelegramHandler)
 	//router.GET("/glyph/matrix/send", glyphMatrixHandler)
-
-	// Authenticate an User
-	// TODO Read the callback uri and give the user an session key
-	// Then let user choose a auth provider(only if there are more than one)
-	// If auth successfull set session key to authenticated and then forward user back to his original request
-
-	// Minecraft API
-	router.GET("/mc/stopped/:token", func(c *gin.Context) {
-		getAuthorization, err := getError("mc|token|" + c.Param("token"))
-		if err != nil {
-			c.File("static/error-pages/500.html")
-		}
-		if getAuthorization == "true" {
-			mcRunning = false
-			c.String(200, "OK")
-		}
-	})
 
 	// Google Assitant IFTTT API - tokenization
 	router.POST("/iot/assistant/order/:number", assistantOrderHandler)
@@ -190,59 +149,40 @@ func retFoodWeek(c *gin.Context) {
 	c.String(200, foodweek())
 }
 
-// Handle WhatsApp Twilio Webhook
-func whatsapp(c *gin.Context) {
-	buf := make([]byte, 1024)
-	num, _ := c.Request.Body.Read(buf)
-	params, err := url.ParseQuery(string(buf[0:num]))
-	if err != nil {
-		log.Println("[UniPassauBot-WA] ", c.Error(err))
-		return
-	}
-	text := strings.Join(params["Body"], " ")
-	from := strings.Join(params["From"], " ")
-	messageID := strings.Join(params["MessageSid"], " ")
-
-	loc, _ := time.LoadLocation("Europe/Berlin")
-	log.Println("[UniPassauBot-WA] " + "[" + time.Now().In(loc).Format("02 Jan 06 15:04") + "]")
-	log.Println("[UniPassauBot-WA] Number: " + from + " - MessageID: " + messageID)
-	log.Println("[UniPassauBot-WA] " + "Message: " + text)
-
-	if strings.Contains(text, "tommorow") || strings.Contains(text, "morgen") || strings.Contains(text, "Tommorow") || strings.Contains(text, "Morgen") {
-		c.String(200, foodtomorrow())
-	} else if strings.Contains(text, "food") || strings.Contains(text, "essen") || strings.Contains(text, "Food") || strings.Contains(text, "Essen") {
-		c.String(200, foodtoday())
-	} else if strings.Contains(text, "Hallo") || strings.Contains(text, "hallo") {
-		c.String(200, "Hallo wie gehts? - Schreibe mir food oder essen morgen um loszulegen!\nMit hilfe kannst du alle Befehle sehen!")
-	} else if strings.Contains(text, "danke") || strings.Contains(text, "Danke") {
-		c.String(200, "Gern geschehen!")
-	} else if strings.Contains(text, "hilfe") || strings.Contains(text, "Hilfe") || strings.Contains(text, "help") || strings.Contains(text, "Help") {
-		c.String(200, "Verfügbare Befehle:\nEssen - Essen heute\nEssen morgen - Essen für morgen\nEssen Woche - Essen für die Woche\nAlle Befehle funktionieren auch auf Englisch!")
-	} else if strings.Contains(text, "woche") || strings.Contains(text, "Woche") || strings.Contains(text, "week") || strings.Contains(text, "Week") {
-		c.String(200, foodweek())
-	} else {
-		c.String(200, "Befehl nicht erkannt - versuche es mal mit einem Hallo!")
-	}
+// Handle Cors Proxy
+func corsRoutes(router *gin.Engine) {
+	router.Any("/*proxyPath", corsProxy)
 }
 
-func checkTelegramAuthorization(params map[string][]string) bool {
-	keyHash := sha256.New()
-	keyHash.Write([]byte(glyphToken))
-	secretkey := keyHash.Sum(nil)
+type corsTransport http.Header
 
-	var checkparams []string
-	for k, v := range params {
-		if k != "hash" {
-			checkparams = append(checkparams, fmt.Sprintf("%s=%s", k, v[0]))
-		}
+func (t corsTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	resp, err := http.DefaultTransport.RoundTrip(r)
+	if err != nil {
+		return nil, err
 	}
-	sort.Strings(checkparams)
-	checkString := strings.Join(checkparams, "\n")
-	hash := hmac.New(sha256.New, secretkey)
-	hash.Write([]byte(checkString))
-	hashstr := hex.EncodeToString(hash.Sum(nil))
-	if hashstr == params["hash"][0] {
-		return true
+	resp.Header.Set("Access-Control-Allow-Origin", "*")
+	resp.Header.Set("Access-Control-Allow-Methods", "POST, GET")
+	resp.Header.Set("Access-Control-Allow-Headers", "Content-Type")
+	return resp, nil
+}
+
+func corsProxy(c *gin.Context) {
+	if c.Param("proxyPath") == "/" {
+		c.String(200, "Just append the url(including protocol) you want to call to the domain.\nAttention: For legal reasons requests are logged!")
 	}
-	return false
+	remote, err := url.Parse(strings.TrimPrefix(c.Param("proxyPath"), "/"))
+	if err != nil {
+		panic(err)
+	}
+
+	proxy := httputil.ReverseProxy{Director: func(req *http.Request) {
+		req.Header = c.Request.Header
+		req.Host = remote.Host
+		req.URL.Scheme = remote.Scheme
+		req.URL.Host = remote.Host
+		req.URL.Path = remote.Path
+	}, Transport: corsTransport(http.Header{}),
+	}
+	proxy.ServeHTTP(c.Writer, c.Request)
 }
