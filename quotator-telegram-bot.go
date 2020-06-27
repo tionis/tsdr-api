@@ -59,22 +59,22 @@ func quotatorTelegramBot() {
 	// Command Handlers
 	// handle standard text commands
 	quotator.Handle("/hello", func(m *tb.Message) {
-		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+		_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 		_, _ = quotator.Send(m.Chat, "What do you want?", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/start", func(m *tb.Message) {
-		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+		_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 		_, _ = quotator.Send(m.Chat, "Hello.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/help", func(m *tb.Message) {
-		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+		_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 		_, _ = quotator.Send(m.Chat, "Following Commands are available:\n/help - Show this message\n/getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language german author \"Emanuel Kant\" \n/addquote - add a quote to the database\n/quoteoftheday - Get your personal quote of the day", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/getquote", func(m *tb.Message) {
-		del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+		_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 		author, language, universe, err := parseGetQuote(strings.TrimPrefix(m.Text, "/getquote "))
 		if err != nil {
 			log.Println("[Quotator] Error parsing getQuote: ", err)
@@ -84,11 +84,11 @@ func quotatorTelegramBot() {
 		}
 	})
 	quotator.Handle("/setquote", func(m *tb.Message) {
-		setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", quotatorContextDelay)
+		_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", quotatorContextDelay)
 		_, _ = quotator.Send(m.Chat, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 	})
 	quotator.Handle("/addquote", func(m *tb.Message) {
-		setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", quotatorContextDelay)
+		_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", quotatorContextDelay)
 		_, _ = quotator.Send(m.Chat, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 	})
 	quotator.Handle("/quoteoftheday", func(m *tb.Message) {
@@ -100,7 +100,7 @@ func quotatorTelegramBot() {
 			now := time.Now()
 			year, month, day := now.Date()
 			midnight := time.Date(year, month, day+1, 0, 0, 0, 0, now.Location())
-			setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
+			_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
 			_, _ = quotator.Send(m.Chat, quote)
 		}
 		printInfoQuotator(m)
@@ -117,24 +117,24 @@ func quotatorTelegramBot() {
 		} else {
 			switch context {
 			case "quoteRequired":
-				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote", m.Text, quotatorContextDelay)
-				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "authorRequired", quotatorContextDelay)
+				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote", m.Text, quotatorContextDelay)
+				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "authorRequired", quotatorContextDelay)
 				_, _ = quotator.Send(m.Sender, "Thanks, now the author please.")
 				printInfoGlyph(m)
 			case "authorRequired":
-				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor", m.Text, quotatorContextDelay)
-				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "languageRequired", quotatorContextDelay)
+				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor", m.Text, quotatorContextDelay)
+				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "languageRequired", quotatorContextDelay)
 				_, _ = quotator.Send(m.Sender, "Thanks, now the language please.", &tb.ReplyMarkup{ReplyKeyboard: replyKeysLanguage})
 				printInfoGlyph(m)
 			case "languageRequired":
-				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage", m.Text, quotatorContextDelay)
-				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "universeRequired", quotatorContextDelay)
+				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage", m.Text, quotatorContextDelay)
+				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "universeRequired", quotatorContextDelay)
 				_, _ = quotator.Send(m.Sender, "And now the universe it comes from please:", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 				printInfoQuotator(m)
 			case "universeRequired":
-				setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text, quotatorContextDelay)
-				del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
-				quotator.Send(m.Sender, addQuote(m))
+				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text, quotatorContextDelay)
+				_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+				_, _ = quotator.Send(m.Sender, addQuote(m))
 				printInfoQuotator(m)
 			}
 
@@ -175,7 +175,7 @@ func parseGetQuote(message string) (string, string, string, error) {
 				variableToSet = 3
 			default:
 				log.Println(current)
-				return "", "", "", errors.New("Invalid quote selector")
+				return "", "", "", errors.New("invalid quote selector")
 			}
 		} else {
 			switch variableToSet {
@@ -257,7 +257,7 @@ func parseString(command string) ([]string, error) {
 	}
 
 	if state == "quotes" {
-		return []string{}, fmt.Errorf("Unclosed quote in command line: %s", command)
+		return []string{}, fmt.Errorf("unclosed quote in command line: %s", command)
 	}
 
 	if current != "" {

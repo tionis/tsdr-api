@@ -19,27 +19,17 @@ import (
 const councilman = "706782033090707497"
 
 // Global Variables
-var mcStopping bool
-var mcRunning bool
-var mainChannelID string
-var msgDiscord chan glyphDiscordMsg
-var lastPlayerOnline time.Time
 var discordAdminID string
 var onlyOnce sync.Once
 var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
-type glyphDiscordMsg struct {
+/*type glyphDiscordMsg struct {
 	ChannelID string
 	Message   string
-}
-
-// Some Constants
-const lastPlayerOnlineLayout = "2006-01-02T15:04:05.000Z"
-const tnGatewayAddress = "https://tn.tasadar.net"
+}*/
 
 // Main and Init
 func glyphDiscordBot() {
-	mainChannelID = "574959338754670602"
 	discordAdminID = "259076782408335360"
 
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
@@ -97,7 +87,7 @@ func glyphDiscordBot() {
 		// Check if it maybe has already been stopped
 		mcStopping = true
 		var message glyphDiscordMsg
-		message.Message = "Restarting shutdown sequence...\nYou habe 5 Minutes!"
+		message.Message = "Restarting shutdown sequence...\nYou have 5 Minutes!"
 		message.ChannelID = mainChannelID
 		msgDiscord <- message
 		go stopMCServerIn(5)
@@ -130,7 +120,7 @@ func glyphDiscordBot() {
 }
 
 // This function will be called (due to AddHandler above) every time a new
-// message is created on any channel that the autenticated bot has access to.
+// message is created on any channel that the authenticated bot has access to.
 func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Ignore all messages created by the bot itself
@@ -146,7 +136,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			// TODO: Character creation dialog
 		default:
 			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-			_, _ = s.ChannelMessageSend(m.ChannelID, "I encountered an interal error, please contact the administrator.")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "I encountered an internal error, please contact the administrator.")
 			return
 		}
 	}
@@ -169,19 +159,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/unip":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
-	case "/tn":
-		if len(inputString) < 2 {
-			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\nNone!")
-		} else {
-			switch inputString[1] {
-			case "pic":
-				tnPicHandler(s, m)
-			default:
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\nNone!")
-			}
-		}
 	case "/pnp":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier\n - /construct or /co - get construct-specific help")
@@ -220,7 +197,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
 					} else {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-						_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifiert was reset.")
+						_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was reset.")
 					}
 				} else {
 					initMod, err := strconv.Atoi(inputString[2])
@@ -234,7 +211,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
 						} else {
 							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-							_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifiert was set to "+strconv.Itoa(initMod)+".")
+							_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
 						}
 					}
 				}
@@ -260,35 +237,33 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			_, _ = s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
 		}
 	case "/whoami":
-		s.ChannelMessageSend(m.ChannelID, m.Author.String())
+		_, _ = s.ChannelMessageSend(m.ChannelID, m.Author.String())
 	case "/todo":
-		s.ChannelMessageSend(m.ChannelID, "Feature still in Development")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Feature still in Development")
 	case "/amiadmin":
 		hasRole, err := memberHasRole(s, m.GuildID, m.Author.ID, councilman)
 		if err != nil {
 			log.Println("[GlyphDiscordBot] Error while checking if member has role: ", err)
-			s.ChannelMessageSend(m.ChannelID, "An error occurred!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred!")
 		}
 		if hasRole {
-			s.ChannelMessageSend(m.ChannelID, "TRUE")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "TRUE")
 		} else {
-			s.ChannelMessageSend(m.ChannelID, "FALSE")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "FALSE")
 		}
 	case "/kick":
 		hasRole, err := memberHasRole(s, m.GuildID, m.Author.ID, councilman)
 		if err != nil {
 			log.Println("[GlyphDiscordBot] Error while checking if member has role: ", err)
-			s.ChannelMessageSend(m.ChannelID, "An error occurred!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred!")
 		}
 		if hasRole {
-			s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
 		} else {
-			s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!")
 		}
 	case "onlinecheck":
-		s.ChannelMessageSend(m.ChannelID, "I'm online")
-	case "amazoncheck":
-		s.ChannelMessageSend(m.ChannelID, "Hello Amazon!")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "I'm online")
 	}
 }
 
@@ -302,8 +277,8 @@ func memberHasRole(s *discordgo.Session, guildID string, userID string, roleID s
 
 	// Iterate through the role IDs stored in member.Roles
 	// to check permissions
-	for _, roleID := range member.Roles {
-		role, err := s.State.Role(guildID, roleID)
+	for _, userRoleID := range member.Roles {
+		role, err := s.State.Role(guildID, userRoleID)
 		if err != nil {
 			return false, err
 		}
@@ -315,67 +290,28 @@ func memberHasRole(s *discordgo.Session, guildID string, userID string, roleID s
 	return false, nil
 }
 
-func tnPicHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
-	inputString := strings.Split(m.Content, " ")
-	tnAddress := ""
-	if len(inputString) != 3 {
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Please Specify a valid TN-Address.")
-		return
-	}
-	if strings.HasPrefix(inputString[2], "/ipfs/") {
-		tnAddress = inputString[2]
-	} else if strings.HasPrefix(inputString[2], "Qm") {
-		tnAddress = "/ipfs/" + inputString[2]
-	} else if strings.HasPrefix(inputString[2], "/ipns/") {
-		tnAddress = inputString[2]
-	} else if strings.HasPrefix(inputString[2], "/hash/") {
-		tnAddress = "/ipfs/" + strings.TrimPrefix(inputString[2], "/hash/")
-	} else if strings.HasPrefix(inputString[2], "/name/") {
-		tnAddress = "/ipns/" + strings.TrimPrefix(inputString[2], "/hash/")
-	} else {
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I couldn't parse your Address.\nPlease Specify a valid TN-Address.")
-		return
-	}
-	embed := &discordgo.MessageEmbed{
-		Author:      &discordgo.MessageEmbedAuthor{},
-		Color:       0x00ff00, // Green
-		Description: "Heres a picture from the Tasadar Network:",
-		Image: &discordgo.MessageEmbedImage{
-			URL: tnGatewayAddress + tnAddress,
-		},
-		Thumbnail: &discordgo.MessageEmbedThumbnail{
-			URL: tnGatewayAddress + tnAddress,
-		},
-		Timestamp: time.Now().Format(time.RFC3339), // Discord wants ISO8601; RFC3339 is an extension of ISO8601 and should be completely compatible.
-		Title:     "Tasadar Picture",
-	}
-	s.ChannelMessageSendEmbed(m.ChannelID, embed)
-}
-
 func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Catch errors in command
 	inputString := strings.Split(m.Content, " ")
 	if len(inputString) < 2 {
-		s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 		return
 	}
 
 	// Catch simple commands
 	switch inputString[1] {
 	case "one":
-		s.ChannelMessageSend(m.ChannelID, "Simple 1D10 = "+strconv.Itoa(roll1D10()))
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Simple 1D10 = "+strconv.Itoa(roll1D10()))
 		return
 	case "chance":
 		diceRollResult := roll1D10()
 		switch diceRollResult {
 		case 10:
-			s.ChannelMessageSend(m.ChannelID, "**Success!** Your Chance Die showed a 10!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "**Success!** Your Chance Die showed a 10!")
 		case 1:
-			s.ChannelMessageSend(m.ChannelID, "**Fail!** Your Chance Die failed spectaculary!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "**Fail!** Your Chance Die failed spectacularly!")
 		default:
-			s.ChannelMessageSend(m.ChannelID, "Fail! You rolled a **"+strconv.Itoa(diceRollResult)+"** on your Chance die!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Fail! You rolled a **"+strconv.Itoa(diceRollResult)+"** on your Chance die!")
 		}
 		return
 	case "init":
@@ -385,11 +321,11 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			initModString = ""
 		}
 		if initModString == "" {
-			s.ChannelMessageSend(m.ChannelID, "No init modifier saved, heres a simple D10 throw:\n1D10 = "+strconv.Itoa(roll1D10()))
+			_, _ = s.ChannelMessageSend(m.ChannelID, "No init modifier saved, here's a simple D10 throw:\n1D10 = "+strconv.Itoa(roll1D10()))
 		} else {
 			diceResult := roll1D10()
 			endResult := diceResult + initMod
-			s.ChannelMessageSend(m.ChannelID, "Your Initiative is: **"+strconv.Itoa(endResult)+"**\n"+strconv.Itoa(diceResult)+" + "+strconv.Itoa(initMod)+" = "+strconv.Itoa(endResult))
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Your Initiative is: **"+strconv.Itoa(endResult)+"**\n"+strconv.Itoa(diceResult)+" + "+strconv.Itoa(initMod)+" = "+strconv.Itoa(endResult))
 		}
 		return
 	}
@@ -399,50 +335,50 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Catch error in dice designation [/roll 1*s*10 ]
 		diceIndex := strings.Split(inputString[1], "d")
 		if len(diceIndex) < 2 {
-			s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 			return
 		}
 		sides, err := strconv.Atoi(diceIndex[1])
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 			return
 		}
 		amount, err := strconv.Atoi(diceIndex[0])
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 			return
 		}
 
 		// Catch d-notation and read modifiers
 		if amount < 1 {
-			s.ChannelMessageSend(m.ChannelID, "Nice try!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Nice try!")
 			return
 		}
 		switch {
 		case sides < 1:
-			s.ChannelMessageSend(m.ChannelID, "Nice try!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Nice try!")
 			return
 		case sides == 1:
-			s.ChannelMessageSend(m.ChannelID, "Really? Thats one times "+diceIndex[0]+". I think you can do the math yourself!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Really? That's one times "+diceIndex[0]+". I think you can do the math yourself!")
 			return
 		default:
 			if amount > 1000 {
-				s.ChannelMessageSend(m.ChannelID, "Maybe try a few less dice. We're not playing Warhammer Ultimate here.")
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Maybe try a few less dice. We're not playing Warhammer Ultimate here.")
 				return
 			}
 			retSlice := rollXSidedDie(amount, sides)
 			var retString strings.Builder
-			endresult := 0
+			endResult := 0
 			retString.Write([]byte(diceIndex[0] + "d" + diceIndex[1] + ": "))
 			for i := range retSlice {
-				endresult += retSlice[i]
+				endResult += retSlice[i]
 				if i != len(retSlice)-1 {
 					retString.Write([]byte(strconv.Itoa(retSlice[i]) + " + "))
 				} else {
-					retString.Write([]byte(strconv.Itoa(retSlice[i]) + " = " + strconv.Itoa(endresult)))
+					retString.Write([]byte(strconv.Itoa(retSlice[i]) + " = " + strconv.Itoa(endResult)))
 				}
 			}
-			s.ChannelMessageSend(m.ChannelID, retString.String())
+			_, _ = s.ChannelMessageSend(m.ChannelID, retString.String())
 			return
 		}
 	} else if inputString[1] == "chance" {
@@ -456,7 +392,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		default:
 			retString = "Fail! Your rolled a " + strconv.Itoa(result) + "!"
 		}
-		s.ChannelMessageSend(m.ChannelID, retString)
+		_, _ = s.ChannelMessageSend(m.ChannelID, retString)
 		return
 	} else {
 		var roteQuality, noReroll, eightAgain, nineAgain bool
@@ -470,11 +406,11 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Catch invalid number of dice to throw
 		throwCount, err := strconv.Atoi(inputString[1])
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 			return
 		}
 		if throwCount > 1000 {
-			s.ChannelMessageSend(m.ChannelID, "Don't you think that are a few to many dice to throw?")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Don't you think that are a few to many dice to throw?")
 			return
 		}
 		var retSlice [][]int
@@ -498,16 +434,16 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 			} else if roteQuality {
 				if noReroll {
-					retSlice = constructRollrn(throwCount)
+					retSlice = constructRollRoteNoReroll(throwCount)
 				} else {
-					retSlice = constructRollr(throwCount)
+					retSlice = constructRollRote(throwCount)
 				}
 			} else {
 				if noReroll {
 					retSlice = constructRolln(throwCount)
 				} else {
 					log.Println("[Glyph Discord Bot] This should not have been executed! Perhaps an error in syntax?")
-					s.ChannelMessageSend(m.ChannelID, "There was an error while parsing your input!")
+					_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error while parsing your input!")
 					return
 				}
 			}
@@ -535,7 +471,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		if ones >= (throwCount/2 + 1) {
 			if successes == 0 {
-				retString += "\nWell thats a **critical failure!**"
+				retString += "\nWell that's a **critical failure!**"
 			} else {
 				retString += "\nThat was nearly a critical failure! But you had **" + strconv.Itoa(successes) + "** Successes!"
 			}
@@ -548,10 +484,10 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 					retString += "\nThat were **" + strconv.Itoa(successes) + "** Successes!"
 				}
 			} else {
-				retString += "\nNo Success for you! Thats bad, isn`t it?"
+				retString += "\nNo Success for you! That's bad, isn`t it?"
 			}
 		}
-		s.ChannelMessageSend(m.ChannelID, retString)
+		_, _ = s.ChannelMessageSend(m.ChannelID, retString)
 	}
 }
 
@@ -705,7 +641,7 @@ func constructRolln(throwCount int) [][]int {
 	return retSlice
 }
 
-func constructRollr(throwCount int) [][]int {
+func constructRollRote(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	isFirstReroll := true
 	for i := range retSlice {
@@ -735,7 +671,7 @@ func constructRollr(throwCount int) [][]int {
 	return retSlice
 }
 
-func constructRollrn(throwCount int) [][]int {
+func constructRollRoteNoReroll(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	isFirstReroll := true
 	for i := range retSlice {

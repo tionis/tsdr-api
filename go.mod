@@ -3,6 +3,8 @@ module github.com/tionis/tasadar-heroku
 go 1.14
 
 require (
+	code.gitea.io/tea v0.3.1 // indirect
+	gitea.com/jolheiser/sip v0.2.1 // indirect
 	github.com/bwmarrin/discordgo v0.20.3
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-redis/redis/v7 v7.4.0

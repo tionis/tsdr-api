@@ -16,7 +16,6 @@ import (
 const glyphTelegramContextDelay = time.Hour * 24
 
 var msgGlyph chan string
-var glyphToken string
 
 // GlyphTelegramBot handles all the legacy Glyph-Telegram-Bot code for telegram
 func glyphTelegramBot() {
@@ -59,26 +58,26 @@ func glyphTelegramBot() {
 		printInfoGlyph(m)
 	})
 	glyph.Handle("/help", func(m *tb.Message) {
-		sendstring := ""
+		sendString := ""
 		if isTasadarTGAdmin(m.Sender.ID) {
-			sendstring = `**Following Commands are Available:**
+			sendString = `**Following Commands are Available:**
 **UniPassauBot-Commands:**
-  - /foodtoday - Food for todayco
+  - /foodtoday - Food for today
   - /foodtomorrow - Food for tomorrow
   - /foodweek - Food for week
 **Redis-Commands:**
   - /redisGet x - Get Key x from Redis
   - /redisSet x y - Set Key x to y from Redis
   - /redisPing - Ping redis Server
-  - /redisBcryptSet x y - Set passw y for user x
+  - /redisBcryptSet x y - Set password y for user x
   - /redisBcryptGet x y - Check if pass y is valid for user x
 **TOTP-Commands:**
   - /addTOTP x y - Add key y for account x
   - /gen x - Get TOTP-Code for account x `
 		} else {
-			sendstring = "There is no help!"
+			sendString = "There is no help!"
 		}
-		_, _ = glyph.Send(m.Sender, sendstring, tb.ModeMarkdown)
+		_, _ = glyph.Send(m.Sender, sendString, tb.ModeMarkdown)
 		printInfoGlyph(m)
 	})
 	glyph.Handle("/food", func(m *tb.Message) {
@@ -209,7 +208,7 @@ func glyphTelegramBot() {
 		}
 	})*/
 	glyph.Handle("/addReminder", func(m *tb.Message) {
-		setWithTimer("glyph|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "TimeRequired", glyphTelegramContextDelay)
+		_ = setWithTimer("glyph|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "TimeRequired", glyphTelegramContextDelay)
 
 	})
 	glyph.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
@@ -236,7 +235,7 @@ func glyphTelegramBot() {
 			context := get("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 			switch context {
 			case "TimeRequired":
-				del("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+				_ = del("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 				// TODO Parse Message and add result to queue: Add to relevant minute
 				// Add reminder to user data
 				_, _ = glyph.Send(m.Sender, "Whaaat!")
