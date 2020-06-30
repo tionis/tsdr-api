@@ -195,18 +195,6 @@ func glyphTelegramBot() {
 		}
 		printInfo(m)
 	})
-	/*glyph.Handle("/mcCancel", func(m *tb.Message) {
-		if isTasadarTGAdmin(m.Sender.ID) {
-			if mcStopping {
-				mcStopping = false
-				_, _ = glyph.Send(m.Sender, "Shutdown cancelled!")
-			} else {
-				_, _ = glyph.Send(m.Sender, "No Shutdown scheduled!")
-			}
-		} else {
-			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-	})*/
 	glyph.Handle("/addReminder", func(m *tb.Message) {
 		_ = setWithTimer("glyph|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "TimeRequired", glyphTelegramContextDelay)
 
@@ -215,18 +203,6 @@ func glyphTelegramBot() {
 		log.Println("[GlyphTelegramBot] " + "Group Message:")
 		printInfoGlyph(m)
 	})
-	/**glyph.Handle(tb.OnVideo, func(m *tb.Message) {
-		if !m.Private() {
-			log.Println("[GlyphTelegramBot] " + "Message from Group:")
-			printInfoGlyph(m)
-		} else {
-			collection := get("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|collection")
-			if collection == "" {
-				collection = "default"
-			}
-			filepath := m.Video.FileLocal
-		}
-	})*/
 	glyph.Handle(tb.OnText, func(m *tb.Message) {
 		if !m.Private() {
 			log.Println("[GlyphTelegramBot] " + "Message from Group:")

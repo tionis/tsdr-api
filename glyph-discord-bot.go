@@ -47,60 +47,6 @@ func glyphDiscordBot() {
 		return
 	}
 
-	// Init Variables from redis
-	/*lastPlayerOnlineString, err := getError("mc|lastPlayerOnline")
-	if err != nil {
-		log.Println("Error reading mc|lastPlayerOnline from Redis: ", err)
-		lastPlayerOnline = time.Now()
-	}
-	lastPlayerOnline, err = time.Parse(lastPlayerOnlineLayout, lastPlayerOnlineString)
-	if err != nil {
-		log.Println("Error transforming mc|lastPlayerOnline to time object: ", err)
-		lastPlayerOnline = time.Now()
-	}
-
-	// Define Input Channel for discord messages outside from normal responses
-	go func(s *discordgo.Session) {
-		msgDiscord = make(chan glyphDiscordMsg)
-		for {
-			toSend := <-msgDiscord
-			_, _ = s.ChannelMessageSend(toSend.ChannelID, toSend.Message)
-		}
-	}(dg)
-
-	// Init mcRunning and mcStopping
-	mcRunningString, err := getError("mc|IsRunning")
-	if err != nil {
-		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsRunning", err)
-	} else if mcRunningString == "true" {
-		mcRunning = true
-	} else if mcRunningString == "false" {
-		mcRunning = false
-	} else {
-		mcRunning = false
-		log.Println("[GlyphDiscordBot] Error converting Redis value for mc|IsRunning, expected true or false but got " + mcRunningString)
-	}
-	mcStoppingString, err := getError("mc|IsStopping")
-	if err != nil {
-		log.Println("[GlyphDiscordBot] Error getting Redis value for mc|IsStopping", err)
-	} else if mcStoppingString == "true" {
-		// Check if it maybe has already been stopped
-		mcStopping = true
-		var message glyphDiscordMsg
-		message.Message = "Restarting shutdown sequence...\nYou have 5 Minutes!"
-		message.ChannelID = mainChannelID
-		msgDiscord <- message
-		go stopMCServerIn(5)
-	} else if mcStoppingString == "false" {
-		mcStopping = false
-	} else {
-		mcStopping = false
-		log.Println("[GlyphDiscordBot] Error converting Redis value for mc|IsStopping, expected true or false but got " + mcRunningString)
-	}
-
-	// Get Server State
-	go pingMC()*/
-
 	// Set some StartUp Stuff
 	dgStatus, err := getError("dgStatus")
 	if err != nil {
