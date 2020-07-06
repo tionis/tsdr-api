@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"io"
 	"log"
 	"math/rand"
 	"os"
@@ -11,8 +13,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bwmarrin/dgvoice"
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/jonas747/dca"
+	"github.com/rylio/ytdl"
 )
 
 // Global constants
@@ -90,6 +95,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Check if a known command was written
 	inputString := strings.Split(m.Content, " ")
 	switch inputString[0] {
+	// Dice commands
 	case "/roll":
 		if len(inputString) < 2 {
 			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
@@ -99,9 +105,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	case "/r":
 		rollHelper(s, m)
+
+	// Help commands
 	case "/help":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Music Bot - /music help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
+	case "/music help":
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Music Bot Commands:\n - /play - Play a song with a given youtube URL, or add it to the queue if music is already playing. \n - /stop - Stop all music \n - /queue - Show current queue \n - /pause - Pause current playback \n - /remove - Remove song number x from queue\n - /volume - set the volume to specified value")
 	case "/unip":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
@@ -120,15 +131,39 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Invalid Command Syntax")
 			}
 		}
+
+	// Food commands
 	case "/food":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtoday())
 	case "/food tomorrow":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtomorrow())
-	case "/ping":
+
+	// Music commands
+	case "/play":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
+		parsePlayCommand(s, m)
+	case "/stop":
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		parseStopCommand(s, m)
+	case "/queue":
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+	case "/pause":
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+	case "/remove":
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+	case "/volume":
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+	case "/echo":
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		echo(s, m)
+
+	// Config commands
 	case "/save":
 		if len(inputString) < 2 {
 			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
@@ -165,6 +200,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I dont know what to save here!")
 			}
 		}
+
+	// MISC
+	case "/ping":
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
 	case "/id":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
 		//default:
@@ -649,4 +689,84 @@ func roll1D10() int {
 	})
 
 	return dice[rand.Intn(len(dice))]
+}
+
+// Takes inbound audio and sends it right back out.
+func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
+	_, err := s.ChannelVoiceJoin(m.GuildID, "729434226792857713", false, false)
+	if err != nil {
+		log.Println("[GlyphDiscordBot] Error while connecting to voice channel: ", err)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
+	}
+
+	recv := make(chan *discordgo.Packet, 2)
+	go dgvoice.ReceivePCM(s.VoiceConnections[m.GuildID], recv)
+
+	send := make(chan []int16, 2)
+	go dgvoice.SendPCM(s.VoiceConnections[m.GuildID], send)
+
+	s.VoiceConnections[m.GuildID].Speaking(true)
+	defer s.VoiceConnections[m.GuildID].Speaking(false)
+
+	for {
+
+		p, ok := <-recv
+		if !ok {
+			return
+		}
+
+		send <- p.PCM
+	}
+}
+
+func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+	voiceConnection, err := s.ChannelVoiceJoin(m.GuildID, "729434226792857713", false, true)
+	youtubeURL := strings.TrimPrefix("/play ", m.Content)
+	if youtubeURL == "" || youtubeURL == " " {
+		youtubeURL = "https://youtu.be/dQw4w9WgXcQ"
+	}
+	if err != nil {
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Error joining your Voice Channel!")
+		log.Println("[GlyphDiscordBot] Error while joining voice channel: ", err)
+	}
+	streamMusic(youtubeURL, voiceConnection)
+}
+
+func parseStopCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+}
+
+func streamMusic(videoURL string, voiceConnection *discordgo.VoiceConnection) {
+
+	log.Println(videoURL)
+	options := dca.StdEncodeOptions
+	options.RawOutput = true
+	options.Bitrate = 96
+	options.Application = "lowdelay"
+	ctx := context.Background()
+	ytdlClient := ytdl.DefaultClient
+
+	videoInfo, err := ytdlClient.GetVideoInfo(ctx, videoURL)
+	if err != nil {
+		return
+	}
+
+	format := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)[0]
+	downloadURL, err := ytdlClient.GetDownloadURL(ctx, videoInfo, format)
+	if err != nil {
+		return
+	}
+
+	encodingSession, err := dca.EncodeFile(downloadURL.String(), options)
+	if err != nil {
+		return
+	}
+	defer encodingSession.Cleanup()
+
+	done := make(chan error)
+	_ = dca.NewStream(encodingSession, voiceConnection, done)
+	err = <-done
+	if err != nil && err != io.EOF {
+		return
+	}
 }

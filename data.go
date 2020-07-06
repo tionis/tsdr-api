@@ -52,10 +52,6 @@ func dbInit() {
 	if err != nil {
 		log.Fatal("[Tasadar] Error creating table quotes: ", err)
 	}
-	//err = db.Close()
-	//if err != nil {
-	//	log.Println("[Tasadar] Error closing connection to database")
-	//}
 }
 
 // Direct Database Interaction Functions
