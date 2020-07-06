@@ -23,10 +23,19 @@ import (
 // Global constants
 const councilman = "706782033090707497"
 
-// Global Variables
+// Discord ID of admin
 var discordAdminID string
+
+// A map of boolean channels that stop the playback indexed after guildIDs
 var stopVoice map[string]chan bool
+
+// A map of queue represented as ytdl.VideoInfo arrays indexed after guildIDs
+var queueMap map[string][]*ytdl.VideoInfo
+
+// Needed for onlyonce execution of random source
 var onlyOnce sync.Once
+
+// Represents a ten sided die, simplifies reroll handling
 var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
 /*type glyphDiscordMsg struct {
@@ -759,12 +768,14 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func getYouTubeURL(input string) string {
+	if strings.HasPrefix(input, "https://") || strings.HasPrefix(input, "http://") {
+		return input
+	}
 	if input == "" || input == " " || input == "/play" || input == "/play " {
 		return "https://youtu.be/dQw4w9WgXcQ"
 	}
-	// Check if is url, if true parse url
-	// TODO
-	return input
+	// Initiate search here
+	return ""
 }
 
 func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -782,11 +793,16 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	voiceConnection, err := s.ChannelVoiceJoin(m.GuildID, voiceChannel, false, true)
-	youtubeURL := getYouTubeURL(strings.TrimPrefix(m.Content, "/play "))
 	if err != nil {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Error joining your Voice Channel!")
 		log.Println("[GlyphDiscordBot] Error while joining voice channel: ", err)
 	}
+
+	youtubeURL := getYouTubeURL(strings.TrimPrefix(m.Content, "/play "))
+	if youtubeURL == "" {
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Error parsing your message!")
+	}
+
 	err = streamMusic(youtubeURL, voiceConnection)
 	if err != nil {
 		s.ChannelMessageSend(m.ChannelID, err.Error())
@@ -825,16 +841,28 @@ func streamMusic(videoURL string, voiceConnection *discordgo.VoiceConnection) er
 	abort := make(chan bool)
 	stopVoice[voiceConnection.GuildID] = abort
 	go func(encodingSession *dca.EncodeSession, abort chan bool) {
-		_ = <-abort
-		encodingSession.Stop()
-		encodingSession.Cleanup()
-		voiceConnection.Disconnect()
+		totalStop := <-abort
+		if totalStop {
+			encodingSession.Stop()
+			encodingSession.Cleanup()
+			voiceConnection.Disconnect()
+		} else {
+			// TODO Cleanup the encoding session
+			// Check if there is a song in the queue
+			// call a new goroutine which will built a new encoding session and modify the queue
+
+			//The queue should always have the current song in cell 0 in the slice and all following songs
+			// after that.
+
+			// terminate
+		}
 	}(encodingSession, abort)
 
 	done := make(chan error)
+	queueMap[voiceConnection.GuildID][0] = videoInfo
 	dca.NewStream(encodingSession, voiceConnection, done)
 	err = <-done
-	abort <- true
+	abort <- false
 	if err != nil && err != io.EOF {
 		return err
 	}
