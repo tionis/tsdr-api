@@ -693,7 +693,24 @@ func roll1D10() int {
 
 // Takes inbound audio and sends it right back out.
 func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
-	_, err := s.ChannelVoiceJoin(m.GuildID, "729434226792857713", false, false)
+	voiceChannel := ""
+	g, err := s.State.Guild(m.GuildID)
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "There was an error!")
+		log.Println("[GlyphDiscordBot] Error while getting guild states: ", err)
+	}
+	for _, state := range g.VoiceStates {
+		if state.UserID == m.Author.ID {
+			voiceChannel = state.ChannelID
+			break
+		}
+	}
+
+	if voiceChannel == "" {
+		s.ChannelMessageSend(m.ChannelID, "This command only works when you are in a voice channel!")
+	}
+
+	_, err = s.ChannelVoiceJoin(m.GuildID, voiceChannel, false, false)
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error while connecting to voice channel: ", err)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
@@ -720,7 +737,20 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
-	voiceConnection, err := s.ChannelVoiceJoin(m.GuildID, "729434226792857713", false, true)
+	voiceChannel := ""
+	g, err := s.State.Guild(m.GuildID)
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "There was an error!")
+		log.Println("[GlyphDiscordBot] Error while getting guild states: ", err)
+	}
+	for _, state := range g.VoiceStates {
+		if state.UserID == m.Author.ID {
+			voiceChannel = state.ChannelID
+			break
+		}
+	}
+
+	voiceConnection, err := s.ChannelVoiceJoin(m.GuildID, voiceChannel, false, true)
 	youtubeURL := strings.TrimPrefix("/play ", m.Content)
 	if youtubeURL == "" || youtubeURL == " " {
 		youtubeURL = "https://youtu.be/dQw4w9WgXcQ"
