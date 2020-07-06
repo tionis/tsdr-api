@@ -25,6 +25,7 @@ const councilman = "706782033090707497"
 
 // Global Variables
 var discordAdminID string
+var stopVoice map[string]chan bool
 var onlyOnce sync.Once
 var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 
@@ -36,6 +37,7 @@ var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
 // Main and Init
 func glyphDiscordBot() {
 	discordAdminID = "259076782408335360"
+	stopVoice = make(map[string]chan bool)
 
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
@@ -67,6 +69,9 @@ func glyphDiscordBot() {
 	<-sc
 
 	// Cleanly close down the Discord session.
+	for _, abort := range stopVoice {
+		abort <- true
+	}
 	_ = dg.Close()
 }
 
@@ -110,7 +115,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/help":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Music Bot - /music help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
-	case "/music help":
+	case "/music":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Music Bot Commands:\n - /play - Play a song with a given youtube URL, or add it to the queue if music is already playing. \n - /stop - Stop all music \n - /queue - Show current queue \n - /pause - Pause current playback \n - /remove - Remove song number x from queue\n - /volume - set the volume to specified value")
 	case "/unip":
@@ -710,7 +715,16 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, "This command only works when you are in a voice channel!")
 	}
 
-	_, err = s.ChannelVoiceJoin(m.GuildID, voiceChannel, false, false)
+	// Parse the echo length
+	minutesString := strings.TrimPrefix(m.Content, "/echo ")
+	minutes, err := strconv.Atoi(minutesString)
+	if err != nil {
+		minutes = 1
+	}
+	stopTime := time.Now()
+	stopTime = time.Now().Add(time.Duration(minutes) * time.Minute)
+
+	voiceConnection, err := s.ChannelVoiceJoin(m.GuildID, voiceChannel, false, false)
 	if err != nil {
 		log.Println("[GlyphDiscordBot] Error while connecting to voice channel: ", err)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
@@ -725,14 +739,22 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 	s.VoiceConnections[m.GuildID].Speaking(true)
 	defer s.VoiceConnections[m.GuildID].Speaking(false)
 
-	for {
+	abort := make(chan bool)
+	stopVoice[voiceConnection.GuildID] = abort
 
+	for {
+		if time.Now().Sub(stopTime) > 0 {
+			voiceConnection.Disconnect()
+			return
+		}
 		p, ok := <-recv
 		if !ok {
+			voiceConnection.Disconnect()
 			return
 		}
 
 		send <- p.PCM
+
 	}
 }
 
@@ -741,6 +763,7 @@ func getYouTubeURL(input string) string {
 		return "https://youtu.be/dQw4w9WgXcQ"
 	}
 	// Check if is url, if true parse url
+	// TODO
 	return input
 }
 
@@ -768,7 +791,7 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func parseStopCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
-
+	stopVoice[m.GuildID] <- true
 }
 
 func streamMusic(videoURL string, voiceConnection *discordgo.VoiceConnection) {
@@ -794,11 +817,20 @@ func streamMusic(videoURL string, voiceConnection *discordgo.VoiceConnection) {
 	if err != nil {
 		return
 	}
-	defer encodingSession.Cleanup()
+
+	abort := make(chan bool)
+	stopVoice[voiceConnection.GuildID] = abort
+	go func(encodingSession *dca.EncodeSession, abort chan bool) {
+		_ = <-abort
+		encodingSession.Stop()
+		encodingSession.Cleanup()
+		voiceConnection.Disconnect()
+	}(encodingSession, abort)
 
 	done := make(chan error)
-	_ = dca.NewStream(encodingSession, voiceConnection, done)
+	dca.NewStream(encodingSession, voiceConnection, done)
 	err = <-done
+	abort <- true
 	if err != nil && err != io.EOF {
 		return
 	}
