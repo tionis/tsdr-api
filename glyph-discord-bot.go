@@ -186,7 +186,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 					} else {
-						err := set("glyph|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
+						err := setWithTimer("glyph|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod), 2*24*time.Hour)
 						if err != nil {
 							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -212,7 +212,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
-			err := set("dgStatus", newStatus)
+			err := setWithTimer("dgStatus", newStatus, 7*24*time.Hour)
 			if err != nil {
 				log.Println("Error setting dgStatus on Redis: ", err)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
@@ -736,6 +736,14 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
+func getYouTubeURL(input string) string {
+	if input == "" || input == " " {
+		return "https://youtu.be/dQw4w9WgXcQ"
+	}
+	// Check if is url, if true parse url
+	return input
+}
+
 func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	voiceChannel := ""
 	g, err := s.State.Guild(m.GuildID)
@@ -751,10 +759,7 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	voiceConnection, err := s.ChannelVoiceJoin(m.GuildID, voiceChannel, false, true)
-	youtubeURL := strings.TrimPrefix("/play ", m.Content)
-	if youtubeURL == "" || youtubeURL == " " {
-		youtubeURL = "https://youtu.be/dQw4w9WgXcQ"
-	}
+	youtubeURL := getYouTubeURL(strings.TrimPrefix("/play ", m.Content))
 	if err != nil {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Error joining your Voice Channel!")
 		log.Println("[GlyphDiscordBot] Error while joining voice channel: ", err)
@@ -767,8 +772,6 @@ func parseStopCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func streamMusic(videoURL string, voiceConnection *discordgo.VoiceConnection) {
-
-	log.Println(videoURL)
 	options := dca.StdEncodeOptions
 	options.RawOutput = true
 	options.Bitrate = 96

@@ -72,9 +72,9 @@ func SetRemove(key, value string) error {
 	return redclient.SRem(key, value).Err()
 }*/
 
-func set(key string, value string) error {
+/*func set(key string, value string) error {
 	return redclient.Set(key, value, 0).Err()
-}
+}*/
 
 func del(key string) error {
 	return redclient.Del(key).Err()
