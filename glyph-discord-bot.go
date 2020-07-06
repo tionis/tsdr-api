@@ -782,19 +782,23 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	voiceConnection, err := s.ChannelVoiceJoin(m.GuildID, voiceChannel, false, true)
-	youtubeURL := getYouTubeURL(strings.TrimPrefix("/play ", m.Content))
+	youtubeURL := getYouTubeURL(strings.TrimPrefix(m.Content, "/play "))
 	if err != nil {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Error joining your Voice Channel!")
 		log.Println("[GlyphDiscordBot] Error while joining voice channel: ", err)
 	}
-	streamMusic(youtubeURL, voiceConnection)
+	err = streamMusic(youtubeURL, voiceConnection)
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, err.Error())
+		voiceConnection.Disconnect()
+	}
 }
 
 func parseStopCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	stopVoice[m.GuildID] <- true
 }
 
-func streamMusic(videoURL string, voiceConnection *discordgo.VoiceConnection) {
+func streamMusic(videoURL string, voiceConnection *discordgo.VoiceConnection) error {
 	options := dca.StdEncodeOptions
 	options.RawOutput = true
 	options.Bitrate = 96
@@ -802,20 +806,22 @@ func streamMusic(videoURL string, voiceConnection *discordgo.VoiceConnection) {
 	ctx := context.Background()
 	ytdlClient := ytdl.DefaultClient
 
+	log.Println(videoURL)
+
 	videoInfo, err := ytdlClient.GetVideoInfo(ctx, videoURL)
 	if err != nil {
-		return
+		return err
 	}
 
 	format := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)[0]
 	downloadURL, err := ytdlClient.GetDownloadURL(ctx, videoInfo, format)
 	if err != nil {
-		return
+		return err
 	}
 
 	encodingSession, err := dca.EncodeFile(downloadURL.String(), options)
 	if err != nil {
-		return
+		return err
 	}
 
 	abort := make(chan bool)
@@ -832,6 +838,7 @@ func streamMusic(videoURL string, voiceConnection *discordgo.VoiceConnection) {
 	err = <-done
 	abort <- true
 	if err != nil && err != io.EOF {
-		return
+		return err
 	}
+	return nil
 }
