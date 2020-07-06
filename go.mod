@@ -1,4 +1,4 @@
-module github.com/tionis/tasadar-heroku
+module git.tasadar.net/tasadar/api
 
 go 1.14
 

@@ -65,7 +65,7 @@ func glyphDiscordBot() {
 	// Wait here until CTRL-C or other term signal is received.
 	log.Println("[GlyphDiscordBot] Glyph Discord Bot was started.")
 	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, syscall.SIGQUIT, syscall.SIGHUP)
 	<-sc
 
 	// Cleanly close down the Discord session.
@@ -759,7 +759,7 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func getYouTubeURL(input string) string {
-	if input == "" || input == " " {
+	if input == "" || input == " " || input == "/play" || input == "/play " {
 		return "https://youtu.be/dQw4w9WgXcQ"
 	}
 	// Check if is url, if true parse url
@@ -805,8 +805,6 @@ func streamMusic(videoURL string, voiceConnection *discordgo.VoiceConnection) er
 	options.Application = "lowdelay"
 	ctx := context.Background()
 	ytdlClient := ytdl.DefaultClient
-
-	log.Println(videoURL)
 
 	videoInfo, err := ytdlClient.GetVideoInfo(ctx, videoURL)
 	if err != nil {
