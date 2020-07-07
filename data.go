@@ -21,10 +21,13 @@ func dbInit() {
 		log.Fatal("[Tasadar] Fatal Error getting Database Information!")
 	}
 	redisS1 := strings.Split(strings.TrimPrefix(os.Getenv("REDIS_URL"), "redis://"), "@")
-	redisS2 := strings.Split(redisS1[0], ":")
+	redisPass := ""
+	if redisS1[0] != ":" {
+		redisPass = strings.Split(redisS1[0], ":")[1]
+	}
 	redclient = redis.NewClient(&redis.Options{
 		Addr:     redisS1[1],
-		Password: redisS2[1],
+		Password: redisPass,
 		DB:       0, // use default DB
 	})
 	if _, err := redclient.Ping().Result(); err != nil {
@@ -52,10 +55,6 @@ func dbInit() {
 	if err != nil {
 		log.Fatal("[Tasadar] Error creating table quotes: ", err)
 	}
-	//err = db.Close()
-	//if err != nil {
-	//	log.Println("[Tasadar] Error closing connection to database")
-	//}
 }
 
 // Direct Database Interaction Functions
@@ -76,9 +75,9 @@ func SetRemove(key, value string) error {
 	return redclient.SRem(key, value).Err()
 }*/
 
-func set(key string, value string) error {
+/*func set(key string, value string) error {
 	return redclient.Set(key, value, 0).Err()
-}
+}*/
 
 func del(key string) error {
 	return redclient.Del(key).Err()
