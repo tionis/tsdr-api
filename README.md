@@ -6,7 +6,7 @@ Tasadar API and Bot network, designed to be run on Heroku Platform, but should r
 
 # Things needed for Operation
 This API needs Tokens to use its bot bindings, and a RESP compatible Database defined by REDIS_URL.
-This database could for example be ardb or simply redis.
+This database could for example be ardb or simply redis. A localffmpeg install is needed
 Listed below you'll find all requisites that are needed.
 
 ## Environment Variables needed for this application
