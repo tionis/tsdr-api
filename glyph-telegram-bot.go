@@ -64,12 +64,6 @@ func glyphTelegramBot() {
   - /foodtoday - Food for today
   - /foodtomorrow - Food for tomorrow
   - /foodweek - Food for week
-**Redis-Commands:**
-  - /redisGet x - Get Key x from Redis
-  - /redisSet x y - Set Key x to y from Redis
-  - /redisPing - Ping redis Server
-  - /redisBcryptSet x y - Set password y for user x
-  - /redisBcryptGet x y - Check if pass y is valid for user x
 **TOTP-Commands:**
   - /addTOTP x y - Add key y for account x
   - /gen x - Get TOTP-Code for account x `
