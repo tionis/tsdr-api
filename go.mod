@@ -12,7 +12,6 @@ require (
 	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757 // indirect
 	github.com/lib/pq v1.7.0
 	github.com/rylio/ytdl v0.6.3
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	golang.org/x/text v0.3.3
 	gopkg.in/tucnak/telebot.v2 v2.3.3
 	layeh.com/gopus v0.0.0-20161224163843-0ebf989153aa // indirect

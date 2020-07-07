@@ -20,31 +20,37 @@ import (
 	"github.com/rylio/ytdl"
 )
 
-// Global constants
-const councilman = "706782033090707497"
-
 // Discord ID of admin
 var discordAdminID string
 
-// A map of boolean channels that stop the playback indexed after guildIDs
-var stopVoice map[string]chan bool
+// Read write lock for the voice update map
+var voiceUpdateLock = sync.RWMutex{}
+
+// A map of stream updates that modify the playback indexed after guildIDs
+var voiceUpdate map[string]chan updateStream
+
+// Read write lock for the queuemap
+var queueMapLock = sync.RWMutex{}
 
 // A map of queue represented as ytdl.VideoInfo arrays indexed after guildIDs
 var queueMap map[string][]*ytdl.VideoInfo
 
+var volumeMapLock = sync.RWMutex{}
+var volumeMap map[string]int
+
 // Needed for onlyonce execution of random source
 var onlyOnce sync.Once
 
-/*type glyphDiscordMsg struct {
-	ChannelID string
-	Message   string
-}*/
+type updateStream struct {
+	index int // 0 means stop the stream, 1 means skip, 2 means pause and 3 means volume update
+}
 
 // Main and Init
 func glyphDiscordBot() {
 	discordAdminID = "259076782408335360"
-	stopVoice = make(map[string]chan bool)
+	voiceUpdate = make(map[string]chan updateStream)
 	queueMap = make(map[string][]*ytdl.VideoInfo)
+	volumeMap = make(map[string]int)
 
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
@@ -76,8 +82,8 @@ func glyphDiscordBot() {
 	<-sc
 
 	// Cleanly close down the Discord session.
-	for _, abort := range stopVoice {
-		abort <- true
+	for _, abort := range voiceUpdate {
+		abort <- updateStream{0}
 	}
 	_ = dg.Close()
 }
@@ -124,7 +130,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Music Bot - /music help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	case "/music":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Music Bot Commands:\n - /play - Play a song with a given youtube URL, or add it to the queue if music is already playing. \n - /stop - Stop all music \n - /queue - Show current queue \n - /pause - Pause current playback \n - /remove - Remove song number x from queue\n - /volume - set the volume to specified value")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Music Bot Commands:\n - /play - Play a song with a given youtube URL, or add it to the queue if music is already playing. \n - /stop - Stop all music \n - /queue - Show current queue \n - /pause - Pause current playback \n - /remove - Remove song number x from queue\n - /volume - set the volume to specified value\n - /skip - Skip the currently running song")
 	case "/unip":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
@@ -164,13 +170,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		parseQueueCommand(s, m)
 	case "/pause":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+		parsePauseCommand(s, m)
 	case "/remove":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		parseRemoveCommand(s, m)
 	case "/volume":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
+		parseVolumeCommand(s, m)
+	case "/skip":
+		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		parseSkipCommand(s, m)
 	case "/echo":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		echo(s, m)
@@ -238,30 +247,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_, _ = s.ChannelMessageSend(m.ChannelID, m.Author.String())
 	case "/todo":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Feature still in Development")
-	case "/amiadmin":
-		hasRole, err := memberHasRole(s, m.GuildID, m.Author.ID, councilman)
-		if err != nil {
-			log.Println("[GlyphDiscordBot] Error while checking if member has role: ", err)
-			_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred!")
-		}
-		if hasRole {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "TRUE")
-		} else {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "FALSE")
-		}
-	case "/kick":
-		hasRole, err := memberHasRole(s, m.GuildID, m.Author.ID, councilman)
-		if err != nil {
-			log.Println("[GlyphDiscordBot] Error while checking if member has role: ", err)
-			_, _ = s.ChannelMessageSend(m.ChannelID, "An error occurred!")
-		}
-		if hasRole {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Not implemented yet!")
-		} else {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!")
-		}
-	case "onlinecheck":
-		_, _ = s.ChannelMessageSend(m.ChannelID, "I'm online")
 	}
 }
 
@@ -453,13 +438,14 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Count Successes and Ones while parsing the return String
 		// Parse Slice here
 		var successes, ones int
-		retString := "Results: "
+		var output strings.Builder
+		output.WriteString("Results: ")
 		for i := range retSlice {
-			//retString += "["
+			output.WriteString("[")
 			for j := range retSlice[i] {
-				retString += strconv.Itoa(retSlice[i][j])
+				output.WriteString(strconv.Itoa(retSlice[i][j]))
 				if j != len(retSlice[i])-1 {
-					retString += " ⮞ "
+					output.WriteString(" ⮞ ")
 				}
 				switch retSlice[i][j] {
 				case 8, 9, 10:
@@ -468,31 +454,36 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 					ones++
 				}
 			}
-			//retString += "] "
-			retString += " "
+			output.WriteString("] ")
+			output.WriteString(" ")
 		}
 		if ones >= (throwCount/2 + 1) {
 			if successes == 0 {
-				retString += "\nWell that's a **critical failure!**"
+				output.WriteString("\nWell that's a **critical failure!**")
 			} else {
-				retString += "\nThat was nearly a critical failure! But you had **" + strconv.Itoa(successes) + "** Successes!"
+				output.WriteString("\nThat was nearly a critical failure! But you had **" + strconv.Itoa(successes) + "** Successes!")
 			}
 		} else {
 			if successes > 0 {
 				if successes >= 5 {
 					mentionString := m.Author.Mention()
-					retString += "\nThat were **" + strconv.Itoa(successes) + "** Successes!\n" + mentionString + " That was exceptional!"
+					output.WriteString("\nThat were **" + strconv.Itoa(successes) + "** Successes!\n" + mentionString + " That was exceptional!")
 				} else {
-					retString += "\nThat were **" + strconv.Itoa(successes) + "** Successes!"
+					if successes == 1 {
+						output.WriteString("\nThat was **1** Success!")
+					} else {
+						output.WriteString("\nThat were **" + strconv.Itoa(successes) + "** Successes!")
+					}
 				}
 			} else {
-				retString += "\nNo Success for you! That's bad, isn`t it?"
+				output.WriteString("\nNo Success for you! That's bad, isn`t it?")
 			}
 		}
-		_, _ = s.ChannelMessageSend(m.ChannelID, retString)
+		_, _ = s.ChannelMessageSend(m.ChannelID, output.String())
 	}
 }
 
+// Role x dice with given amount of sides
 func rollXSidedDie(throwCount, sides int) []int {
 	onlyOnce.Do(func() {
 		rand.Seed(time.Now().UnixNano()) // only run once
@@ -504,6 +495,7 @@ func rollXSidedDie(throwCount, sides int) []int {
 	return retSlice
 }
 
+// Roll a construct roll without special modifiers
 func normalConstructRoll(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	for i := range retSlice {
@@ -748,11 +740,8 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 	_ = s.VoiceConnections[m.GuildID].Speaking(true)
 	//defer s.VoiceConnections[m.GuildID].Speaking(false)
 
-	abort := make(chan bool)
-	stopVoice[voiceConnection.GuildID] = abort
-
 	for {
-		if time.Now().Sub(stopTime) > 0 {
+		if time.Until(stopTime) <= 0 {
 			_ = voiceConnection.Disconnect()
 			return
 		}
@@ -769,7 +758,8 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 // Parse the input string and return a youtube link
 func getYouTubeURL(input string) string {
-	if strings.HasPrefix(input, "https://youtube.com") || strings.HasPrefix(input, "http://youtube.com") ||
+	if strings.HasPrefix(input, "https://www.youtube.com") || strings.HasPrefix(input, "http://www.youtube.com") ||
+		strings.HasPrefix(input, "https://youtube.com") || strings.HasPrefix(input, "http://youtube.com") ||
 		strings.HasPrefix(input, "https://youtu.be") || strings.HasPrefix(input, "http://youtu.be") {
 		return input
 	}
@@ -786,6 +776,7 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	youtubeURL := getYouTubeURL(strings.TrimPrefix(m.Content, "/play "))
 	if youtubeURL == "" {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Error parsing your message!")
+		return
 	}
 
 	// Get Videoinfo
@@ -798,7 +789,10 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// Check whether music is playing, if not join voice Channel and create queue
-	if queueMap[m.GuildID] == nil {
+	queueMapLock.RLock()
+	queue := queueMap[m.GuildID]
+	queueMapLock.RUnlock()
+	if queue == nil {
 		voiceChannel := ""
 		g, err := s.State.Guild(m.GuildID)
 		if err != nil {
@@ -820,115 +814,256 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 
 		// Create Queue
+		queueMapLock.Lock()
 		queueMap[m.GuildID] = make([]*ytdl.VideoInfo, 1)
 		queueMap[m.GuildID][0] = videoInfo
+		queueMapLock.Unlock()
 		go streamMusic(voiceConnection)
 	} else {
+		queueMapLock.Lock()
 		queueMap[m.GuildID] = append(queueMap[m.GuildID], videoInfo)
+		queueMapLock.Unlock()
 	}
+}
+
+func parseVolumeCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+	queueMapLock.RLock()
+	queue := queueMap[m.GuildID]
+	queueMapLock.RUnlock()
+	if queue == nil {
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Nothing playing right now!")
+		return
+	}
+	volumeString := strings.TrimPrefix(m.Content, "/volume ")
+	volume, err := strconv.Atoi(volumeString)
+	if err != nil {
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Please specify a valid volume value")
+		return
+	}
+	if volume == 0 {
+		volume = -1
+	}
+	volumeMapLock.RLock()
+	volumeMap[m.GuildID] = volume
+	volumeMapLock.RUnlock()
+	voiceUpdateLock.RLock()
+	update := voiceUpdate[m.GuildID]
+	voiceUpdateLock.RUnlock()
+	update <- updateStream{3}
 }
 
 // Parse the queue command
 func parseQueueCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
-	if queueMap[m.GuildID] == nil {
+	queueMapLock.RLock()
+	queue := queueMap[m.GuildID]
+	queueMapLock.RUnlock()
+	if queue == nil {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Nothing playing right now!")
 		return
 	}
-	if len(queueMap[m.GuildID]) < 1 {
+	if len(queue) < 1 {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error")
 		log.Println("[GlyphDiscordBot] queueMap videoInfo array is impossibly short!")
 		return
 	}
 	var output strings.Builder
 	output.WriteString("Current queue:\n")
-	for i := 0; i < len(queueMap[m.GuildID]); i++ {
-		output.WriteString("[" + strconv.Itoa(i) + "] " + queueMap[m.GuildID][i].Title + "\n")
+	for i := 0; i < len(queue); i++ {
+		output.WriteString("[" + strconv.Itoa(i) + "] " + queue[i].Title + "\n")
 	}
 	_, _ = s.ChannelMessageSend(m.ChannelID, output.String())
 }
 
+func parseSkipCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+	queueMapLock.RLock()
+	queue := queueMap[m.GuildID]
+	queueMapLock.RUnlock()
+	if queue == nil {
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Nothing playing right now!")
+		return
+	}
+	voiceUpdateLock.RLock()
+	update := voiceUpdate[m.GuildID]
+	voiceUpdateLock.RUnlock()
+	update <- updateStream{1}
+}
+
 // Parse the remove command
 func parseRemoveCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+	queueMapLock.RLock()
+	queue := queueMap[m.GuildID]
+	queueMapLock.RUnlock()
+	if queue == nil {
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Nothing playing right now!")
+		return
+	}
 	indexString := strings.TrimPrefix(m.Content, "/remove ")
 	index, err := strconv.Atoi(indexString)
 	if err != nil {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Could not parse your Message, please specify the number of the song to remove!")
 	}
-	if index > len(queueMap[m.GuildID])-1 || index < 0 {
+	if index > len(queue)-1 || index < 0 {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Please specify the valid number of the song to remove!")
 	}
 	if index == 0 {
-		stopVoice[m.GuildID] <- false
+		voiceUpdateLock.RLock()
+		update := voiceUpdate[m.GuildID]
+		voiceUpdateLock.RUnlock()
+		update <- updateStream{1}
 	} else {
-		queueMap[m.GuildID] = removeFromVideoInfoArray(queueMap[m.GuildID], index)
+		queueMapLock.Lock()
+		queueMap[m.GuildID] = removeFromVideoInfoArray(queue, index)
+		queueMapLock.Unlock()
 	}
 }
 
 // Parse the stop command
 func parseStopCommand(m *discordgo.MessageCreate) {
-	stopVoice[m.GuildID] <- true
+	voiceUpdateLock.RLock()
+	update := voiceUpdate[m.GuildID]
+	voiceUpdateLock.RUnlock()
+	update <- updateStream{0}
+}
+
+// Parse the pause command
+func parsePauseCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+	voiceUpdateLock.RLock()
+	update := voiceUpdate[m.GuildID]
+	voiceUpdateLock.RUnlock()
+	update <- updateStream{2}
 }
 
 // Stream music on voiceConnection
 func streamMusic(voiceConnection *discordgo.VoiceConnection) {
+	volumeMapLock.RLock()
+	volume := volumeMap[voiceConnection.GuildID]
+	volumeMapLock.RUnlock()
+
+	switch {
+	case volume == -1:
+		volume = 0
+	case volume == 0:
+		volume = 100 // TODO guild default value here
+	case volume > 512:
+		volume = 512
+	case volume < -1:
+		volume = 0
+	}
+
 	options := dca.StdEncodeOptions
 	options.RawOutput = true
 	options.Bitrate = 96
 	options.Application = "lowdelay"
+	options.Volume = volume
 	ctx := context.Background()
 	ytdlClient := ytdl.DefaultClient
 
-	videoInfo := queueMap[voiceConnection.GuildID][0]
+	queueMapLock.RLock()
+	queue := queueMap[voiceConnection.GuildID]
+	queueMapLock.RUnlock()
+
+	videoInfo := queue[0]
 
 	format := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)[0]
 	downloadURL, err := ytdlClient.GetDownloadURL(ctx, videoInfo, format)
 	if err != nil {
 		log.Printf("[GlyphDiscordBot] Error getting download URL for %s: %s\n", videoInfo.Title, err)
-		stopVoice[voiceConnection.GuildID] <- false
+		voiceUpdateLock.RLock()
+		update := voiceUpdate[voiceConnection.GuildID]
+		voiceUpdateLock.RUnlock()
+		update <- updateStream{1}
 	}
 
 	encodingSession, err := dca.EncodeFile(downloadURL.String(), options)
 	if err != nil {
 		log.Printf("[GlyphDiscordBot] Error creating encoding session for %s: %s\n", videoInfo.Title, err)
-		stopVoice[voiceConnection.GuildID] <- false
+		voiceUpdateLock.RLock()
+		update := voiceUpdate[voiceConnection.GuildID]
+		voiceUpdateLock.RUnlock()
+		update <- updateStream{1}
 	}
 
-	abort := make(chan bool)
-	stopVoice[voiceConnection.GuildID] = abort
-	go func(encodingSession *dca.EncodeSession, voiceConnection *discordgo.VoiceConnection, abort chan bool) {
-		totalStop := <-abort
-		// Chek if totalStop is requested, if true stop everything if false continue below
-		if totalStop {
+	// Start Stream
+	done := make(chan error)
+	queue[0] = videoInfo
+	stream := dca.NewStream(encodingSession, voiceConnection, done)
+
+	// Initialize stream control routine
+	update := make(chan updateStream)
+	voiceUpdateLock.Lock()
+	voiceUpdate[voiceConnection.GuildID] = update
+	voiceUpdateLock.Unlock()
+	streamControl(encodingSession, voiceConnection, update, stream)
+
+	// End stream
+	err = <-done
+	voiceUpdateLock.RLock()
+	update = voiceUpdate[voiceConnection.GuildID]
+	voiceUpdateLock.RUnlock()
+	update <- updateStream{1}
+
+	if err != nil && err != io.EOF {
+		log.Printf("[GlyphDiscordBot] Error while ending Stream for %s: %s\n", videoInfo.Title, err)
+		voiceUpdateLock.RLock()
+		update := voiceUpdate[voiceConnection.GuildID]
+		voiceUpdateLock.RUnlock()
+		update <- updateStream{1}
+	}
+}
+
+func streamControl(encodingSession *dca.EncodeSession, voiceConnection *discordgo.VoiceConnection, update chan updateStream, stream *dca.StreamingSession) {
+	for {
+		currentUpdate := <-update
+		switch currentUpdate.index {
+		case 0:
+			// Total Stop
 			_ = encodingSession.Stop()
 			encodingSession.Cleanup()
 			_ = voiceConnection.Disconnect()
+			queueMapLock.Lock()
 			queueMap[voiceConnection.GuildID] = nil
+			queueMapLock.Unlock()
+			return
+		case 1:
+			// Next song
+			// Stop encoding session
+			_ = encodingSession.Stop()
+			encodingSession.Cleanup()
+
+			queueMapLock.RLock()
+			queue := queueMap[voiceConnection.GuildID]
+			queueMapLock.RUnlock()
+
+			// Check if there are any more songs in queue
+			if len(queue) < 2 {
+				queueMapLock.Lock()
+				queueMap[voiceConnection.GuildID] = nil
+				queueMapLock.Unlock()
+				_ = voiceConnection.Disconnect()
+				return
+			}
+
+			// Modify queue and handle next song
+			queueMapLock.Lock()
+			queueMap[voiceConnection.GuildID] = removeFromVideoInfoArray(queue, 0)
+			queueMapLock.Unlock()
+			go streamMusic(voiceConnection)
+			return
+		case 2:
+			// Handle pausing event
+			if stream.Paused() {
+				stream.SetPaused(false)
+			} else {
+				stream.SetPaused(true)
+			}
+		case 3:
+			// Restart current song with new volume
+			// Stop encoding session
+			_ = encodingSession.Stop()
+			encodingSession.Cleanup()
+			go streamMusic(voiceConnection)
 			return
 		}
-		// Stop encoding session
-		_ = encodingSession.Stop()
-		encodingSession.Cleanup()
-
-		// Check if there are any more songs in queue
-		if len(queueMap[voiceConnection.GuildID]) < 2 {
-			queueMap[voiceConnection.GuildID] = nil
-			_ = voiceConnection.Disconnect()
-			return
-		}
-
-		// Modify queue and handle next song
-		queueMap[voiceConnection.GuildID] = removeFromVideoInfoArray(queueMap[voiceConnection.GuildID], 0)
-		go streamMusic(voiceConnection)
-	}(encodingSession, voiceConnection, abort)
-
-	done := make(chan error)
-	queueMap[voiceConnection.GuildID][0] = videoInfo
-	dca.NewStream(encodingSession, voiceConnection, done)
-	err = <-done
-	stopVoice[voiceConnection.GuildID] <- false
-	if err != nil && err != io.EOF {
-		log.Printf("[GlyphDiscordBot] Error while ending Stream for %s: %s\n", videoInfo.Title, err)
-		stopVoice[voiceConnection.GuildID] <- false
 	}
 }
 
