@@ -35,9 +35,6 @@ var queueMap map[string][]*ytdl.VideoInfo
 // Needed for onlyonce execution of random source
 var onlyOnce sync.Once
 
-// Represents a ten sided die, simplifies reroll handling
-var dice = []int{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-
 /*type glyphDiscordMsg struct {
 	ChannelID string
 	Message   string
@@ -161,7 +158,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		parsePlayCommand(s, m)
 	case "/stop":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
-		parseStopCommand(s, m)
+		parseStopCommand(m)
 	case "/queue":
 		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
 		parseQueueCommand(s, m)
@@ -304,10 +301,10 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Catch simple commands
 	switch inputString[1] {
 	case "one":
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Simple 1D10 = "+strconv.Itoa(roll1D10()))
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Simple 1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
 		return
 	case "chance":
-		diceRollResult := roll1D10()
+		diceRollResult := rollXSidedDie(1, 10)[0]
 		switch diceRollResult {
 		case 10:
 			_, _ = s.ChannelMessageSend(m.ChannelID, "**Success!** Your Chance Die showed a 10!")
@@ -324,9 +321,9 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			initModString = ""
 		}
 		if initModString == "" {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "No init modifier saved, here's a simple D10 throw:\n1D10 = "+strconv.Itoa(roll1D10()))
+			_, _ = s.ChannelMessageSend(m.ChannelID, "No init modifier saved, here's a simple D10 throw:\n1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
 		} else {
-			diceResult := roll1D10()
+			diceResult := rollXSidedDie(1, 10)[0]
 			endResult := diceResult + initMod
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Your Initiative is: **"+strconv.Itoa(endResult)+"**\n"+strconv.Itoa(diceResult)+" + "+strconv.Itoa(initMod)+" = "+strconv.Itoa(endResult))
 		}
@@ -385,7 +382,8 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			return
 		}
 	} else if inputString[1] == "chance" {
-		result := roll1D10()
+		// Roll a chance die
+		result := rollXSidedDie(1, 10)[0]
 		retString := ""
 		switch result {
 		case 10:
@@ -398,6 +396,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_, _ = s.ChannelMessageSend(m.ChannelID, retString)
 		return
 	} else {
+		// Assume that input was construct notation
 		var roteQuality, noReroll, eightAgain, nineAgain bool
 		if len(inputString) > 2 {
 			roteQuality = strings.Contains(inputString[2], "r")
@@ -511,7 +510,7 @@ func normalConstructRoll(throwCount int) [][]int {
 		retSlice[i] = []int{}
 		repeat := true
 		for repeat {
-			diceResult := roll1D10()
+			diceResult := rollXSidedDie(1, 10)[0]
 			if diceResult != 10 {
 				repeat = false
 			}
@@ -526,13 +525,14 @@ func normalConstructRoll(throwCount int) [][]int {
 	return retSlice
 }
 
+// Roll a construct roll with 8 again
 func constructRoll8(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	for i := range retSlice {
 		retSlice[i] = []int{}
 		repeat := true
 		for repeat {
-			diceResult := roll1D10()
+			diceResult := rollXSidedDie(1, 10)[0]
 			if diceResult < 8 {
 				repeat = false
 			}
@@ -547,6 +547,7 @@ func constructRoll8(throwCount int) [][]int {
 	return retSlice
 }
 
+// Roll a construct roll with 8 again and rote quality
 func constructRoll8r(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	isFirstReroll := true
@@ -554,7 +555,7 @@ func constructRoll8r(throwCount int) [][]int {
 		retSlice[i] = []int{}
 		repeat := true
 		for repeat {
-			diceResult := roll1D10()
+			diceResult := rollXSidedDie(1, 10)[0]
 			if isFirstReroll && diceResult < 8 {
 				repeat = true
 				isFirstReroll = false
@@ -577,13 +578,14 @@ func constructRoll8r(throwCount int) [][]int {
 	return retSlice
 }
 
+// Roll a construct roll with 9 again
 func constructRoll9(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	for i := range retSlice {
 		retSlice[i] = []int{}
 		repeat := true
 		for repeat {
-			diceResult := roll1D10()
+			diceResult := rollXSidedDie(1, 10)[0]
 			if diceResult < 9 {
 				repeat = false
 			}
@@ -598,6 +600,7 @@ func constructRoll9(throwCount int) [][]int {
 	return retSlice
 }
 
+// Roll a construct roll with 9 again and rote quality
 func constructRoll9r(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	isFirstReroll := true
@@ -605,7 +608,7 @@ func constructRoll9r(throwCount int) [][]int {
 		retSlice[i] = []int{}
 		repeat := true
 		for repeat {
-			diceResult := roll1D10()
+			diceResult := rollXSidedDie(1, 10)[0]
 			if isFirstReroll && diceResult < 8 {
 				repeat = true
 				isFirstReroll = false
@@ -628,11 +631,12 @@ func constructRoll9r(throwCount int) [][]int {
 	return retSlice
 }
 
+// Roll a construct roll with no rerolls
 func constructRolln(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	for i := range retSlice {
 		retSlice[i] = []int{}
-		diceResult := roll1D10()
+		diceResult := rollXSidedDie(1, 10)[0]
 		previousSlice := retSlice[i]
 		if previousSlice == nil {
 			previousSlice = []int{}
@@ -644,6 +648,7 @@ func constructRolln(throwCount int) [][]int {
 	return retSlice
 }
 
+// Roll a construct roll with rote quality
 func constructRollRote(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	isFirstReroll := true
@@ -651,7 +656,7 @@ func constructRollRote(throwCount int) [][]int {
 		retSlice[i] = []int{}
 		repeat := true
 		for repeat {
-			diceResult := roll1D10()
+			diceResult := rollXSidedDie(1, 10)[0]
 			if isFirstReroll && diceResult < 8 {
 				repeat = true
 				isFirstReroll = false
@@ -674,6 +679,7 @@ func constructRollRote(throwCount int) [][]int {
 	return retSlice
 }
 
+// Roll a construct roll with rote quality but no reroll on 10
 func constructRollRoteNoReroll(throwCount int) [][]int {
 	retSlice := make([][]int, throwCount)
 	isFirstReroll := true
@@ -682,7 +688,7 @@ func constructRollRoteNoReroll(throwCount int) [][]int {
 		repeat := true
 		for repeat {
 			repeat = false
-			diceResult := roll1D10()
+			diceResult := rollXSidedDie(1, 10)[0]
 			if isFirstReroll && diceResult < 8 {
 				repeat = true
 				isFirstReroll = false
@@ -697,15 +703,6 @@ func constructRollRoteNoReroll(throwCount int) [][]int {
 		isFirstReroll = true
 	}
 	return retSlice
-}
-
-func roll1D10() int {
-
-	onlyOnce.Do(func() {
-		rand.Seed(time.Now().UnixNano()) // only run once
-	})
-
-	return dice[rand.Intn(len(dice))]
 }
 
 // Takes inbound audio and sends it right back out.
@@ -863,14 +860,13 @@ func parseRemoveCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if index == 0 {
 		stopVoice[m.GuildID] <- false
 	} else {
-		queueMap[m.GuildID] = removeFromQueue(queueMap[m.GuildID], index)
+		queueMap[m.GuildID] = removeFromVideoInfoArray(queueMap[m.GuildID], index)
 	}
 }
 
 // Parse the stop command
-func parseStopCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+func parseStopCommand(m *discordgo.MessageCreate) {
 	stopVoice[m.GuildID] <- true
-	_, _ = s.ChannelMessageSend(m.ChannelID, "Playback stopped")
 }
 
 // Stream music on voiceConnection
@@ -921,7 +917,7 @@ func streamMusic(voiceConnection *discordgo.VoiceConnection) {
 		}
 
 		// Modify queue and handle next song
-		queueMap[voiceConnection.GuildID] = removeFromQueue(queueMap[voiceConnection.GuildID], 0)
+		queueMap[voiceConnection.GuildID] = removeFromVideoInfoArray(queueMap[voiceConnection.GuildID], 0)
 		go streamMusic(voiceConnection)
 	}(encodingSession, voiceConnection, abort)
 
@@ -937,6 +933,6 @@ func streamMusic(voiceConnection *discordgo.VoiceConnection) {
 }
 
 // Remove element x from videoInfo slice
-func removeFromQueue(slice []*ytdl.VideoInfo, x int) []*ytdl.VideoInfo {
+func removeFromVideoInfoArray(slice []*ytdl.VideoInfo, x int) []*ytdl.VideoInfo {
 	return append(slice[:x], slice[x+1:]...)
 }
