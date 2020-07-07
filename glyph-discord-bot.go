@@ -268,6 +268,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
+// Check if a user has a given role in a given guild
 func memberHasRole(s *discordgo.Session, guildID string, userID string, roleID string) (bool, error) {
 	member, err := s.State.Member(guildID, userID)
 	if err != nil {
@@ -291,6 +292,7 @@ func memberHasRole(s *discordgo.Session, guildID string, userID string, roleID s
 	return false, nil
 }
 
+// Parse roll command
 func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Catch errors in command
 	inputString := strings.Split(m.Content, " ")
@@ -768,8 +770,10 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
+// Parse the input string and return a youtube link
 func getYouTubeURL(input string) string {
-	if strings.HasPrefix(input, "https://") || strings.HasPrefix(input, "http://") {
+	if strings.HasPrefix(input, "https://youtube.com") || strings.HasPrefix(input, "http://youtube.com") ||
+		strings.HasPrefix(input, "https://youtu.be") || strings.HasPrefix(input, "http://youtu.be") {
 		return input
 	}
 	if input == "" || input == " " || input == "/play" || input == "/play " {
@@ -779,6 +783,7 @@ func getYouTubeURL(input string) string {
 	return ""
 }
 
+// Parse the play command
 func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Parse Youtube URL
 	youtubeURL := getYouTubeURL(strings.TrimPrefix(m.Content, "/play "))
@@ -792,6 +797,7 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	videoInfo, err := ytdlClient.GetVideoInfo(ctx, youtubeURL)
 	if err != nil {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Could not get Videoinfo!")
+		return
 	}
 
 	// Check whether music is playing, if not join voice Channel and create queue
@@ -825,6 +831,7 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 }
 
+// Parse the queue command
 func parseQueueCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if queueMap[m.GuildID] == nil {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Nothing playing right now!")
@@ -843,6 +850,7 @@ func parseQueueCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	_, _ = s.ChannelMessageSend(m.ChannelID, output.String())
 }
 
+// Parse the remove command
 func parseRemoveCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	indexString := strings.TrimPrefix(m.Content, "/remove ")
 	index, err := strconv.Atoi(indexString)
@@ -855,15 +863,17 @@ func parseRemoveCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if index == 0 {
 		stopVoice[m.GuildID] <- false
 	} else {
-		queueMap[m.GuildID] = remove(queueMap[m.GuildID], index)
+		queueMap[m.GuildID] = removeFromQueue(queueMap[m.GuildID], index)
 	}
 }
 
+// Parse the stop command
 func parseStopCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	stopVoice[m.GuildID] <- true
 	_, _ = s.ChannelMessageSend(m.ChannelID, "Playback stopped")
 }
 
+// Stream music on voiceConnection
 func streamMusic(voiceConnection *discordgo.VoiceConnection) {
 	options := dca.StdEncodeOptions
 	options.RawOutput = true
@@ -891,25 +901,28 @@ func streamMusic(voiceConnection *discordgo.VoiceConnection) {
 	stopVoice[voiceConnection.GuildID] = abort
 	go func(encodingSession *dca.EncodeSession, voiceConnection *discordgo.VoiceConnection, abort chan bool) {
 		totalStop := <-abort
+		// Chek if totalStop is requested, if true stop everything if false continue below
 		if totalStop {
 			_ = encodingSession.Stop()
 			encodingSession.Cleanup()
 			_ = voiceConnection.Disconnect()
 			queueMap[voiceConnection.GuildID] = nil
 			return
-		} else {
-			_ = encodingSession.Stop()
-			encodingSession.Cleanup()
-			// Check if there are any more songs in queue
-			if len(queueMap[voiceConnection.GuildID]) < 2 {
-				queueMap[voiceConnection.GuildID] = nil
-				_ = voiceConnection.Disconnect()
-				return
-			}
-
-			queueMap[voiceConnection.GuildID] = remove(queueMap[voiceConnection.GuildID], 0)
-			go streamMusic(voiceConnection)
 		}
+		// Stop encoding session
+		_ = encodingSession.Stop()
+		encodingSession.Cleanup()
+
+		// Check if there are any more songs in queue
+		if len(queueMap[voiceConnection.GuildID]) < 2 {
+			queueMap[voiceConnection.GuildID] = nil
+			_ = voiceConnection.Disconnect()
+			return
+		}
+
+		// Modify queue and handle next song
+		queueMap[voiceConnection.GuildID] = removeFromQueue(queueMap[voiceConnection.GuildID], 0)
+		go streamMusic(voiceConnection)
 	}(encodingSession, voiceConnection, abort)
 
 	done := make(chan error)
@@ -924,6 +937,6 @@ func streamMusic(voiceConnection *discordgo.VoiceConnection) {
 }
 
 // Remove element x from videoInfo slice
-func remove(slice []*ytdl.VideoInfo, x int) []*ytdl.VideoInfo {
+func removeFromQueue(slice []*ytdl.VideoInfo, x int) []*ytdl.VideoInfo {
 	return append(slice[:x], slice[x+1:]...)
 }
