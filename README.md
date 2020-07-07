@@ -1,5 +1,6 @@
 # Tasadar-API
 Tasadar API and Bot network, designed to be run on Heroku Platform, but should run on any Linux Platform, where a https load balancer is loaded, the dns record of api.tasadar.net points to the load balancer, and the load balancers addressed port is specified on $PORT together with the tokens.
+The needed localffmpeg can be installed in many ways, more coming soon.
 
 # Things needed for Operation
 This API needs Tokens to use its bot bindings, and a RESP compatible Database defined by REDIS_URL.
