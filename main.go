@@ -55,7 +55,7 @@ func main() {
 	// MC Cronjobs
 	//loc, err := time.LoadLocation("Europe/Berlin")
 	//if err != nil {
-	//	log.Println("[Tasadar] Error loadin correct time zone!")
+	//	log.Println("[Tasadar] Error loading correct time zone!")
 	//}
 	//c := cron.New(cron.WithLocation(loc))
 	//c.AddFunc("@every 5m", func() { pingMC() })
@@ -87,7 +87,7 @@ func main() {
 		hs["cors.localhost"] = corsRouter
 	}
 
-	// Start Webserver
+	// Start WebServer
 	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), hs))
 }
 

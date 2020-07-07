@@ -21,10 +21,13 @@ func dbInit() {
 		log.Fatal("[Tasadar] Fatal Error getting Database Information!")
 	}
 	redisS1 := strings.Split(strings.TrimPrefix(os.Getenv("REDIS_URL"), "redis://"), "@")
-	redisS2 := strings.Split(redisS1[0], ":")
+	redisPass := ""
+	if redisS1[0] != ":" {
+		redisPass = strings.Split(redisS1[0], ":")[1]
+	}
 	redclient = redis.NewClient(&redis.Options{
 		Addr:     redisS1[1],
-		Password: redisS2[1],
+		Password: redisPass,
 		DB:       0, // use default DB
 	})
 	if _, err := redclient.Ping().Result(); err != nil {
@@ -32,11 +35,11 @@ func dbInit() {
 	}
 	var err error
 	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
-	db.SetMaxOpenConns(19) // Heroku free plan limit - 1 debug connection
 	if err != nil {
 		log.Println("[PostgreSQL] Server Connection failed: ", err)
 	}
-	db.Ping()
+	db.SetMaxOpenConns(19) // Heroku free plan limit - 1 debug connection
+	_ = db.Ping()
 	if err != nil {
 		log.Println("[PostgreSQL] Server Ping failed: ", err)
 		err = db.Close()
@@ -52,32 +55,29 @@ func dbInit() {
 	if err != nil {
 		log.Fatal("[Tasadar] Error creating table quotes: ", err)
 	}
-	//err = db.Close()
-	//if err != nil {
-	//	log.Println("[Tasadar] Error closing connection to database")
-	//}
 }
 
-// Direct Database Interaction Funtions
+// Direct Database Interaction Functions
 func setWithTimer(key, value string, time time.Duration) error {
 	return redclient.Set(key, value, time).Err()
 }
 
-func sadd(key, value string) error {
+/* SET commands from redis
+func setAdd(key, value string) error {
 	return redclient.SAdd(key, value).Err()
 }
 
-func sismember(key, value string) (bool, error) {
+func setIsMember(key, value string) (bool, error) {
 	return redclient.SIsMember(key, value).Result()
 }
 
-func srem(key, value string) error {
+func SetRemove(key, value string) error {
 	return redclient.SRem(key, value).Err()
-}
+}*/
 
-func set(key string, value string) error {
+/*func set(key string, value string) error {
 	return redclient.Set(key, value, 0).Err()
-}
+}*/
 
 func del(key string) error {
 	return redclient.Del(key).Err()

@@ -20,8 +20,8 @@ steps:
       - go build
 
     - name: deploy
-    image: node:latest
-    commands: 
+      image: node:latest
+      commands:
         - apt-get update -qy
         - apt-get 
     

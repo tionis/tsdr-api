@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
-	"strings"
 	"syscall"
 	"time"
 
@@ -16,7 +15,6 @@ import (
 const glyphTelegramContextDelay = time.Hour * 24
 
 var msgGlyph chan string
-var glyphToken string
 
 // GlyphTelegramBot handles all the legacy Glyph-Telegram-Bot code for telegram
 func glyphTelegramBot() {
@@ -59,26 +57,26 @@ func glyphTelegramBot() {
 		printInfoGlyph(m)
 	})
 	glyph.Handle("/help", func(m *tb.Message) {
-		sendstring := ""
+		sendString := ""
 		if isTasadarTGAdmin(m.Sender.ID) {
-			sendstring = `**Following Commands are Available:**
+			sendString = `**Following Commands are Available:**
 **UniPassauBot-Commands:**
-  - /foodtoday - Food for todayco
+  - /foodtoday - Food for today
   - /foodtomorrow - Food for tomorrow
   - /foodweek - Food for week
 **Redis-Commands:**
   - /redisGet x - Get Key x from Redis
   - /redisSet x y - Set Key x to y from Redis
   - /redisPing - Ping redis Server
-  - /redisBcryptSet x y - Set passw y for user x
+  - /redisBcryptSet x y - Set password y for user x
   - /redisBcryptGet x y - Check if pass y is valid for user x
 **TOTP-Commands:**
   - /addTOTP x y - Add key y for account x
   - /gen x - Get TOTP-Code for account x `
 		} else {
-			sendstring = "There is no help!"
+			sendString = "There is no help!"
 		}
-		_, _ = glyph.Send(m.Sender, sendstring, tb.ModeMarkdown)
+		_, _ = glyph.Send(m.Sender, sendString, tb.ModeMarkdown)
 		printInfoGlyph(m)
 	})
 	glyph.Handle("/food", func(m *tb.Message) {
@@ -152,82 +150,14 @@ func glyphTelegramBot() {
 		_, _ = glyph.Send(m.Sender, "_pong_", tb.ModeMarkdown)
 		printInfoGlyph(m)
 	})
-	glyph.Handle("/redis", func(m *tb.Message) {
-		if isTasadarTGAdmin(m.Sender.ID) {
-			_, _ = glyph.Send(m.Sender, "Available Commands:\n/redisSet - Set Redis Record like this key value\n/redisGet - Get value for key\n/redisPing - Ping/Pong\n/redisBcryptSet - Same as set but with bcrypt\n/redisBcryptGet - Same as Get but with Verify")
-		} else {
-			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-		printInfo(m)
-	})
-	glyph.Handle("/redisSet", func(m *tb.Message) {
-		if isTasadarTGAdmin(m.Sender.ID) {
-			if !strings.Contains(m.Text, " ") {
-				_, _ = glyph.Send(m.Sender, "Error in Syntax!")
-			} else {
-				s1 := strings.TrimPrefix(m.Text, "/redisSet ")
-				s := strings.Split(s1, " ")
-				val := strings.TrimPrefix(m.Text, "/redisSet "+s[0]+" ")
-				err := set(s[0], val)
-				if err != nil {
-					log.Println("[GlyphTelegramBot] Error while executing redis command: ", err)
-					_, _ = glyph.Send(m.Sender, "There was an error! Check the logs!")
-				} else {
-					_, _ = glyph.Send(m.Sender, s[0]+" was set to:\n"+val)
-				}
-			}
-		} else {
-			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-		printInfo(m)
-	})
-	glyph.Handle("/redisGet", func(m *tb.Message) {
-		if isTasadarTGAdmin(m.Sender.ID) {
-			s1 := strings.TrimPrefix(m.Text, "/redisGet ")
-			val, err := getError(s1)
-			if err != nil {
-				log.Println("[GlyphTelegramBot] Error while executing redis command: ", err)
-				_, _ = glyph.Send(m.Sender, "Error! Maybe the value does not exist?")
-			} else {
-				_, _ = glyph.Send(m.Sender, "Value "+s1+" is set to:\n\n"+val)
-			}
-		} else {
-			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-		printInfo(m)
-	})
-	/*glyph.Handle("/mcCancel", func(m *tb.Message) {
-		if isTasadarTGAdmin(m.Sender.ID) {
-			if mcStopping {
-				mcStopping = false
-				_, _ = glyph.Send(m.Sender, "Shutdown cancelled!")
-			} else {
-				_, _ = glyph.Send(m.Sender, "No Shutdown scheduled!")
-			}
-		} else {
-			_, _ = glyph.Send(m.Sender, "You are not authorized to execute this command!")
-		}
-	})*/
 	glyph.Handle("/addReminder", func(m *tb.Message) {
-		setWithTimer("glyph|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "TimeRequired", glyphTelegramContextDelay)
+		_ = setWithTimer("glyph|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "TimeRequired", glyphTelegramContextDelay)
 
 	})
 	glyph.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
 		log.Println("[GlyphTelegramBot] " + "Group Message:")
 		printInfoGlyph(m)
 	})
-	/**glyph.Handle(tb.OnVideo, func(m *tb.Message) {
-		if !m.Private() {
-			log.Println("[GlyphTelegramBot] " + "Message from Group:")
-			printInfoGlyph(m)
-		} else {
-			collection := get("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|collection")
-			if collection == "" {
-				collection = "default"
-			}
-			filepath := m.Video.FileLocal
-		}
-	})*/
 	glyph.Handle(tb.OnText, func(m *tb.Message) {
 		if !m.Private() {
 			log.Println("[GlyphTelegramBot] " + "Message from Group:")
@@ -236,7 +166,7 @@ func glyphTelegramBot() {
 			context := get("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 			switch context {
 			case "TimeRequired":
-				del("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+				_ = del("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 				// TODO Parse Message and add result to queue: Add to relevant minute
 				// Add reminder to user data
 				_, _ = glyph.Send(m.Sender, "Whaaat!")

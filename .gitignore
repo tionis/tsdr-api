@@ -24,7 +24,7 @@ static/login/loginv4/*
 __debug_bin
 
 # Project Specific
-tasadar-heroku
+api
 .issues
 *.csv
 static/login/loginv4/fonts/font-awesome-4.7.0/HELP-US-OUT.txt
