@@ -586,14 +586,12 @@ func downloadFile(week string) error {
 	log.Println("[UniPassauBot] " + "Finished Downloading")
 	isoToUTF(filepath)
 	transformFile(filepath)
-	go func() {
-		time.Sleep(time.Second)
-		err = os.Remove(filepath + ".tmp")
-		if err != nil {
-			log.Println(err)
-		}
-		//log.Println("Deleted Temporary File")
-	}()
+	// Delete temporary file
+	err = os.Remove(filepath + ".tmp")
+	if err != nil {
+		log.Println(err)
+	}
+	//log.Println("Deleted Temporary File")
 	log.Println("[UniPassauBot] " + "File Transformed")
 	initArray()
 	err = out.Close()

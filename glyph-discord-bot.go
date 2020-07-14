@@ -30,12 +30,15 @@ var voiceUpdateLock = sync.RWMutex{}
 var voiceUpdate map[string]chan updateStream
 
 // Read write lock for the queuemap
-var queueMapLock = sync.RWMutex{}
+var queueMapLock sync.RWMutex
 
 // A map of queue represented as ytdl.VideoInfo arrays indexed after guildIDs
 var queueMap map[string][]*ytdl.VideoInfo
 
-var volumeMapLock = sync.RWMutex{}
+// Read write lock for the volume map
+var volumeMapLock sync.RWMutex
+
+// Volume Map
 var volumeMap map[string]int
 
 // Needed for onlyonce execution of random source
@@ -82,6 +85,7 @@ func glyphDiscordBot() {
 	<-sc
 
 	// Cleanly close down the Discord session.
+	voiceUpdateLock.RLock()
 	for _, abort := range voiceUpdate {
 		abort <- updateStream{0}
 	}
@@ -806,6 +810,11 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		}
 
+		if voiceChannel == "" {
+			_, _ = s.ChannelMessageSend(m.ChannelID, "You must be in a voice channel to execute this!")
+			return
+		}
+
 		// Join Voice Channel
 		voiceConnection, err := s.ChannelVoiceJoin(m.GuildID, voiceChannel, false, true)
 		if err != nil {
@@ -959,10 +968,8 @@ func streamMusic(voiceConnection *discordgo.VoiceConnection) {
 	ytdlClient := ytdl.DefaultClient
 
 	queueMapLock.RLock()
-	queue := queueMap[voiceConnection.GuildID]
+	videoInfo := queueMap[voiceConnection.GuildID][0]
 	queueMapLock.RUnlock()
-
-	videoInfo := queue[0]
 
 	format := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)[0]
 	downloadURL, err := ytdlClient.GetDownloadURL(ctx, videoInfo, format)
@@ -985,7 +992,6 @@ func streamMusic(voiceConnection *discordgo.VoiceConnection) {
 
 	// Start Stream
 	done := make(chan error)
-	queue[0] = videoInfo
 	stream := dca.NewStream(encodingSession, voiceConnection, done)
 
 	// Initialize stream control routine
