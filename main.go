@@ -1,42 +1,50 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/keybase/go-logging"
 )
 
 const defaultPort = "8081"
 
 type hostSwitch map[string]http.Handler
 
+var mainLog = logging.MustGetLogger("main")
+
+var logFormat = logging.MustStringFormatter(
+	`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+)
+
 var isProduction bool
 
 // Initialize Main Functions
 func main() {
+	logging.SetFormatter(logFormat)
 	// Initialize basic requirements
 	dbInit()
 
 	// Detect Development Mode
 	switch strings.ToUpper(os.Getenv("MODE")) {
 	case "PRODUCTION":
-		log.Println("[Tasadar] Detected Production Mode")
+		mainLog.Info("Detected Production Mode")
 		gin.SetMode(gin.ReleaseMode)
 		isProduction = true
 	case "DEBUG":
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Println("[Tasadar] Detected Debug Mode")
+		logging.SetFormatter(logging.MustStringFormatter(
+			`%{color}%{time:15:04:05.000} %{shortfile} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+		))
+		mainLog.Info("Detected Debug Mode")
 		gin.SetMode(gin.DebugMode)
 		isProduction = false
 	default:
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.Println("[Tasadar] No Operation Mode set, switching to Default: Debug Mode")
-		gin.SetMode(gin.DebugMode)
-		isProduction = false
+		mainLog.Warning("No Mode Config detected, switching to Production Mode")
+		gin.SetMode(gin.ReleaseMode)
+		isProduction = true
 	}
 
 	// Start Uni-Passau-Bot
@@ -55,7 +63,7 @@ func main() {
 	// MC Cronjobs
 	//loc, err := time.LoadLocation("Europe/Berlin")
 	//if err != nil {
-	//	log.Println("[Tasadar] Error loading correct time zone!")
+	//	mainLog.Warning("[Tasadar] Error loading correct time zone!")
 	//}
 	//c := cron.New(cron.WithLocation(loc))
 	//c.AddFunc("@every 5m", func() { pingMC() })
@@ -67,7 +75,7 @@ func main() {
 	// Create Default gin router
 	port := os.Getenv("PORT")
 	if port == "" {
-		log.Println("[Tasadar] Failed to detect Port Variable, switching to default :8081")
+		mainLog.Warning("Failed to detect Port Variable, switching to default :8081")
 		port = defaultPort
 	}
 	apiRouter := gin.Default()
@@ -88,7 +96,7 @@ func main() {
 	}
 
 	// Start WebServer
-	log.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), hs))
+	mainLog.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), hs))
 }
 
 // Hostswitch HTTP Handler that enables the use in a standard lib way

@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"strconv"
@@ -12,15 +11,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/keybase/go-logging"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
+
+var quotatorTelegramLog = logging.MustGetLogger("glyphDiscord")
 
 const quotatorContextDelay = time.Hour * 24
 
 func quotatorTelegramBot() {
 	token := os.Getenv("QUOTATOR_TOKEN")
 	if token == "" {
-		log.Fatal("[Quotator] No token given!")
+		quotatorTelegramLog.Fatal("[Quotator] No token given!")
 	}
 	botquit := make(chan bool) // channel for quitting of bot
 
@@ -39,7 +41,7 @@ func quotatorTelegramBot() {
 		sig := <-signalChannel
 		switch sig {
 		case os.Interrupt:
-			log.Println("[GlyphTelegramBot] " + "Interruption Signal received, shutting down...")
+			quotatorTelegramLog.Info("[GlyphTelegramBot] " + "Interruption Signal received, shutting down...")
 			exit(botquit)
 		case syscall.SIGTERM:
 			botquit <- true
@@ -52,7 +54,7 @@ func quotatorTelegramBot() {
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {
-		log.Fatal(err)
+		quotatorTelegramLog.Fatal(err)
 		return
 	}
 
@@ -77,7 +79,7 @@ func quotatorTelegramBot() {
 		_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
 		author, language, universe, err := parseGetQuote(strings.TrimPrefix(m.Text, "/getquote "))
 		if err != nil {
-			log.Println("[Quotator] Error parsing getQuote: ", err)
+			quotatorTelegramLog.Error("[Quotator] Error parsing getQuote: ", err)
 			_, _ = quotator.Send(m.Chat, "There was an error please check your command and try again later.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		} else {
 			_, _ = quotator.Send(m.Chat, getRandomQuote(author, language, universe), &tb.ReplyMarkup{ReplyKeyboardRemove: true})
@@ -145,12 +147,12 @@ func quotatorTelegramBot() {
 	go func() {
 		<-botquit
 		quotator.Stop()
-		log.Println("[Quotator] " + "Glyph Telegram Bot was stopped")
+		quotatorTelegramLog.Info("Glyph Telegram Bot was stopped")
 		os.Exit(3)
 	}()
 
 	// Start the bot
-	log.Println("[Quotator] " + "Telegram Bot was started.")
+	quotatorTelegramLog.Info("Telegram Bot was started.")
 	quotator.Start()
 }
 
@@ -174,7 +176,7 @@ func parseGetQuote(message string) (string, string, string, error) {
 			case "universe":
 				variableToSet = 3
 			default:
-				log.Println(current)
+				quotatorTelegramLog.Warning(current)
 				return "", "", "", errors.New("invalid quote selector")
 			}
 		} else {
@@ -270,7 +272,7 @@ func parseString(command string) ([]string, error) {
 func getRandomQuote(byAuthor, inLanguage, inUniverse string) string {
 	stmt, err := db.Prepare(`SELECT quote, author FROM quotes WHERE (length($1)=0 OR author=$1) AND (length($2)=0 OR language=$2) AND (length($3)=0 OR universe=$3) ORDER BY RANDOM() LIMIT 1`)
 	if err != nil {
-		log.Println("[Quotator] Couldn't prepare statement: ", err)
+		quotatorTelegramLog.Error("Couldn't prepare statement: ", err)
 		return "Sorry, an internal error occurred!"
 	}
 	row := stmt.QueryRow(byAuthor, inLanguage, inUniverse)
@@ -281,7 +283,7 @@ func getRandomQuote(byAuthor, inLanguage, inUniverse string) string {
 		if err == sql.ErrNoRows {
 			return "Sorry, no quote found."
 		}
-		log.Println("[Quotator] Error getting random quote from database: ", err)
+		quotatorTelegramLog.Error("Error getting random quote from database: ", err)
 		return "There was an internal error!"
 	}
 	return quote + "\n- " + author
@@ -294,17 +296,17 @@ func addQuote(m *tb.Message) string {
 	universe := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentUniverse")
 	stmt, err := db.Prepare(`INSERT INTO quotes (quote, author, language, universe) VALUES ($1, $2, $3, $4)`)
 	if err != nil {
-		log.Println("[Quotator] Error preparing database statement: ", err)
+		quotatorTelegramLog.Error("Error preparing database statement: ", err)
 		return "Sorry, there was an internal error!"
 	}
 	_, err = stmt.Query(quote, author, language, universe)
 	if err != nil {
-		log.Println("[Quotator] Error executing database statement: ", err)
+		quotatorTelegramLog.Error("Error executing database statement: ", err)
 		return "Sorry, there was an internal error!"
 	}
 	return "Added quote from " + author + " to database"
 }
 
 func printInfoQuotator(m *tb.Message) {
-	log.Println("[Quotator] Telegram: " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID) + " Message: " + m.Text)
+	quotatorTelegramLog.Info("[Quotator] Telegram: " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID) + " Message: " + m.Text)
 }

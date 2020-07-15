@@ -5,7 +5,6 @@ import (
 	"encoding/csv"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,9 +15,12 @@ import (
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/keybase/go-logging"
 	"golang.org/x/text/encoding/charmap"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
+
+var mensaBotLog = logging.MustGetLogger("mensaBot")
 
 // Global Variables
 // Matrix Slice for food handling (should be replaced in future??)
@@ -38,7 +40,7 @@ func uniPassauBot() {
 		sig := <-signalChannel
 		switch sig {
 		case os.Interrupt:
-			log.Println("[UniPassauBot] " + "Interruption Signal received, shutting down...")
+			mensaBotLog.Info("Interruption Signal received, shutting down...")
 			exit(botquit)
 		case syscall.SIGTERM:
 			botquit <- true
@@ -52,7 +54,7 @@ func uniPassauBot() {
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
 	if err != nil {
-		log.Fatal(err)
+		mensaBotLog.Error("Error starting Uni Passau Bot", err)
 		return
 	}
 
@@ -111,7 +113,7 @@ func uniPassauBot() {
 		if get("isCorona") != "true" {
 			if !m.Private() {
 				_, _ = b.Send(m.Chat, foodtoday())
-				log.Println("[UniPassauBot] " + "Group Message:")
+				mensaBotLog.Info("Group Message:")
 			} else {
 				_, _ = b.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 			}
@@ -125,7 +127,7 @@ func uniPassauBot() {
 		if get("isCorona") != "true" {
 			if !m.Private() {
 				_, _ = b.Send(m.Chat, foodtomorrow())
-				log.Println("[UniPassauBot] " + "Group Message:")
+				mensaBotLog.Info("Group Message:")
 			} else {
 				_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 			}
@@ -139,7 +141,7 @@ func uniPassauBot() {
 			if !m.Private() {
 				_, _ = b.Send(m.Chat, foodweek())
 				//_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
-				log.Println("[UniPassauBot] " + "Group Message:")
+				mensaBotLog.Info("Group Message:")
 			} else {
 				_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 				//_, _ = b.Send(m.Sender, "This command is temporarily disabled.")
@@ -190,13 +192,13 @@ func uniPassauBot() {
 		printAnswer("_pong_")
 	})
 	b.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
-		log.Println("[UniPassauBot] " + "Group Message:")
+		mensaBotLog.Info("Group Message:")
 		printInfo(m)
 	})
 	b.Handle(tb.OnText, func(m *tb.Message) {
 		sendstring := "Unknown Command - use help to get a list of available commands"
 		if !m.Private() {
-			log.Println("[UniPassauBot] " + "Message from Group:")
+			mensaBotLog.Info("Message from Group:")
 		} else {
 			_, _ = b.Send(m.Sender, sendstring)
 		}
@@ -208,7 +210,7 @@ func uniPassauBot() {
 	go func() {
 		<-botquit
 		b.Stop()
-		log.Println("[UniPassauBot] " + "Bot was stopped")
+		mensaBotLog.Info("Bot was stopped")
 		os.Exit(3)
 	}()
 
@@ -216,7 +218,7 @@ func uniPassauBot() {
 	initArray()
 
 	// print startup message
-	log.Println("[UniPassauBot] " + "Uni Passau Bot was started.")
+	mensaBotLog.Info("Starting up...")
 	b.Start()
 }
 
@@ -242,20 +244,20 @@ func initArray() {
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	_, thisWeek := time.Now().In(loc).UTC().ISOWeek()
 	if thisWeek > 51 {
-		log.Println("[UniPassauBot] Next week is in next year, this method should not have been executed!")
+		logger.log("[UniPassauBot] Next week is in next year, this method should not have been executed!")
 		return
 	}
 	nextweekstring := strconv.Itoa(thisWeek + 1)
 	if _, err := os.Stat(nextweekstring + ".csv"); os.IsNotExist(err) {
 
 		// No actual file found
-		log.Print("[UniPassauBot] " + "No File for next week found - starting download --- ")
+		logger.log("[UniPassauBot] " + "No File for next week found - starting download --- ")
 		err := downloadFile(nextweekstring)
 		if err != nil {
 			panic(err)
 		}
 	} else {
-		// log.Println("Up-to-date CSV-File found!")
+		// logger.log("Up-to-date CSV-File found!")
 	}
 
 	r := csv.NewReader(bufio.NewReader(openactFile()))
@@ -525,18 +527,18 @@ func isoToUTF(path string) {
 	// Change the encoding and save file under non .tmp name
 	f, err := os.Open(path + ".tmp")
 	if err != nil {
-		log.Fatal("[UniPassauBot] Error opening file for isoToUTF: ", err)
+		mensaBotLog.Error("[UniPassauBot] Error opening file for isoToUTF: ", err)
 	}
 	out, err := os.Create(path)
 	if err != nil {
-		log.Fatal("[UniPassauBot] Error creating path for isoToUTF: ", err)
+		mensaBotLog.Error("[UniPassauBot] Error creating path for isoToUTF: ", err)
 	}
 	r := charmap.ISO8859_1.NewDecoder().Reader(f)
 	_, err = io.Copy(out, r)
 	err = out.Close()
 	err = f.Close()
 	if err != nil {
-		log.Println("[UniPassauBot] " + "Error converting csv file to UTF-8")
+		mensaBotLog.Error("Error converting csv file to UTF-8")
 	}
 }
 
@@ -583,16 +585,15 @@ func downloadFile(week string) error {
 	if err != nil {
 		return err
 	}
-	log.Println("[UniPassauBot] " + "Finished Downloading")
+	mensaBotLog.Info("Finished Downloading")
 	isoToUTF(filepath)
 	transformFile(filepath)
 	// Delete temporary file
 	err = os.Remove(filepath + ".tmp")
 	if err != nil {
-		log.Println(err)
+		mensaBotLog.Error("Error removing old file: ", err)
 	}
-	//log.Println("Deleted Temporary File")
-	log.Println("[UniPassauBot] " + "File Transformed")
+	mensaBotLog.Info("File Transformed")
 	initArray()
 	err = out.Close()
 	checkmsg("Error closing body for creting file: ", err)
@@ -619,7 +620,7 @@ func updateFile() {
 	if _, err := os.Stat(weekstring + ".csv"); os.IsNotExist(err) {
 
 		// No actual file found
-		log.Print("[UniPassauBot] " + "No File for this week found - starting download --- ")
+		mensaBotLog.Warning("No File for this week found - starting download --- ")
 		err := downloadFile(weekstring)
 		if err != nil {
 			panic(err)
@@ -629,15 +630,12 @@ func updateFile() {
 		if _, err = os.Stat(prevweekstring + ".csv"); err == nil {
 			err = os.Remove(prevweekstring + ".csv")
 			if err != nil {
-				log.Println("[UniPassauBot] " + "Error deleting Old File")
+				mensaBotLog.Error("Error deleting Old File")
 			}
 		} else {
-			log.Println("[UniPassauBot] " + "No File from previous week to delete")
+			mensaBotLog.Error("No File from previous week to delete")
 		}
-	} //else {
-	//	log.Println("Up-to-date CSV-File found!")
-	//}
-
+	}
 }
 
 // Stop the program and kill hanging routines
@@ -650,23 +648,23 @@ func exit(quit chan bool) {
 // Exit while ignoring running routines
 func simpleExit() {
 	// Exit without using graceful shutdown channels
-	log.Print("[UniPassauBot] " + "Bye!")
-	os.Exit(3)
+	mensaBotLog.Info("Shutting down...")
+	os.Exit(0)
 }
 
 // Print an error with given message
 func checkmsg(message string, e error) {
 	if e != nil {
-		log.Fatal(message, e)
+		mensaBotLog.Fatal(message, e)
 	}
 }
 
 // Print info regarding a given message
 func printInfo(m *tb.Message) {
-	log.Println("[UniPassauBot] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID) + "Message: " + m.Text + "\n")
+	mensaBotLog.Info("[UniPassauBot] " + m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID) + "Message: " + m.Text + "\n")
 }
 
 // Answer wrapper
 func printAnswer(input string) {
-	log.Println("[UniPassauBot] Answer: " + input)
+	mensaBotLog.Info("[UniPassauBot] Answer: " + input)
 }

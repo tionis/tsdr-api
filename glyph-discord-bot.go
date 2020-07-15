@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"io"
-	"log"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -17,6 +16,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/jonas747/dca"
+	"github.com/keybase/go-logging"
 	"github.com/rylio/ytdl"
 )
 
@@ -44,6 +44,8 @@ var volumeMap map[string]int
 // Needed for onlyonce execution of random source
 var onlyOnce sync.Once
 
+var glyphDiscordLog = logging.MustGetLogger("glyphDiscord")
+
 type updateStream struct {
 	index int // 0 means stop the stream, 1 means skip, 2 means pause and 3 means volume update
 }
@@ -57,7 +59,7 @@ func glyphDiscordBot() {
 
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
-		log.Println("[GlyphDiscordBot] Error creating Discord session,", err)
+		glyphDiscordLog.Error("Error creating Discord session,", err)
 	}
 
 	// Register the messageCreate func as a callback for MessageCreate events.
@@ -66,20 +68,20 @@ func glyphDiscordBot() {
 	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {
-		log.Println("[GlyphDiscordBot] Error opening connection,", err)
+		glyphDiscordLog.Error("Error opening connection,", err)
 		return
 	}
 
 	// Set some StartUp Stuff
 	dgStatus, err := getError("dgStatus")
 	if err != nil {
-		log.Println("[GlyphDiscordBot] Error getting dgStatus from redis: ", err)
+		glyphDiscordLog.Warning("Error getting dgStatus from redis: ", err)
 		dgStatus = "planning world domination"
 	}
 	_ = dg.UpdateStatus(0, dgStatus)
 
 	// Wait here until CTRL-C or other term signal is received.
-	log.Println("[GlyphDiscordBot] Glyph Discord Bot was started.")
+	glyphDiscordLog.Info("Glyph Discord Bot was started.")
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, syscall.SIGQUIT, syscall.SIGHUP)
 	<-sc
@@ -108,7 +110,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case "construct-character-creation":
 			// TODO: Character creation dialog
 		default:
-			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+			glyphDiscordLog.Info("New Command by " + m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "I encountered an internal error, please contact the administrator.")
 			return
 		}
@@ -120,7 +122,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Dice commands
 	case "/roll":
 		if len(inputString) < 2 {
-			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+			glyphDiscordLog.Info("New Command by " + m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "To roll construct dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
 		} else {
 			rollHelper(s, m)
@@ -130,68 +132,68 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Help commands
 	case "/help":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Music Bot - /music help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	case "/music":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Music Bot Commands:\n - /play - Play a song with a given youtube URL, or add it to the queue if music is already playing. \n - /stop - Stop all music \n - /queue - Show current queue \n - /pause - Pause current playback \n - /remove - Remove song number x from queue\n - /volume - set the volume to specified value\n - /skip - Skip the currently running song")
 	case "/unip":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/pnp":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier\n - /construct or /co - get construct-specific help")
 	case "/co", "/construct":
 		if len(inputString) < 2 {
-			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+			glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /co trait TRAITNAME - Get Description for specified trait")
 		} else {
 			switch inputString[1] {
 			// Construct command here
 			default:
-				log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+				glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Invalid Command Syntax")
 			}
 		}
 
 	// Food commands
 	case "/food":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtoday())
 	case "/food tomorrow":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtomorrow())
 
 	// Music commands
 	case "/play":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		parsePlayCommand(s, m)
 	case "/stop":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		parseStopCommand(m)
 	case "/queue":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		parseQueueCommand(s, m)
 	case "/pause":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		parsePauseCommand(s, m)
 	case "/remove":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		parseRemoveCommand(s, m)
 	case "/volume":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		parseVolumeCommand(s, m)
 	case "/skip":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		parseSkipCommand(s, m)
 	case "/echo":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		echo(s, m)
 
 	// Config commands
 	case "/save":
 		if len(inputString) < 2 {
-			log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+			glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Save Data to the Bot. Currently available:\n - /save initmod x - Save you Init Modifier")
 		} else {
 			switch inputString[1] {
@@ -199,24 +201,24 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				if len(inputString) < 3 {
 					err := del("glyph|discord:" + m.Author.ID + "|initmod")
 					if err != nil {
-						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+						glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
 					} else {
-						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+						glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was reset.")
 					}
 				} else {
 					initMod, err := strconv.Atoi(inputString[2])
 					if err != nil {
-						log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+						glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 					} else {
 						err := setWithTimer("glyph|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod), 2*24*time.Hour)
 						if err != nil {
-							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+							glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
 						} else {
-							log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+							glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
 						}
 					}
@@ -228,18 +230,18 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// MISC
 	case "/ping":
-		log.Println("[GlyphDiscordBot] New Command by " + m.Author.Username + ": " + m.Content)
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
 	case "/id":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
 		//default:
-		//log.Println("[GlyphDiscordBot] Logged Unknown Command by " + m.Author.Username + ": "+ m.Content)
+		//glyphDiscordLog.Info("Logged Unknown Command by " + m.Author.Username + ": "+ m.Content)
 	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
 			err := setWithTimer("dgStatus", newStatus, 7*24*time.Hour)
 			if err != nil {
-				log.Println("Error setting dgStatus on Redis: ", err)
+				glyphDiscordLog.Warning("Error setting dgStatus on Redis: ", err)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
 			}
 			_ = s.UpdateStatus(0, newStatus)
@@ -433,7 +435,6 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 				if noReroll {
 					retSlice = constructRolln(throwCount)
 				} else {
-					log.Println("[Glyph Discord Bot] This should not have been executed! Perhaps an error in syntax?")
 					_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error while parsing your input!")
 					return
 				}
@@ -707,7 +708,7 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 	g, err := s.State.Guild(m.GuildID)
 	if err != nil {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error!")
-		log.Println("[GlyphDiscordBot] Error while getting guild states: ", err)
+		glyphDiscordLog.Warning("Error while getting guild states: ", err)
 	}
 	for _, state := range g.VoiceStates {
 		if state.UserID == m.Author.ID {
@@ -731,7 +732,7 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	voiceConnection, err := s.ChannelVoiceJoin(m.GuildID, voiceChannel, false, false)
 	if err != nil {
-		log.Println("[GlyphDiscordBot] Error while connecting to voice channel: ", err)
+		glyphDiscordLog.Warning("Error while connecting to voice channel: ", err)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "An Error occurred!")
 	}
 
@@ -801,7 +802,7 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 		g, err := s.State.Guild(m.GuildID)
 		if err != nil {
 			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error!")
-			log.Println("[GlyphDiscordBot] Error while getting guild states: ", err)
+			glyphDiscordLog.Warning("Error while getting guild states: ", err)
 		}
 		for _, state := range g.VoiceStates {
 			if state.UserID == m.Author.ID {
@@ -819,7 +820,7 @@ func parsePlayCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 		voiceConnection, err := s.ChannelVoiceJoin(m.GuildID, voiceChannel, false, true)
 		if err != nil {
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Error joining your Voice Channel!")
-			log.Println("[GlyphDiscordBot] Error while joining voice channel: ", err)
+			glyphDiscordLog.Warning("Error while joining voice channel: ", err)
 		}
 
 		// Create Queue
@@ -872,7 +873,7 @@ func parseQueueCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 	if len(queue) < 1 {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Internal Error")
-		log.Println("[GlyphDiscordBot] queueMap videoInfo array is impossibly short!")
+		glyphDiscordLog.Warning("queueMap videoInfo array is impossibly short!")
 		return
 	}
 	var output strings.Builder
@@ -974,7 +975,7 @@ func streamMusic(voiceConnection *discordgo.VoiceConnection) {
 	format := videoInfo.Formats.Extremes(ytdl.FormatAudioBitrateKey, true)[0]
 	downloadURL, err := ytdlClient.GetDownloadURL(ctx, videoInfo, format)
 	if err != nil {
-		log.Printf("[GlyphDiscordBot] Error getting download URL for %s: %s\n", videoInfo.Title, err)
+		glyphDiscordLog.Warning("Error getting download URL for %s: %s\n", videoInfo.Title, err)
 		voiceUpdateLock.RLock()
 		update := voiceUpdate[voiceConnection.GuildID]
 		voiceUpdateLock.RUnlock()
@@ -983,7 +984,7 @@ func streamMusic(voiceConnection *discordgo.VoiceConnection) {
 
 	encodingSession, err := dca.EncodeFile(downloadURL.String(), options)
 	if err != nil {
-		log.Printf("[GlyphDiscordBot] Error creating encoding session for %s: %s\n", videoInfo.Title, err)
+		glyphDiscordLog.Warning("Error creating encoding session for %s: %s\n", videoInfo.Title, err)
 		voiceUpdateLock.RLock()
 		update := voiceUpdate[voiceConnection.GuildID]
 		voiceUpdateLock.RUnlock()
@@ -1009,7 +1010,7 @@ func streamMusic(voiceConnection *discordgo.VoiceConnection) {
 	update <- updateStream{1}
 
 	if err != nil && err != io.EOF {
-		log.Printf("[GlyphDiscordBot] Error while ending Stream for %s: %s\n", videoInfo.Title, err)
+		glyphDiscordLog.Warning("Error while ending Stream for %s: %s\n", videoInfo.Title, err)
 		voiceUpdateLock.RLock()
 		update := voiceUpdate[voiceConnection.GuildID]
 		voiceUpdateLock.RUnlock()

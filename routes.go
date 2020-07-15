@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -11,7 +10,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/keybase/go-logging"
 )
+
+var apiLog = logging.MustGetLogger("API")
 
 /*type tasadarToken struct {
 	jwt.Payload
@@ -71,7 +73,7 @@ func assistantOrderHandler(c *gin.Context) {
 			err := assistantOrder(c.Param("number"))
 			if err != nil {
 				c.String(500, "Uncategorized Fuckery")
-				log.Println("[TasadarAPI] Error executing order"+c.Param("number")+" : ", err)
+				apiLog.Error("Error executing order"+c.Param("number")+" : ", err)
 			} else {
 				c.String(200, "Order executed")
 			}
@@ -104,7 +106,7 @@ func glyphDiscordHandler(c *gin.Context) {
 	var messageData glyphDiscordMsgAPIObject
 	err := c.Bind(messageData) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
-		log.Println("[TasadarAPI] Error while trying to bind glyph discord message:", err)
+		apiLog.Error("Error while trying to bind glyph discord message:", err)
 		c.String(401, "Error in your request")
 		return
 	}
@@ -116,7 +118,7 @@ func httpecho(c *gin.Context) {
 	// Test Code
 	requestDump, err := httputil.DumpRequest(c.Request, true)
 	if err != nil {
-		log.Println(err)
+		apiLog.Error("Error in echo: ", err)
 	}
 	c.String(200, string(requestDump))
 }
