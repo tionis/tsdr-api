@@ -15,6 +15,5 @@ require (
 	github.com/rylio/ytdl v0.6.3
 	golang.org/x/text v0.3.3
 	gopkg.in/tucnak/telebot.v2 v2.3.3
-	github.com/keybase/go-logging v0.0.0-20200423195923-7a5ab2ef7dec
 	layeh.com/gopus v0.0.0-20161224163843-0ebf989153aa // indirect
 )
