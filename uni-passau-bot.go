@@ -633,7 +633,7 @@ func updateFile() {
 				mensaBotLog.Error("Error deleting Old File")
 			}
 		} else {
-			mensaBotLog.Error("No File from previous week to delete")
+			mensaBotLog.Warning("No File from previous week to delete")
 		}
 	}
 }

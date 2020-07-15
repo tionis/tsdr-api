@@ -156,7 +156,7 @@ func glyphTelegramBot() {
 	})
 	glyph.Handle(tb.OnText, func(m *tb.Message) {
 		if !m.Private() {
-			glyphTelegramLog.Info("[GlyphTelegramBot] " + "Message from Group:")
+			glyphTelegramLog.Info("Message from Group:")
 			printInfoGlyph(m)
 		} else {
 			context := get("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")

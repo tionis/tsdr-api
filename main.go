@@ -17,7 +17,7 @@ type hostSwitch map[string]http.Handler
 var mainLog = logging.MustGetLogger("main")
 
 var logFormat = logging.MustStringFormatter(
-	`%{color}%{time:15:04:05.000} %{shortfunc} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+	`%{color}%{module} ▶ %{level:.4s}%{color:reset} %{message}`,
 )
 
 var isProduction bool
@@ -36,7 +36,7 @@ func main() {
 		isProduction = true
 	case "DEBUG":
 		logging.SetFormatter(logging.MustStringFormatter(
-			`%{color}%{time:15:04:05.000} %{shortfile} ▶ %{level:.4s} %{id:03x}%{color:reset} %{message}`,
+			`%{color}%{module}: %{shortfile} ▶ %{level:.4s}%{color:reset} %{message}`,
 		))
 		mainLog.Info("Detected Debug Mode")
 		gin.SetMode(gin.DebugMode)
@@ -79,6 +79,8 @@ func main() {
 		port = defaultPort
 	}
 	apiRouter := gin.Default()
+	//apiRouter.Use(gin.LoggerWithFormatter(ginLogFormatter))
+	apiRouter.Use(gin.Recovery())
 	apiRoutes(apiRouter) // Initialize API Routes
 	corsRouter := gin.Default()
 	corsRoutes(corsRouter)
@@ -98,6 +100,20 @@ func main() {
 	// Start WebServer
 	mainLog.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), hs))
 }
+
+/*func ginLogFormatter(param gin.LogFormatterParams) string {
+	return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
+		param.ClientIP,
+		param.TimeStamp.Format(time.RFC1123),
+		param.Method,
+		param.Path,
+		param.Request.Proto,
+		param.StatusCode,
+		param.Latency,
+		param.Request.UserAgent(),
+		param.ErrorMessage,
+	)
+}*/
 
 // Hostswitch HTTP Handler that enables the use in a standard lib way
 func (hs hostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {

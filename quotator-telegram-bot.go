@@ -15,7 +15,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-var quotatorTelegramLog = logging.MustGetLogger("glyphDiscord")
+var quotatorTelegramLog = logging.MustGetLogger("quotatorTelegram")
 
 const quotatorContextDelay = time.Hour * 24
 
@@ -41,7 +41,7 @@ func quotatorTelegramBot() {
 		sig := <-signalChannel
 		switch sig {
 		case os.Interrupt:
-			quotatorTelegramLog.Info("[GlyphTelegramBot] " + "Interruption Signal received, shutting down...")
+			quotatorTelegramLog.Info("Interruption Signal received, shutting down...")
 			exit(botquit)
 		case syscall.SIGTERM:
 			botquit <- true
