@@ -28,3 +28,4 @@ api
 .issues
 *.csv
 run.sh
+docker-compose.dev.yml
