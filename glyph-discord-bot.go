@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-	"io"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -12,10 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bwmarrin/dgvoice"
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/heroku/x/hmetrics/onload"
-	"github.com/jonas747/dca"
 	"github.com/keybase/go-logging"
 	"github.com/rylio/ytdl"
 )
@@ -165,7 +161,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtomorrow())
 
 	// Music commands
-	case "/play":
+	/*case "/play":
 		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		parsePlayCommand(s, m)
 	case "/stop":
@@ -188,7 +184,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		parseSkipCommand(s, m)
 	case "/echo":
 		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
-		echo(s, m)
+		echo(s, m)*/
 
 	// Config commands
 	case "/save":
@@ -702,6 +698,7 @@ func constructRollRoteNoReroll(throwCount int) [][]int {
 	return retSlice
 }
 
+/*
 // Takes inbound audio and sends it right back out.
 func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 	voiceChannel := ""
@@ -743,7 +740,7 @@ func echo(s *discordgo.Session, m *discordgo.MessageCreate) {
 	go dgvoice.SendPCM(s.VoiceConnections[m.GuildID], send)
 
 	_ = s.VoiceConnections[m.GuildID].Speaking(true)
-	//defer s.VoiceConnections[m.GuildID].Speaking(false)
+	defer s.VoiceConnections[m.GuildID].Speaking(false)
 
 	for {
 		if time.Until(stopTime) <= 0 {
@@ -1078,3 +1075,4 @@ func streamControl(encodingSession *dca.EncodeSession, voiceConnection *discordg
 func removeFromVideoInfoArray(slice []*ytdl.VideoInfo, x int) []*ytdl.VideoInfo {
 	return append(slice[:x], slice[x+1:]...)
 }
+*/
