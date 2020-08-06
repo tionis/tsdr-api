@@ -10,7 +10,7 @@ require (
 	github.com/keybase/go-logging v0.0.0-20200423195923-7a5ab2ef7dec
 	github.com/lib/pq v1.7.1
 	github.com/magefile/mage v1.10.0
-	github.com/rylio/ytdl v0.6.3
+	github.com/rylio/ytdl v0.6.4
 	golang.org/x/text v0.3.3
 	gopkg.in/tucnak/telebot.v2 v2.3.3
 )
