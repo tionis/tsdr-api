@@ -3,7 +3,7 @@ module git.tasadar.net/tasadar/api
 go 1.14
 
 require (
-	github.com/bwmarrin/discordgo v0.21.1
+	github.com/bwmarrin/discordgo v0.22.0
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-redis/redis/v7 v7.4.0
 	github.com/heroku/x v0.0.25
