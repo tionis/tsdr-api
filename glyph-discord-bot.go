@@ -267,9 +267,9 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		case 10:
 			_, _ = s.ChannelMessageSend(m.ChannelID, "**Success!** Your Chance Die showed a 10!")
 		case 1:
-			_, _ = s.ChannelMessageSend(m.ChannelID, "**Fail!** Your Chance Die failed spectacularly!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "**Epic Fail!** Your Chance Die failed spectacularly!")
 		default:
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Fail! You rolled a **"+strconv.Itoa(diceRollResult)+"** on your Chance die!")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "**Fail!** You rolled a **"+strconv.Itoa(diceRollResult)+"** on your Chance die!")
 		}
 		return
 	case "init":
