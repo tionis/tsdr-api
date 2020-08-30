@@ -407,9 +407,9 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 				}
 			}
 		}
-		// Count Successes and Ones while parsing the return String
+		// Count Successes and CritFails while parsing the return String
 		// Parse Slice here
-		var successes, ones int
+		var successes, critfails int
 		var output strings.Builder
 		output.WriteString("Results: ")
 		for i := range retSlice {
@@ -422,14 +422,14 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 				switch retSlice[i][j] {
 				case 8, 9, 10:
 					successes++
-				case 1:
-					ones++
+				case 1, 2:
+					critfails++
 				}
 			}
 			output.WriteString("] ")
 			output.WriteString(" ")
 		}
-		if ones >= (throwCount/2 + 1) {
+		if critfails >= (throwCount / 2) {
 			if successes == 0 {
 				output.WriteString("\nWell that's a **critical failure!**")
 			} else {
