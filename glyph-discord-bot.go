@@ -116,6 +116,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	inputString := strings.Split(m.Content, " ")
 	switch inputString[0] {
 	// Dice commands
+	case "Is @tionis right?":
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Yes, definitely!")
 	case "/roll":
 		if len(inputString) < 2 {
 			glyphDiscordLog.Info("New Command by " + m.Author.Username + ": " + m.Content)
