@@ -129,25 +129,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Help commands
 	case "/help":
 		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - General Tasadar Network - /tn help\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	case "/unip":
 		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/pnp":
 		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier\n - /construct or /co - get construct-specific help")
-	case "/co", "/construct":
-		if len(inputString) < 2 {
-			glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /co trait TRAITNAME - Get Description for specified trait")
-		} else {
-			switch inputString[1] {
-			// Construct command here
-			default:
-				glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Invalid Command Syntax")
-			}
-		}
 
 	// Food commands
 	case "/food":
@@ -195,14 +183,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			}
 		}
 
-	// MISC
+	// MISC commands
 	case "/ping":
 		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
 	case "/id":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
-		//default:
-		//glyphDiscordLog.Info("Logged Unknown Command by " + m.Author.Username + ": "+ m.Content)
 	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
@@ -220,6 +206,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_, _ = s.ChannelMessageSend(m.ChannelID, m.Author.String())
 	case "/todo":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Feature still in Development")
+		//default:
+		//glyphDiscordLog.Info("Logged Unknown Command by " + m.Author.Username + ": "+ m.Content)
 	}
 }
 
@@ -417,7 +405,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			for j := range retSlice[i] {
 				output.WriteString(strconv.Itoa(retSlice[i][j]))
 				if j != len(retSlice[i])-1 {
-					output.WriteString(" ⮞ ")
+					output.WriteString(" ❯ ")
 				}
 				switch retSlice[i][j] {
 				case 8, 9, 10:
