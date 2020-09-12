@@ -116,6 +116,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	inputString := strings.Split(m.Content, " ")
 	switch inputString[0] {
 	// Dice commands
+	case "Is @tionis right?":
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Yes, definitely!")
 	case "/roll":
 		if len(inputString) < 2 {
 			glyphDiscordLog.Info("New Command by " + m.Author.Username + ": " + m.Content)
@@ -135,8 +138,21 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/pnp":
 		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier\n - /construct or /co - get construct-specific help")
-
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier\n - /gm help - Get help for using the gm tools")
+	case "/gm", "/GM":
+		switch inputString[1] {
+		case "help":
+			glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /gm rollinit COUNT INIT")
+		case "rollinit":
+			glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
+			rollCount, err := strconv.Atoi(inputString[2])
+			rollInit, err := strconv.Atoi(inputString[3])
+			if err != nil {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			}
+			_, _ = s.ChannelMessageSend(m.ChannelID, rollMassInit(rollCount, rollInit))
+		}
 	// Food commands
 	case "/food":
 		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
@@ -233,6 +249,15 @@ func memberHasRole(s *discordgo.Session, guildID string, userID string, roleID s
 	}
 
 	return false, nil
+}
+
+// Roll init rollCount times with given initmod and return a string for user
+func rollMassInit(rollCount, initMod int) string {
+	var output strings.Builder
+	for i := 1; i <= rollCount; i++ {
+		output.WriteString(strconv.Itoa(i) + ": " + strconv.Itoa(rollXSidedDie(1, 10)[0]+initMod) + "\n")
+	}
+	return output.String()
 }
 
 // Parse roll command
