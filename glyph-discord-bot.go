@@ -267,12 +267,18 @@ func rollMassInit(rollCount, initMod int) string {
 // Parse Dice diagnostics
 func diceDiagnosticHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 	inputString := strings.Split(m.Content, " ")
-	count, err := strconv.Atoi(inputString[2])
-	if err != nil {
-		s.ChannelMessageSend(m.ChannelID, "There was an error parsing your command!")
-		return
+	count := 0
+	if len(inputString) < 3 {
+		count = 100000
+	} else {
+		var err error
+		count, err = strconv.Atoi(inputString[2])
+		if err != nil {
+			s.ChannelMessageSend(m.ChannelID, "There was an error parsing your command!")
+			return
+		}
 	}
-	if count >= 1000000 {
+	if count > 1000000 {
 		s.ChannelMessageSend(m.ChannelID, "Please choose a valid range!")
 		return
 	}
