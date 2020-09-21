@@ -116,19 +116,23 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	inputString := strings.Split(m.Content, " ")
 	switch inputString[0] {
 	// Dice commands
-	case "Is @tionis right?":
-		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Yes, definitely!")
-	case "/roll":
+	case "/roll", "/r":
 		if len(inputString) < 2 {
 			glyphDiscordLog.Info("New Command by " + m.Author.Username + ": " + m.Content)
-			_, _ = s.ChannelMessageSend(m.ChannelID, "To roll construct dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "To roll dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
 		} else {
 			rollHelper(s, m)
 		}
-	case "/r":
-		rollHelper(s, m)
 
+	// Diagnostic Commands
+	case "/diag":
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
+		switch inputString[1] {
+		case "dice":
+			diceDiagnosticHelper(s, m)
+		default:
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Unknown Command!")
+		}
 	// Help commands
 	case "/help":
 		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
@@ -258,6 +262,39 @@ func rollMassInit(rollCount, initMod int) string {
 		output.WriteString(strconv.Itoa(i) + ": " + strconv.Itoa(rollXSidedDie(1, 10)[0]+initMod) + "\n")
 	}
 	return output.String()
+}
+
+// Parse Dice diagnostics
+func diceDiagnosticHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
+	inputString := strings.Split(m.Content, " ")
+	count, err := strconv.Atoi(inputString[2])
+	if err != nil {
+		s.ChannelMessageSend(m.ChannelID, "There was an error parsing your command!")
+		return
+	}
+	if count >= 1000000 {
+		s.ChannelMessageSend(m.ChannelID, "Please choose a valid range!")
+		return
+	}
+	sidesCount := make([]int, 10)
+	result := rollXSidedDie(count, 10)
+	for i := 0; i < len(result); i++ {
+		sidesCount[result[i]-1]++
+	}
+	var output strings.Builder
+	countFloat := float64(count)
+	output.WriteString("Diagnostics show following percentages:\n")
+	for i := 0; i < len(sidesCount); i++ {
+		percentString := floatToString((float64(sidesCount[i])/countFloat)*100) + "%"
+		output.WriteString("Side " + strconv.Itoa(i) + ": " + percentString + "\n")
+	}
+	s.ChannelMessageSend(m.ChannelID, output.String())
+}
+
+// convert a Float64 into a string
+func floatToString(inputNum float64) string {
+	// to convert a float number to a string
+	return strconv.FormatFloat(inputNum, 'f', 6, 64)
 }
 
 // Parse roll command
@@ -424,7 +461,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Parse Slice here
 		var successes, critfails int
 		var output strings.Builder
-		output.WriteString("Results: ")
+		output.WriteString("Results for " + m.Author.Mention() + ": ")
 		for i := range retSlice {
 			output.WriteString("[")
 			for j := range retSlice[i] {
@@ -442,17 +479,12 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			output.WriteString("] ")
 			output.WriteString(" ")
 		}
-		if critfails >= (throwCount / 2) {
-			if successes == 0 {
-				output.WriteString("\nWell that's a **critical failure!**")
-			} else {
-				output.WriteString("\nThat was nearly a critical failure! But you had **" + strconv.Itoa(successes) + "** Successes!")
-			}
+		if critfails >= (throwCount/2) && successes == 0 {
+			output.WriteString("\nWell that's a **critical failure!**")
 		} else {
 			if successes > 0 {
 				if successes >= 5 {
-					mentionString := m.Author.Mention()
-					output.WriteString("\nThat were **" + strconv.Itoa(successes) + "** Successes!\n" + mentionString + " That was exceptional!")
+					output.WriteString("\nThat were **" + strconv.Itoa(successes) + "** Successes!\n" + " That was **exceptional**!")
 				} else {
 					if successes == 1 {
 						output.WriteString("\nThat was **1** Success!")
