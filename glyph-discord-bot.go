@@ -286,7 +286,7 @@ func diceDiagnosticHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 	output.WriteString("Diagnostics show following percentages:\n")
 	for i := 0; i < len(sidesCount); i++ {
 		percentString := floatToString((float64(sidesCount[i])/countFloat)*100) + "%"
-		output.WriteString("Side " + strconv.Itoa(i) + ": " + percentString + "\n")
+		output.WriteString("Side " + strconv.Itoa(i+1) + ": " + percentString + "\n")
 	}
 	s.ChannelMessageSend(m.ChannelID, output.String())
 }
