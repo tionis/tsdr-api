@@ -1,0 +1,67 @@
+{
+  "bookmarks": [{
+      "category": "Communicate",
+      "links": [{
+          "name": "Discord",
+          "url": "https://discord.com/app"
+        },
+        {
+          "name": "Contact me",
+          "url": "https://tionis.tasadar.net"
+        },
+        {
+          "name": "Protonmail",
+          "url": "https://beta.protonmail.com"
+        }
+      ]
+    },
+    {
+      "category": "Work",
+      "links": [{
+          "name": "HackMD",
+          "url": "https://hackmd.io/"
+        },
+        {
+          "name": "Studip",
+          "url": "https://studip.uni-passau.de"
+        },
+        {
+          "name": "Hardbin",
+          "url": "https://harbin.com"
+        }
+      ]
+    },
+    {
+      "category": "Media",
+      "links": [{
+          "name": "Spotify",
+          "url": "https://browse.spotify.com"
+        },
+        {
+          "name": "YouTube",
+          "url": "https://youtube.com"
+        },
+        {
+          "name": "Netflix",
+          "url": "https://netflix.com"
+        }
+      ]
+    },
+    {
+      "category": "Reading",
+      "links": [{
+          "name": "Instapaper",
+          "url": "https://www.instapaper.com/u"
+        },
+        {
+          "name": "Reading",
+          "url": "https://read.tasadar.net"
+        },
+        {
+          "name": "Reddit",
+          "url": "https://reddit.com"
+        }
+      ]
+    }
+  ]
+}

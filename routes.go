@@ -30,6 +30,10 @@ type tokenStruct struct {
 	Token string `json:"token"`
 }
 
+func landingPageRoutes(router *gin.Engine) {
+	router.Static("/", "./static/tasadar.net")
+}
+
 func apiRoutes(router *gin.Engine) {
 	// Default Stuff
 	router.GET("/favicon.svg", favicon)
@@ -37,6 +41,7 @@ func apiRoutes(router *gin.Engine) {
 	router.GET("/glyph", glyphRedirect)
 	router.NoRoute(notFound)
 	router.GET("/echo", httpecho)
+	router.GET("/discord", discordinvite)
 
 	// Handle Status Watch
 	router.GET("/onlinecheck", func(c *gin.Context) {
@@ -126,6 +131,10 @@ func httpecho(c *gin.Context) {
 // Handle both root thingies
 func favicon(c *gin.Context) {
 	c.File("static/icons/favicon.svg")
+}
+
+func discordinvite(c *gin.Context) {
+	c.Redirect(302, "https://discord.gg/CSZyd87")
 }
 
 func index(c *gin.Context) {

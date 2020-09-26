@@ -84,17 +84,22 @@ func main() {
 	apiRoutes(apiRouter) // Initialize API Routes
 	corsRouter := gin.Default()
 	corsRoutes(corsRouter)
+	landingPageRouter := gin.Default()
+	landingPageRoutes(landingPageRouter)
 
 	// Create HostSwitch Handling for Virtual Hosts support
 	hs := make(hostSwitch)
 	if isProduction {
 		hs["api.tasadar.net"] = apiRouter
 		hs["cors.tasadar.net"] = corsRouter
+		hs["tasadar.net"] = landingPageRouter
 	} else {
 		hs["api.localhost:"+os.Getenv("PORT")] = apiRouter
 		hs["api.localhost"] = apiRouter
 		hs["cors.localhost:"+os.Getenv("PORT")] = corsRouter
 		hs["cors.localhost"] = corsRouter
+		hs["tasadar.localhost:"+os.Getenv("PORT")] = landingPageRouter
+		hs["tasadar.localhost"] = landingPageRouter
 	}
 
 	// Start WebServer
