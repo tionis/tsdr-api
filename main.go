@@ -93,6 +93,7 @@ func main() {
 		hs["api.tasadar.net"] = apiRouter
 		hs["cors.tasadar.net"] = corsRouter
 		hs["tasadar.net"] = landingPageRouter
+		hs["landing.tasadar.net"] = landingPageRouter
 	} else {
 		hs["api.localhost:"+os.Getenv("PORT")] = apiRouter
 		hs["api.localhost"] = apiRouter
