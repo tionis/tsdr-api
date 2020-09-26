@@ -30,10 +30,6 @@ type tokenStruct struct {
 	Token string `json:"token"`
 }
 
-func landingPageRoutes(router *gin.Engine) {
-	router.Static("/", "./static/tasadar.net")
-}
-
 func apiRoutes(router *gin.Engine) {
 	// Default Stuff
 	router.GET("/favicon.svg", favicon)
