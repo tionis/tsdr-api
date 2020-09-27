@@ -38,12 +38,12 @@ func dbInit() {
 	var err error
 	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		dataLog.Warning("PostgreSQL Server Connection failed: ", err)
+		dataLog.Fatal("PostgreSQL Server Connection failed: ", err)
 	}
 	db.SetMaxOpenConns(19) // Heroku free plan limit - 1 debug connection
-	_ = db.Ping()
+	err = db.Ping()
 	if err != nil {
-		dataLog.Warning("PostgreSQL Server Ping failed: ", err)
+		dataLog.Fatal("PostgreSQL Server Ping failed: ", err)
 		err = db.Close()
 		if err != nil {
 			dataLog.Warning("PostgreSQL Error closing Postgres Session")
@@ -77,9 +77,9 @@ func SetRemove(key, value string) error {
 	return redclient.SRem(key, value).Err()
 }*/
 
-/*func set(key string, value string) error {
+func set(key string, value string) error {
 	return redclient.Set(key, value, 0).Err()
-}*/
+}
 
 func del(key string) error {
 	return redclient.Del(key).Err()

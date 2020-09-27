@@ -82,6 +82,8 @@ github.com/hashicorp/golang-lru v0.5.1/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ
 github.com/heroku/rollrus v0.2.0/go.mod h1:B3MwEcr9nmf4xj0Sr5l9eSht7wLKMa1C+9ajgAU79ek=
 github.com/heroku/x v0.0.25 h1:6/2rENs6rfUds9jOxy9oO59b0fiOx/FeTCGOyLMXcZw=
 github.com/heroku/x v0.0.25/go.mod h1:qE/I0jp6rIeTBBosrPYV4ygRX3OMhqmC/A6x8ewodJQ=
+github.com/heroku/x v0.0.26 h1:hdHki6Gsh7aVKuea7R8bX/OHzaeng76mfFzoagPSp4Q=
+github.com/heroku/x v0.0.26/go.mod h1:qE/I0jp6rIeTBBosrPYV4ygRX3OMhqmC/A6x8ewodJQ=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/hydrogen18/memlistener v0.0.0-20141126152155-54553eb933fb/go.mod h1:qEIFzExnS6016fRpRfxrExeVn2gbClQA99gQhnIcdhE=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
@@ -271,6 +273,8 @@ gopkg.in/resty.v1 v1.12.0/go.mod h1:mDo4pnntr5jdWRML875a/NmxYqAlA73dVijT2AXvQQo=
 gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7/go.mod h1:dt/ZhP58zS4L8KSrWDmTeBkI65Dw0HsyUHuEVlX15mw=
 gopkg.in/tucnak/telebot.v2 v2.3.3 h1:84eAU0n59g7J35OcIFIU7+lEn/7mknTC+A+4NssFF3k=
 gopkg.in/tucnak/telebot.v2 v2.3.3/go.mod h1:t+KVAiqFsG9ZDF0hz1ZPFTyENtlrDrDS3qmRRqhICBg=
+gopkg.in/tucnak/telebot.v2 v2.3.4 h1:LtZ1hahdWDYFX723PlkLDMo56p99uMzrvBL9BRhyNy4=
+gopkg.in/tucnak/telebot.v2 v2.3.4/go.mod h1:t+KVAiqFsG9ZDF0hz1ZPFTyENtlrDrDS3qmRRqhICBg=
 gopkg.in/yaml.v2 v2.0.0-20170812160011-eb3733d160e7/go.mod h1:JAlM8MvJe8wmxCU4Bli9HhUf9+ttbYbLASfIpnQbh74=
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=

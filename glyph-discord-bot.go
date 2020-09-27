@@ -13,45 +13,19 @@ import (
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/keybase/go-logging"
-	"github.com/rylio/ytdl"
 )
 
 // Discord ID of admin
 var discordAdminID string
-
-// Read write lock for the voice update map
-var voiceUpdateLock = sync.RWMutex{}
-
-// A map of stream updates that modify the playback indexed after guildIDs
-var voiceUpdate map[string]chan updateStream
-
-// Read write lock for the queuemap
-var queueMapLock sync.RWMutex
-
-// A map of queue represented as ytdl.VideoInfo arrays indexed after guildIDs
-var queueMap map[string][]*ytdl.VideoInfo
-
-// Read write lock for the volume map
-var volumeMapLock sync.RWMutex
-
-// Volume Map
-var volumeMap map[string]int
 
 // Needed for onlyonce execution of random source
 var onlyOnce sync.Once
 
 var glyphDiscordLog = logging.MustGetLogger("glyphDiscord")
 
-type updateStream struct {
-	index int // 0 means stop the stream, 1 means skip, 2 means pause and 3 means volume update
-}
-
 // Main and Init
 func glyphDiscordBot() {
 	discordAdminID = "259076782408335360"
-	voiceUpdate = make(map[string]chan updateStream)
-	queueMap = make(map[string][]*ytdl.VideoInfo)
-	volumeMap = make(map[string]int)
 
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
@@ -83,10 +57,6 @@ func glyphDiscordBot() {
 	<-sc
 
 	// Cleanly close down the Discord session.
-	voiceUpdateLock.RLock()
-	for _, abort := range voiceUpdate {
-		abort <- updateStream{0}
-	}
 	_ = dg.Close()
 }
 
@@ -99,6 +69,24 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	// Check if message was sent in an DM
+	AuthorDMChannelID := get("glyph|discord:" + m.Author.ID + "|DM-Channel")
+	if AuthorDMChannelID == "" {
+		AuthorDMChannel, err := s.UserChannelCreate(m.Author.ID)
+		if err != nil {
+			return
+		}
+		AuthorDMChannelID = AuthorDMChannel.ID
+		set("glyph|discord:"+m.Author.ID+"|DM-Channel", AuthorDMChannelID)
+	}
+	if m.ChannelID == AuthorDMChannelID {
+		// Handle DM
+		glyphDiscordLog.Info("New DM Command by " + m.Author.Username + ": " + m.Content)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "I am currently configured to ignore direct messages, please use a server channel to communicate.")
+		return
+	}
+
+	// Handle Server Messages
 	// Check if glyph is currently in a conversation with user
 	messageContext := get("glyph|discord:" + m.Author.ID + "|messageContext")
 	if messageContext != "" {
@@ -188,7 +176,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 						glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 					} else {
-						err := setWithTimer("glyph|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod), 2*24*time.Hour)
+						err := set("glyph|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
 						if err != nil {
 							glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
@@ -212,7 +200,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/updateStatus":
 		if m.Author.ID == discordAdminID {
 			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
-			err := setWithTimer("dgStatus", newStatus, 7*24*time.Hour)
+			err := set("dgStatus", newStatus)
 			if err != nil {
 				glyphDiscordLog.Warning("Error setting dgStatus on Redis: ", err)
 				_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
@@ -490,7 +478,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		} else {
 			if successes > 0 {
 				if successes >= 5 {
-					output.WriteString("\nThat were **" + strconv.Itoa(successes) + "** Successes!\n" + " That was **exceptional**!")
+					output.WriteString("\nThat were **" + strconv.Itoa(successes) + "** Successes!\n" + "That was **exceptional**!")
 				} else {
 					if successes == 1 {
 						output.WriteString("\nThat was **1** Success!")
