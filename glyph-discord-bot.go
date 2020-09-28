@@ -79,34 +79,29 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		AuthorDMChannelID = AuthorDMChannel.ID
 		set("glyph|discord:"+m.Author.ID+"|DM-Channel", AuthorDMChannelID)
 	}
-	if m.ChannelID == AuthorDMChannelID {
-		// Handle DM
-		glyphDiscordLog.Info("New DM Command by " + m.Author.Username + ": " + m.Content)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "I am currently configured to ignore direct messages, please use a server channel to communicate.")
-		return
-	}
+	isDM := m.ChannelID == AuthorDMChannelID
 
 	// Handle Server Messages
 	// Check if glyph is currently in a conversation with user
-	messageContext := get("glyph|discord:" + m.Author.ID + "|messageContext")
+	/*messageContext := get("glyph|discord:" + m.Author.ID + "|messageContext")
 	if messageContext != "" {
 		switch messageContext {
-		case "construct-character-creation":
-			// TODO: Character creation dialog
 		default:
 			glyphDiscordLog.Info("New Command by " + m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "I encountered an internal error, please contact the administrator.")
 			return
 		}
-	}
+	}*/
 
 	// Check if a known command was written
 	inputString := strings.Split(m.Content, " ")
+	if strings.Contains(inputString[0], "/") {
+		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
+	}
 	switch inputString[0] {
 	// Dice commands
 	case "/roll", "/r":
 		if len(inputString) < 2 {
-			glyphDiscordLog.Info("New Command by " + m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "To roll dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
 		} else {
 			rollHelper(s, m)
@@ -114,7 +109,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Diagnostic Commands
 	case "/diag":
-		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		switch inputString[1] {
 		case "dice":
 			diceDiagnosticHelper(s, m)
@@ -123,21 +117,16 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	// Help commands
 	case "/help":
-		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Command Categories:\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	case "/unip":
-		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
 	case "/pnp":
-		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /save initmod - Save your init modifier\n - /gm help - Get help for using the gm tools")
 	case "/gm", "/GM":
 		switch inputString[1] {
 		case "help":
-			glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Available Commands:\n - /gm rollinit COUNT INIT")
 		case "rollinit":
-			glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 			rollCount, err := strconv.Atoi(inputString[2])
 			rollInit, err := strconv.Atoi(inputString[3])
 			if err != nil {
@@ -147,16 +136,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	// Food commands
 	case "/food":
-		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtoday())
 	case "/food tomorrow":
-		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, foodtomorrow())
 
 	// Config commands
 	case "/save":
 		if len(inputString) < 2 {
-			glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Save Data to the Bot. Currently available:\n - /save initmod x - Save you Init Modifier")
 		} else {
 			switch inputString[1] {
@@ -164,24 +150,19 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				if len(inputString) < 3 {
 					err := del("glyph|discord:" + m.Author.ID + "|initmod")
 					if err != nil {
-						glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
 					} else {
-						glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was reset.")
 					}
 				} else {
 					initMod, err := strconv.Atoi(inputString[2])
 					if err != nil {
-						glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 					} else {
 						err := set("glyph|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
 						if err != nil {
-							glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
 						} else {
-							glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 							_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
 						}
 					}
@@ -193,7 +174,6 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// MISC commands
 	case "/ping":
-		glyphDiscordLog.Info(m.Author.Username + ": " + m.Content)
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
 	case "/id":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
@@ -214,8 +194,12 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_, _ = s.ChannelMessageSend(m.ChannelID, m.Author.String())
 	case "/todo":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Feature still in Development")
-		//default:
-		//glyphDiscordLog.Info("Logged Unknown Command by " + m.Author.Username + ": "+ m.Content)
+	case "/isDM":
+		if isDM {
+			_, _ = s.ChannelMessageSend(m.ChannelID, "This **is** a DM!")
+		} else {
+			_, _ = s.ChannelMessageSend(m.ChannelID, "This is **not** a DM!")
+		}
 	}
 }
 
