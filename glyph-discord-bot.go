@@ -154,7 +154,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 					} else {
 						_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was reset.")
 					}
-				} else {
+				} else if len(inputString) == 3 {
 					initMod, err := strconv.Atoi(inputString[2])
 					if err != nil {
 						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
@@ -166,9 +166,32 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 							_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
 						}
 					}
+				} else {
+					var output strings.Builder
+					limit := len(inputString)
+					for i := 2; i < limit; i++ {
+						_, err := strconv.Atoi(inputString[i])
+						if err != nil {
+							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error while parsing your command")
+							return
+						}
+						if i == limit-1 {
+							output.WriteString(inputString[i])
+						} else {
+							output.WriteString(inputString[i] + "|")
+						}
+					}
+					initModString := output.String()
+					err := set("glyph|discord:"+m.Author.ID+"|initmod", initModString)
+					if err != nil {
+						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
+					} else {
+						_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to following values: "+initModString+".")
+					}
+
 				}
 			default:
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I dont know what to save here!")
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I don't know what to save here!")
 			}
 		}
 
@@ -301,7 +324,21 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		return
 	case "init":
-		initModString := get("glyph|discord:" + m.Author.ID + "|initmod")
+		initModSlice := strings.Split(get("glyph|discord:"+m.Author.ID+"|initmod"), "|")
+		number := 1
+		if len(inputString) > 2 {
+			var err error
+			number, err = strconv.Atoi(inputString[2])
+			if err != nil {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error parsing your command!")
+				return
+			}
+		}
+		if number < 1 || number > len(initModSlice) {
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Please specify a valid number!")
+			return
+		}
+		initModString := initModSlice[number-1]
 		initMod, err := strconv.Atoi(initModString)
 		if err != nil {
 			initModString = ""
