@@ -46,7 +46,7 @@ func glyphDiscordBot() {
 	dgStatus, err := getError("dgStatus")
 	if err != nil {
 		glyphDiscordLog.Warning("Error getting dgStatus from redis: ", err)
-		dgStatus = "planning world domination"
+		dgStatus = "/help for help"
 	}
 	_ = dg.UpdateStatus(0, dgStatus)
 
