@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"math/rand"
 	"os"
 	"os/signal"
@@ -16,17 +17,17 @@ import (
 )
 
 // Discord ID of admin
-var discordAdminID string
+var discordAdminID string = "259076782408335360"
+var discordServerID string = "695330213953011733"
 
 // Needed for onlyonce execution of random source
 var onlyOnce sync.Once
 
+// Logger
 var glyphDiscordLog = logging.MustGetLogger("glyphDiscord")
 
 // Main and Init
 func glyphDiscordBot() {
-	discordAdminID = "259076782408335360"
-
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
 		glyphDiscordLog.Error("Error creating Discord session,", err)
@@ -145,54 +146,7 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if len(inputString) < 2 {
 			_, _ = s.ChannelMessageSend(m.ChannelID, "Save Data to the Bot. Currently available:\n - /save initmod x - Save you Init Modifier")
 		} else {
-			switch inputString[1] {
-			case "initmod":
-				if len(inputString) < 3 {
-					err := del("glyph|discord:" + m.Author.ID + "|initmod")
-					if err != nil {
-						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
-					} else {
-						_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was reset.")
-					}
-				} else if len(inputString) == 3 {
-					initMod, err := strconv.Atoi(inputString[2])
-					if err != nil {
-						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
-					} else {
-						err := set("glyph|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
-						if err != nil {
-							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
-						} else {
-							_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
-						}
-					}
-				} else {
-					var output strings.Builder
-					limit := len(inputString)
-					for i := 2; i < limit; i++ {
-						_, err := strconv.Atoi(inputString[i])
-						if err != nil {
-							_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error while parsing your command")
-							return
-						}
-						if i == limit-1 {
-							output.WriteString(inputString[i])
-						} else {
-							output.WriteString(inputString[i] + "|")
-						}
-					}
-					initModString := output.String()
-					err := set("glyph|discord:"+m.Author.ID+"|initmod", initModString)
-					if err != nil {
-						_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
-					} else {
-						_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to following values: "+initModString+".")
-					}
-
-				}
-			default:
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I don't know what to save here!")
-			}
+			saveHandler(s, m, inputString)
 		}
 
 	// MISC commands
@@ -248,6 +202,58 @@ func memberHasRole(s *discordgo.Session, guildID string, userID string, roleID s
 	}
 
 	return false, nil
+}
+
+// Handle Save Command
+func saveHandler(s *discordgo.Session, m *discordgo.MessageCreate, inputString []string) {
+	switch inputString[1] {
+	case "initmod":
+		if len(inputString) < 3 {
+			err := del("glyph|discord:" + m.Author.ID + "|initmod")
+			if err != nil {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
+			} else {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was reset.")
+			}
+		} else if len(inputString) == 3 {
+			initMod, err := strconv.Atoi(inputString[2])
+			if err != nil {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			} else {
+				err := set("glyph|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
+				if err != nil {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
+				} else {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
+				}
+			}
+		} else {
+			var output strings.Builder
+			limit := len(inputString)
+			for i := 2; i < limit; i++ {
+				_, err := strconv.Atoi(inputString[i])
+				if err != nil {
+					_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error while parsing your command")
+					return
+				}
+				if i == limit-1 {
+					output.WriteString(inputString[i])
+				} else {
+					output.WriteString(inputString[i] + "|")
+				}
+			}
+			initModString := output.String()
+			err := set("glyph|discord:"+m.Author.ID+"|initmod", initModString)
+			if err != nil {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
+			} else {
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to following values: "+initModString+".")
+			}
+
+		}
+	default:
+		_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I don't know what to save here!")
+	}
 }
 
 // Roll init rollCount times with given initmod and return a string for user
@@ -494,7 +500,8 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 			output.WriteString("] ")
 			output.WriteString(" ")
 		}
-		if critfails >= (throwCount/2) && successes == 0 {
+		critfailTreshold := int(math.Round(float64(throwCount) / 2))
+		if critfails >= critfailTreshold && successes == 0 {
 			output.WriteString("\nWell that's a **critical failure!**")
 		} else {
 			if successes > 0 {

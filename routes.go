@@ -37,6 +37,8 @@ func apiRoutes(router *gin.Engine) {
 	router.GET("/glyph", glyphRedirect)
 	router.NoRoute(notFound)
 	router.GET("/echo", httpecho)
+
+	// Handle short links
 	router.GET("/discord", discordinvite)
 
 	// Handle Status Watch
