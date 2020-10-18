@@ -61,22 +61,22 @@ func quotatorTelegramBot() {
 	// Command Handlers
 	// handle standard text commands
 	quotator.Handle("/hello", func(m *tb.Message) {
-		_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+		delTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
 		_, _ = quotator.Send(m.Chat, "What do you want?", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/start", func(m *tb.Message) {
-		_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+		delTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
 		_, _ = quotator.Send(m.Chat, "Hello.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/help", func(m *tb.Message) {
-		_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+		delTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
 		_, _ = quotator.Send(m.Chat, "Following Commands are available:\n/help - Show this message\n/getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language german author \"Emanuel Kant\" \n/addquote - add a quote to the database\n/quoteoftheday - Get your personal quote of the day", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoQuotator(m)
 	})
 	quotator.Handle("/getquote", func(m *tb.Message) {
-		_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+		delTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
 		author, language, universe, err := parseGetQuote(strings.TrimPrefix(m.Text, "/getquote "))
 		if err != nil {
 			quotatorTelegramLog.Error("[Quotator] Error parsing getQuote: ", err)
@@ -86,15 +86,15 @@ func quotatorTelegramBot() {
 		}
 	})
 	quotator.Handle("/setquote", func(m *tb.Message) {
-		_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", quotatorContextDelay)
+		setTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", quotatorContextDelay)
 		_, _ = quotator.Send(m.Chat, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 	})
 	quotator.Handle("/addquote", func(m *tb.Message) {
-		_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", quotatorContextDelay)
+		setTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", quotatorContextDelay)
 		_, _ = quotator.Send(m.Chat, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 	})
 	quotator.Handle("/quoteoftheday", func(m *tb.Message) {
-		quote := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|dayquote")
+		quote := getTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote")
 		if quote != "" {
 			_, _ = quotator.Send(m.Chat, quote)
 		} else {
@@ -102,13 +102,13 @@ func quotatorTelegramBot() {
 			now := time.Now()
 			year, month, day := now.Date()
 			midnight := time.Date(year, month, day+1, 0, 0, 0, 0, now.Location())
-			_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
+			setTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
 			_, _ = quotator.Send(m.Chat, quote)
 		}
 		printInfoQuotator(m)
 	})
 	quotator.Handle(tb.OnText, func(m *tb.Message) {
-		context := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+		context := getTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
 		if context == "" {
 			if !m.Private() {
 				printInfoGlyph(m)
@@ -119,23 +119,23 @@ func quotatorTelegramBot() {
 		} else {
 			switch context {
 			case "quoteRequired":
-				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote", m.Text, quotatorContextDelay)
-				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "authorRequired", quotatorContextDelay)
+				setTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote", m.Text, quotatorContextDelay)
+				setTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "authorRequired", quotatorContextDelay)
 				_, _ = quotator.Send(m.Sender, "Thanks, now the author please.")
 				printInfoGlyph(m)
 			case "authorRequired":
-				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor", m.Text, quotatorContextDelay)
-				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "languageRequired", quotatorContextDelay)
+				setTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor", m.Text, quotatorContextDelay)
+				setTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "languageRequired", quotatorContextDelay)
 				_, _ = quotator.Send(m.Sender, "Thanks, now the language please.", &tb.ReplyMarkup{ReplyKeyboard: replyKeysLanguage})
 				printInfoGlyph(m)
 			case "languageRequired":
-				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage", m.Text, quotatorContextDelay)
-				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "universeRequired", quotatorContextDelay)
+				setTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage", m.Text, quotatorContextDelay)
+				setTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "universeRequired", quotatorContextDelay)
 				_, _ = quotator.Send(m.Sender, "And now the universe it comes from please:", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 				printInfoQuotator(m)
 			case "universeRequired":
-				_ = setWithTimer("quotator|telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text, quotatorContextDelay)
-				_ = del("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+				setTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text, quotatorContextDelay)
+				delTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
 				_, _ = quotator.Send(m.Sender, addQuote(m))
 				printInfoQuotator(m)
 			}
@@ -290,10 +290,10 @@ func getRandomQuote(byAuthor, inLanguage, inUniverse string) string {
 }
 
 func addQuote(m *tb.Message) string {
-	quote := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentQuote")
-	author := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentAuthor")
-	language := strings.ToLower(get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentLanguage"))
-	universe := get("quotator|telegram:" + strconv.Itoa(m.Sender.ID) + "|currentUniverse")
+	quote := getTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote")
+	author := getTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor")
+	language := strings.ToLower(getTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage"))
+	universe := getTmp("quotator", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse")
 	stmt, err := db.Prepare(`INSERT INTO quotes (quote, author, language, universe) VALUES ($1, $2, $3, $4)`)
 	if err != nil {
 		quotatorTelegramLog.Error("Error preparing database statement: ", err)

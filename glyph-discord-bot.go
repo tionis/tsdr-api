@@ -44,12 +44,12 @@ func glyphDiscordBot() {
 	}
 
 	// Set some StartUp Stuff
-	dgStatus, err := getError("dgStatus")
+	/*dgStatus, err := getError("dgStatus")
 	if err != nil {
 		glyphDiscordLog.Warning("Error getting dgStatus from redis: ", err)
 		dgStatus = "/help for help"
-	}
-	_ = dg.UpdateStatus(0, dgStatus)
+	}*/
+	_ = dg.UpdateStatus(0, "/help for help")
 
 	// Wait here until CTRL-C or other term signal is received.
 	glyphDiscordLog.Info("Glyph Discord Bot was started.")
@@ -71,14 +71,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// Check if message was sent in an DM
-	AuthorDMChannelID := get("glyph|discord:" + m.Author.ID + "|DM-Channel")
+	AuthorDMChannelID := getTmp("glyph", "dg:"+m.Author.ID+"|DM-Channel")
 	if AuthorDMChannelID == "" {
 		AuthorDMChannel, err := s.UserChannelCreate(m.Author.ID)
 		if err != nil {
 			return
 		}
 		AuthorDMChannelID = AuthorDMChannel.ID
-		set("glyph|discord:"+m.Author.ID+"|DM-Channel", AuthorDMChannelID)
+		setTmp("glyph", "dg:"+m.Author.ID+"|DM-Channel", AuthorDMChannelID, time.Hour*24)
 	}
 	isDM := m.ChannelID == AuthorDMChannelID
 
@@ -154,19 +154,19 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Pong!")
 	case "/id":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
-	case "/updateStatus":
-		if m.Author.ID == discordAdminID {
-			newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
-			err := set("dgStatus", newStatus)
-			if err != nil {
-				glyphDiscordLog.Warning("Error setting dgStatus on Redis: ", err)
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
-			}
-			_ = s.UpdateStatus(0, newStatus)
-			_, _ = s.ChannelMessageSend(m.ChannelID, "New Status set!")
-		} else {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
+	/*case "/updateStatus":
+	if m.Author.ID == discordAdminID {
+		newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
+		err := set("dgStatus", newStatus)
+		if err != nil {
+			glyphDiscordLog.Warning("Error setting dgStatus on Redis: ", err)
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
 		}
+		_ = s.UpdateStatus(0, newStatus)
+		_, _ = s.ChannelMessageSend(m.ChannelID, "New Status set!")
+	} else {
+		_, _ = s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
+	}*/
 	case "/whoami":
 		_, _ = s.ChannelMessageSend(m.ChannelID, m.Author.String())
 	case "/todo":
@@ -209,23 +209,15 @@ func saveHandler(s *discordgo.Session, m *discordgo.MessageCreate, inputString [
 	switch inputString[1] {
 	case "initmod":
 		if len(inputString) < 3 {
-			err := del("glyph|discord:" + m.Author.ID + "|initmod")
-			if err != nil {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
-			} else {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was reset.")
-			}
+			delTmp("glyph", "dg:"+m.Author.ID+"|initmod")
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was reset.")
 		} else if len(inputString) == 3 {
 			initMod, err := strconv.Atoi(inputString[2])
 			if err != nil {
 				_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
 			} else {
-				err := set("glyph|discord:"+m.Author.ID+"|initmod", strconv.Itoa(initMod))
-				if err != nil {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
-				} else {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
-				}
+				setTmp("glyph", "dg:"+m.Author.ID+"|initmod", strconv.Itoa(initMod), time.Hour*24)
+				_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
 			}
 		} else {
 			var output strings.Builder
@@ -243,13 +235,10 @@ func saveHandler(s *discordgo.Session, m *discordgo.MessageCreate, inputString [
 				}
 			}
 			initModString := output.String()
-			err := set("glyph|discord:"+m.Author.ID+"|initmod", initModString)
-			if err != nil {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error!")
-			} else {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to following values: "+initModString+".")
-			}
-
+			setTmp("glyph", "dg:"+m.Author.ID+"|initmod", initModString, time.Hour*24)
+			//inputString = inputString[:2]
+			//Save("glyph/discord:"+m.Author.ID+"/initmod", inputString)
+			_, _ = s.ChannelMessageSend(m.ChannelID, "Your init modifier was set to following values: "+initModString+".")
 		}
 	default:
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Sorry, I don't know what to save here!")
@@ -330,7 +319,16 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		return
 	case "init":
-		initModSlice := strings.Split(get("glyph|discord:"+m.Author.ID+"|initmod"), "|")
+		/*var initModSliceObject interface{}
+		err := Load("glyph/discord:"+m.Author.ID+"/initmod", &initModSliceObject)
+		if err != nil || reflect.TypeOf(initModSliceObject) != reflect.TypeOf("") {
+			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error, please try again!")
+			del("glyph/discord:" + m.Author.ID + "/initmod")
+			glyphDiscordLog.Warning("Error while getting init from data with type of "+reflect.TypeOf(initModSliceObject).String()+" and error: ", err.Error())
+			return
+		}
+		initModSlice := initModSliceObject.([]string)*/
+		initModSlice := strings.Split(getTmp("glyph", "dg:"+m.Author.ID+"|initmod"), "|")
 		number := 1
 		if len(inputString) > 2 {
 			var err error

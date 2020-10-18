@@ -147,7 +147,7 @@ func glyphTelegramBot() {
 		printInfoGlyph(m)
 	})
 	glyph.Handle("/addReminder", func(m *tb.Message) {
-		_ = setWithTimer("glyph|telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "TimeRequired", glyphTelegramContextDelay)
+		setTmp("glyph-tg", "tg:"+strconv.Itoa(m.Sender.ID)+"|context", "TimeRequired", glyphTelegramContextDelay)
 
 	})
 	glyph.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
@@ -159,10 +159,10 @@ func glyphTelegramBot() {
 			glyphTelegramLog.Info("Message from Group:")
 			printInfoGlyph(m)
 		} else {
-			context := get("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+			context := getTmp("glyph-tg", "tg:"+strconv.Itoa(m.Sender.ID)+"|context")
 			switch context {
 			case "TimeRequired":
-				_ = del("glyph|telegram:" + strconv.Itoa(m.Sender.ID) + "|context")
+				delTmp("glyph-tg", "tg:"+strconv.Itoa(m.Sender.ID)+"|context")
 				// TODO Parse Message and add result to queue: Add to relevant minute
 				// Add reminder to user data
 				_, _ = glyph.Send(m.Sender, "Whaaat!")
