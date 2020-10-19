@@ -55,37 +55,6 @@ func apiRoutes(router *gin.Engine) {
 	router.POST("/glyph/discord/send", glyphDiscordHandler)
 	//router.GET("/glyph/telegram/send", glyphTelegramHandler)
 	//router.GET("/glyph/matrix/send", glyphMatrixHandler)
-
-	// Google Assitant IFTTT API - tokenization
-	router.POST("/iot/assistant/order/:number", assistantOrderHandler)
-}
-
-// Google Assistant IFTTT Binding
-func authenticateIFTTTToken(token string) bool {
-	val, err := getError("token|" + token + "|ifttt")
-	if err != nil {
-		return false
-	}
-	return val == "true"
-}
-
-func assistantOrderHandler(c *gin.Context) {
-	var tokenJSON tokenStruct
-	if c.BindJSON(&tokenJSON) == nil {
-		if authenticateIFTTTToken(tokenJSON.Token) {
-			err := assistantOrder(c.Param("number"))
-			if err != nil {
-				c.String(500, "Uncategorized Fuckery")
-				apiLog.Error("Error executing order"+c.Param("number")+" : ", err)
-			} else {
-				c.String(200, "Order executed")
-			}
-		} else {
-			c.String(401, "Unauthorized!")
-		}
-	} else {
-		c.String(400, "Error parsing your packet")
-	}
 }
 
 func assistantOrder(orderNumber string) error {

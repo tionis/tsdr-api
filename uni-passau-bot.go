@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"encoding/csv"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,6 +14,7 @@ import (
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/jinzhu/now"
 	"github.com/keybase/go-logging"
 	"golang.org/x/text/encoding/charmap"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -68,7 +68,7 @@ func uniPassauBot() {
 	// Command Handlers
 	// handle special keyboard commands
 	b.Handle(&replyBtn, func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			_, _ = b.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		} else {
 			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
@@ -76,7 +76,7 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle(&replyBtn2, func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		} else {
 			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
@@ -84,7 +84,7 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle(&replyBtn3, func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		} else {
 			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
@@ -110,7 +110,7 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle("/food", func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			if !m.Private() {
 				_, _ = b.Send(m.Chat, foodtoday())
 				mensaBotLog.Info("Group Message:")
@@ -124,7 +124,7 @@ func uniPassauBot() {
 		//printAnswer(foodtoday())
 	})
 	b.Handle("/foodtomorrow", func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			if !m.Private() {
 				_, _ = b.Send(m.Chat, foodtomorrow())
 				mensaBotLog.Info("Group Message:")
@@ -137,7 +137,7 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle("/foodweek", func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			if !m.Private() {
 				_, _ = b.Send(m.Chat, foodweek())
 				//_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
@@ -222,6 +222,7 @@ func uniPassauBot() {
 	b.Start()
 }
 
+// ToDo check if can be solved better
 // Initializes the Array
 func initArray() {
 	updateFile()
@@ -238,6 +239,7 @@ func initArray() {
 	}
 }
 
+// TODO Check if can be optimized
 /*func initNextArray() {
 	// Check if exists
 	// checks if new file has to be downloaded and does so - does also remove the old file
@@ -273,6 +275,7 @@ func initArray() {
 	}
 }*/
 
+// TODO improve logic and maybe merge with foodweek? use wrapper?
 // returns a string to send on telegram of the food today
 func foodtoday() string {
 	// returns the string to print to user who requested the mensa plan
@@ -324,6 +327,7 @@ func foodtoday() string {
 	return day
 }
 
+// TODO improve logic
 // returns a string to send on telegram of the food tomorrow
 func foodtomorrow() string {
 	// returns the string to print to user who requested the mensa plan
@@ -470,6 +474,7 @@ func foodweek() string {
 	return strings.Join(s, "\n")
 }
 
+// TODO minimize logic
 // WeekDate returns the date for an specific day
 func weekDate(day int) string {
 	// Start from the middle of the year:
@@ -522,6 +527,7 @@ func delInf(input string) string {
 	return reg.ReplaceAllString(input, "${1}")
 }
 
+// TODO replace old logic
 // Transforms a given file from iso to utf
 func isoToUTF(path string) {
 	// Change the encoding and save file under non .tmp name
@@ -542,22 +548,14 @@ func isoToUTF(path string) {
 	}
 }
 
-// Transforms the file from the uni-passau version of the csv file to a standard one
+// Transforms the data from the uni-passau version of the csv file to a standard one
 func transformFile(path string) {
 	// Transforms csv file with separator ";" to a file with separator "," and also transforms all "," to ";"
-	read, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-
-	newContents := strings.Replace(string(read), ",", "*", -1)
+	read := getTmp("mensa", "foodweek")
+	newContents := strings.Replace(read, ",", "*", -1)
 	newContents = strings.Replace(newContents, ";", ",", -1)
 	newContents = strings.Replace(newContents, "*", ";", -1)
-
-	err = ioutil.WriteFile(path, []byte(newContents), 0)
-	if err != nil {
-		panic(err)
-	}
+	setTmp("mensa", "foodweek", newContents, time.Until(now.EndOfWeek()))
 }
 
 // DownloadFile downloads the newest file based on the week number
