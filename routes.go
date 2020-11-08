@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
@@ -40,6 +41,7 @@ func apiRoutes(router *gin.Engine) {
 
 	// Handle short links
 	router.GET("/discord", discordinvite)
+	router.GET("/log/today", logTodayRedirect)
 
 	// Handle Status Watch
 	router.GET("/onlinecheck", func(c *gin.Context) {
@@ -93,6 +95,12 @@ func httpecho(c *gin.Context) {
 		apiLog.Error("Error in echo: ", err)
 	}
 	c.String(200, string(requestDump))
+}
+
+func logTodayRedirect(c *gin.Context) {
+	currentTime := time.Now()
+	link := "https://wiki.tasadar.net/en/notes/log/" + currentTime.Format("2006/01/02")
+	c.Redirect(http.StatusTemporaryRedirect, link)
 }
 
 // Handle both root thingies
