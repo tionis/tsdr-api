@@ -9,10 +9,3 @@
 12 - 760862603802574888 (Stargate-GM)
 13 - 760860276928544819 (Askir)
 15 - 718607244723486740 (Construct)
-
-# TODO
- - Auto Remove Guest after some time
- - Add Role Synchronize Automatic Commit
- - Add Role Synchronizer
- - Write Some API Bindings for Wiki
- - Write Server Setup Command

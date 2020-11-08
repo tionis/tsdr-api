@@ -1,10 +1,8 @@
 package main
 
 import (
-	"bufio"
 	"encoding/csv"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/signal"
@@ -15,6 +13,7 @@ import (
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/jinzhu/now"
 	"github.com/keybase/go-logging"
 	"golang.org/x/text/encoding/charmap"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -68,7 +67,7 @@ func uniPassauBot() {
 	// Command Handlers
 	// handle special keyboard commands
 	b.Handle(&replyBtn, func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			_, _ = b.Send(m.Sender, foodtoday(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		} else {
 			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
@@ -76,7 +75,7 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle(&replyBtn2, func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			_, _ = b.Send(m.Sender, foodtomorrow(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		} else {
 			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
@@ -84,7 +83,7 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle(&replyBtn3, func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			_, _ = b.Send(m.Sender, foodweek(), &tb.ReplyMarkup{ReplyKeyboard: replyKeys}, tb.ModeMarkdown)
 		} else {
 			_, _ = b.Send(m.Chat, "Sorry, it's Corona time! 😔")
@@ -110,7 +109,7 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle("/food", func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			if !m.Private() {
 				_, _ = b.Send(m.Chat, foodtoday())
 				mensaBotLog.Info("Group Message:")
@@ -124,7 +123,7 @@ func uniPassauBot() {
 		//printAnswer(foodtoday())
 	})
 	b.Handle("/foodtomorrow", func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			if !m.Private() {
 				_, _ = b.Send(m.Chat, foodtomorrow())
 				mensaBotLog.Info("Group Message:")
@@ -137,7 +136,7 @@ func uniPassauBot() {
 		printInfo(m)
 	})
 	b.Handle("/foodweek", func(m *tb.Message) {
-		if get("isCorona") != "true" {
+		if getTmp("uni-passau-bot", "isCorona") != "true" {
 			if !m.Private() {
 				_, _ = b.Send(m.Chat, foodweek())
 				//_, _ = b.Send(m.Chat, "This command is temporarily disabled.")
@@ -215,69 +214,22 @@ func uniPassauBot() {
 	}()
 
 	// init preparations
-	initArray()
+	loadFoodWeekArray()
 
 	// print startup message
 	mensaBotLog.Info("Starting up...")
 	b.Start()
 }
 
-// Initializes the Array
-func initArray() {
-	updateFile()
-	r := csv.NewReader(bufio.NewReader(openactFile()))
-	values = nil
-	for {
-		record, err := r.Read()
-		// Stop at EOF.
-		if err == io.EOF {
-			break
-		}
-		// Build Slice by appending every line
-		values = append(values, record)
-	}
-}
-
-/*func initNextArray() {
-	// Check if exists
-	// checks if new file has to be downloaded and does so - does also remove the old file
-	loc, _ := time.LoadLocation("Europe/Berlin")
-	_, thisWeek := time.Now().In(loc).UTC().ISOWeek()
-	if thisWeek > 51 {
-		logger.log("[UniPassauBot] Next week is in next year, this method should not have been executed!")
-		return
-	}
-	nextweekstring := strconv.Itoa(thisWeek + 1)
-	if _, err := os.Stat(nextweekstring + ".csv"); os.IsNotExist(err) {
-
-		// No actual file found
-		logger.log("[UniPassauBot] " + "No File for next week found - starting download --- ")
-		err := downloadFile(nextweekstring)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		// logger.log("Up-to-date CSV-File found!")
-	}
-
-	r := csv.NewReader(bufio.NewReader(openactFile()))
-	nextvalues = nil
-	for {
-		record, err := r.Read()
-		// Stop at EOF.
-		if err == io.EOF {
-			break
-		}
-		// Build Slice by appending every line
-		nextvalues = append(nextvalues, record)
-	}
-}*/
-
+// "UI" Logic
 // returns a string to send on telegram of the food today
 func foodtoday() string {
 	// returns the string to print to user who requested the mensa plan
 	// reads actual file
-	updateFile()
+	err := updateFoodWeek()
+	if err != nil {
+		return "An error occurred!"
+	}
 
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	t := time.Now().In(loc)
@@ -324,11 +276,14 @@ func foodtoday() string {
 	return day
 }
 
-// returns a string to send on telegram of the food tomorrow
+// returns a string to send via telegram for the food tomorrow
 func foodtomorrow() string {
 	// returns the string to print to user who requested the mensa plan
 	// reads actual file
-	updateFile()
+	err := updateFoodWeek()
+	if err != nil {
+		return "An error occurred!"
+	}
 
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	t := time.Now().In(loc)
@@ -344,6 +299,7 @@ func foodtomorrow() string {
 	daynum++
 	if daynum == 8 {
 		// Code not ready yet
+		// TODO implement this with next week logic
 		return "This only works weekdays, will be implemented soon!"
 		/*
 			// Here Code for next week
@@ -408,16 +364,13 @@ func foodtomorrow() string {
 	return day
 }
 
-// As transformFile() also changes all the commas in the prices to semicolons this func does the opposite
-func transcor(input string) string {
-	output := strings.Replace(input, ";", ",", -1)
-	return output
-}
-
 // returns a string to send on telegram of the food for the week
 func foodweek() string {
 	// reads actual file
-	updateFile()
+	err := updateFoodWeek()
+	if err != nil {
+		return "An error occurred!"
+	}
 
 	var Mo, Di, Mi, Do, Fr string
 	Mo = "*Montag*:\n"
@@ -470,6 +423,8 @@ func foodweek() string {
 	return strings.Join(s, "\n")
 }
 
+// Time Calculation Logic
+
 // WeekDate returns the date for an specific day
 func weekDate(day int) string {
 	// Start from the middle of the year:
@@ -516,126 +471,135 @@ func weekDate(day int) string {
 	return ret.Format("02.01.2006")
 }*/
 
+// Direct Data Manipulation Logic
+
+// Load food for the week into array
+func loadFoodWeekArray() {
+	err := updateFoodWeek()
+	if err != nil {
+		mensaBotLog.Error("Could not update food for week: ", err)
+	}
+	loc, _ := time.LoadLocation("Europe/Berlin")
+	_, thisWeek := time.Now().In(loc).UTC().ISOWeek()
+	weekstring := strconv.Itoa(thisWeek)
+	r := csv.NewReader(strings.NewReader(getTmp("mensa", "food|week|"+weekstring)))
+	values = nil
+	for {
+		record, err := r.Read()
+		// Stop at EOF.
+		if err == io.EOF {
+			break
+		}
+		// Build Slice by appending every line
+		values = append(values, record)
+	}
+}
+
+// Load food for next week into array
+/*func loadFoodNextWeekArray() {
+	// Check if exists
+	// checks if new file has to be downloaded and does so - does also remove the old file
+	loc, _ := time.LoadLocation("Europe/Berlin")
+	_, thisWeek := time.Now().In(loc).UTC().ISOWeek()
+	nextWeekNumber := thisWeek + 1
+	if nextWeekNumber > 52 {
+		nextWeekNumber = 1
+	}
+	nextweekstring := strconv.Itoa(nextWeekNumber)
+	if getTmp("mensa", "food|week"+nextweekstring) == "" {
+		// No actual data found
+		mensaBotLog.Info("No File for next week found - starting download")
+		err := downloadFood(nextweekstring)
+		if err != nil {
+			mensaBotLog.Error("Could not download food for next week: ", err)
+			return
+		}
+	}
+
+	r := csv.NewReader(bufio.NewReader(strings.NewReader(getTmp("mensa", "food|week"+nextweekstring))))
+	nextvalues = nil
+	for {
+		record, err := r.Read()
+		// Stop at EOF.
+		if err == io.EOF {
+			break
+		}
+		// Build Slice by appending every line
+		nextvalues = append(nextvalues, record)
+	}
+}*/
+
+// As transformAndSaveFoodWeekData(input io.Reader) also changes all the commas in the prices to semicolons this func does the opposite
+func transcor(input string) string {
+	output := strings.ReplaceAll(input, ";", ",")
+	return output
+}
+
 // Delete the symbols in the brackets at the end of the string (in this case the allergic info)
 func delInf(input string) string {
 	reg := regexp.MustCompile(`\(.*\)`)
 	return reg.ReplaceAllString(input, "${1}")
 }
 
-// Transforms a given file from iso to utf
-func isoToUTF(path string) {
-	// Change the encoding and save file under non .tmp name
-	f, err := os.Open(path + ".tmp")
-	if err != nil {
-		mensaBotLog.Error("[UniPassauBot] Error opening file for isoToUTF: ", err)
-	}
-	out, err := os.Create(path)
-	if err != nil {
-		mensaBotLog.Error("[UniPassauBot] Error creating path for isoToUTF: ", err)
-	}
-	r := charmap.ISO8859_1.NewDecoder().Reader(f)
-	_, err = io.Copy(out, r)
-	err = out.Close()
-	err = f.Close()
-	if err != nil {
-		mensaBotLog.Error("Error converting csv file to UTF-8")
-	}
-}
+// Transforms the data from the uni-passau version of the csv file to a standard one
+func transformAndSaveFoodWeekData(input io.Reader, week string) error {
+	// Transform data from ISO to UTF
+	reader := charmap.ISO8859_1.NewDecoder().Reader(input)
 
-// Transforms the file from the uni-passau version of the csv file to a standard one
-func transformFile(path string) {
 	// Transforms csv file with separator ";" to a file with separator "," and also transforms all "," to ";"
-	read, err := ioutil.ReadFile(path)
+	buf := new(strings.Builder)
+	_, err := io.Copy(buf, reader)
 	if err != nil {
-		panic(err)
+		mensaBotLog.Error("Error reading from io.Reader to transform file: ", err)
+		return err
 	}
-
-	newContents := strings.Replace(string(read), ",", "*", -1)
-	newContents = strings.Replace(newContents, ";", ",", -1)
-	newContents = strings.Replace(newContents, "*", ";", -1)
-
-	err = ioutil.WriteFile(path, []byte(newContents), 0)
-	if err != nil {
-		panic(err)
-	}
+	newContents := strings.ReplaceAll(buf.String(), ",", "*")
+	newContents = strings.ReplaceAll(newContents, ";", ",")
+	newContents = strings.ReplaceAll(newContents, "*", ";")
+	setTmp("mensa", "food|week|"+week, newContents, time.Until(now.EndOfWeek()))
+	return nil
 }
 
 // DownloadFile downloads the newest file based on the week number
-func downloadFile(week string) error {
+func downloadFood(week string) error {
 	// Downloads the csv file
-	s1 := []string{week, ".csv"}
-	filepath := strings.Join(s1, "")
-	s2 := []string{"https://www.stwno.de/infomax/daten-extern/csv/UNI-P/", week, ".csv"}
-	url := strings.Join(s2, "")
-
-	// Create the file
-	out, err := os.Create(filepath + ".tmp")
-	if err != nil {
-		return err
-	}
+	s1 := []string{"https://www.stwno.de/infomax/daten-extern/csv/UNI-P/", week, ".csv"}
+	url := strings.Join(s1, "")
 
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
+		mensaBotLog.Error("Could not download food for this week! Error: ", err)
 		return err
 	}
 
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
+	// Load new data
+	err = transformAndSaveFoodWeekData(resp.Body, week)
 	if err != nil {
 		return err
 	}
-	mensaBotLog.Info("Finished Downloading")
-	isoToUTF(filepath)
-	transformFile(filepath)
-	// Delete temporary file
-	err = os.Remove(filepath + ".tmp")
-	if err != nil {
-		mensaBotLog.Error("Error removing old file: ", err)
-	}
-	mensaBotLog.Info("File Transformed")
-	initArray()
-	err = out.Close()
-	checkmsg("Error closing body for creting file: ", err)
+	loadFoodWeekArray()
 	err = resp.Body.Close()
-	checkmsg("Error closing body for downloading file: ", err)
+	if err != nil {
+		mensaBotLog.Error("Error closing response Body: ", err)
+		return err
+	}
 	return nil
 }
 
-// Open file for this week
-func openactFile() *os.File {
+// Update the food for the week
+func updateFoodWeek() error {
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	_, thisWeek := time.Now().In(loc).UTC().ISOWeek()
 	weekstring := strconv.Itoa(thisWeek)
-	f, _ := os.Open(weekstring + ".csv")
-	return f
-}
-
-// Update the food csv file
-func updateFile() {
-	// checks if new file has to be downloaded and does so - does also remove the old file
-	loc, _ := time.LoadLocation("Europe/Berlin")
-	_, thisWeek := time.Now().In(loc).UTC().ISOWeek()
-	weekstring := strconv.Itoa(thisWeek)
-	if _, err := os.Stat(weekstring + ".csv"); os.IsNotExist(err) {
-
-		// No actual file found
-		mensaBotLog.Warning("No File for this week found - starting download --- ")
-		err := downloadFile(weekstring)
+	if getTmp("mensa", "food|week|"+weekstring) == "" {
+		mensaBotLog.Info("No File for this week found - starting download")
+		err := downloadFood(weekstring)
 		if err != nil {
-			panic(err)
-		}
-		_, thisWeek := time.Now().In(loc).UTC().ISOWeek()
-		prevweekstring := strconv.Itoa(thisWeek - 1)
-		if _, err = os.Stat(prevweekstring + ".csv"); err == nil {
-			err = os.Remove(prevweekstring + ".csv")
-			if err != nil {
-				mensaBotLog.Error("Error deleting Old File")
-			}
-		} else {
-			mensaBotLog.Warning("No File from previous week to delete")
+			return err
 		}
 	}
+	return nil
 }
 
 // Stop the program and kill hanging routines
@@ -650,13 +614,6 @@ func simpleExit() {
 	// Exit without using graceful shutdown channels
 	mensaBotLog.Info("Shutting down...")
 	os.Exit(0)
-}
-
-// Print an error with given message
-func checkmsg(message string, e error) {
-	if e != nil {
-		mensaBotLog.Fatal(message, e)
-	}
 }
 
 // Print info regarding a given message

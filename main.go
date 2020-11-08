@@ -50,14 +50,11 @@ func main() {
 	// Start Uni-Passau-Bot
 	go uniPassauBot()
 
-	// Start Alpha Discord Bot
+	// Start Glyph Discord Bot
 	go glyphDiscordBot()
 
-	// Start Alpha Telegram Bot
+	// Start Glyph Telegram Bot
 	go glyphTelegramBot()
-
-	// Start Quotator Telegram Bot
-	go quotatorTelegramBot()
 
 	// Cronjob Definitions
 	// MC Cronjobs

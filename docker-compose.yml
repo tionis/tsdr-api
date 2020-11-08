@@ -7,11 +7,8 @@ services:
     environment:
         - PORT=8080
         - DATABASE_URL=postgres://API_USER:API_PASSWORD@POSTGRES_HOST:5432/POSTGRES_DB
-        - QUOTATOR_TOKEN=
         - TELEGRAM_TOKEN=
-        - UNIPASSAUBOT_TOKEN=
         - DISCORD_TOKEN=
-        - REDIS_URL=redis://user:password@host:port
         - MODE=DEBUG or PRODUCTION
     depends_on:
       - postgres

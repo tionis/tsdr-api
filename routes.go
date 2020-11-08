@@ -1,12 +1,11 @@
 package main
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
@@ -26,10 +25,6 @@ type glyphDiscordMsgAPIObject struct {
 	Token     string `form:"token" json:"token" binding:"required"`
 }
 
-type tokenStruct struct {
-	Token string `json:"token"`
-}
-
 func apiRoutes(router *gin.Engine) {
 	// Default Stuff
 	router.GET("/favicon.svg", favicon)
@@ -40,6 +35,7 @@ func apiRoutes(router *gin.Engine) {
 
 	// Handle short links
 	router.GET("/discord", discordinvite)
+	router.GET("/log/today", logTodayRedirect)
 
 	// Handle Status Watch
 	router.GET("/onlinecheck", func(c *gin.Context) {
@@ -55,54 +51,6 @@ func apiRoutes(router *gin.Engine) {
 	router.POST("/glyph/discord/send", glyphDiscordHandler)
 	//router.GET("/glyph/telegram/send", glyphTelegramHandler)
 	//router.GET("/glyph/matrix/send", glyphMatrixHandler)
-
-	// Google Assitant IFTTT API - tokenization
-	router.POST("/iot/assistant/order/:number", assistantOrderHandler)
-}
-
-// Google Assistant IFTTT Binding
-func authenticateIFTTTToken(token string) bool {
-	val, err := getError("token|" + token + "|ifttt")
-	if err != nil {
-		return false
-	}
-	return val == "true"
-}
-
-func assistantOrderHandler(c *gin.Context) {
-	var tokenJSON tokenStruct
-	if c.BindJSON(&tokenJSON) == nil {
-		if authenticateIFTTTToken(tokenJSON.Token) {
-			err := assistantOrder(c.Param("number"))
-			if err != nil {
-				c.String(500, "Uncategorized Fuckery")
-				apiLog.Error("Error executing order"+c.Param("number")+" : ", err)
-			} else {
-				c.String(200, "Order executed")
-			}
-		} else {
-			c.String(401, "Unauthorized!")
-		}
-	} else {
-		c.String(400, "Error parsing your packet")
-	}
-}
-
-func assistantOrder(orderNumber string) error {
-	num, err := strconv.Atoi(orderNumber)
-	if err != nil {
-		return err
-	}
-	switch num {
-	case 31:
-		_, err := http.Get("https://maker.ifttt.com/trigger/node_on/with/key/cxGr-6apUjU9_cwUQMCGQ5")
-		if err != nil {
-			return err
-		}
-	default:
-		return errors.New("Tasadar-Assistant: Unknown command")
-	}
-	return nil
 }
 
 func glyphDiscordHandler(c *gin.Context) {
@@ -124,6 +72,12 @@ func httpecho(c *gin.Context) {
 		apiLog.Error("Error in echo: ", err)
 	}
 	c.String(200, string(requestDump))
+}
+
+func logTodayRedirect(c *gin.Context) {
+	currentTime := time.Now()
+	link := "https://wiki.tasadar.net/en/notes/log/" + currentTime.Format("2006/01/02")
+	c.Redirect(http.StatusTemporaryRedirect, link)
 }
 
 // Handle both root thingies
