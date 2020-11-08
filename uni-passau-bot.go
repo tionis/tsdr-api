@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/csv"
 	"io"
 	"net/http"
@@ -25,7 +24,8 @@ var mensaBotLog = logging.MustGetLogger("mensaBot")
 // Global Variables
 // Matrix Slice for food handling (should be replaced in future??)
 var values [][]string
-var nextvalues [][]string
+
+//var nextvalues [][]string
 
 // uniPassauBot handles all the legacy uni-passau-bot code for telegram
 func uniPassauBot() {
@@ -226,7 +226,10 @@ func uniPassauBot() {
 func foodtoday() string {
 	// returns the string to print to user who requested the mensa plan
 	// reads actual file
-	updateFoodWeek()
+	err := updateFoodWeek()
+	if err != nil {
+		return "An error occurred!"
+	}
 
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	t := time.Now().In(loc)
@@ -277,7 +280,10 @@ func foodtoday() string {
 func foodtomorrow() string {
 	// returns the string to print to user who requested the mensa plan
 	// reads actual file
-	updateFoodWeek()
+	err := updateFoodWeek()
+	if err != nil {
+		return "An error occurred!"
+	}
 
 	loc, _ := time.LoadLocation("Europe/Berlin")
 	t := time.Now().In(loc)
@@ -361,7 +367,10 @@ func foodtomorrow() string {
 // returns a string to send on telegram of the food for the week
 func foodweek() string {
 	// reads actual file
-	updateFoodWeek()
+	err := updateFoodWeek()
+	if err != nil {
+		return "An error occurred!"
+	}
 
 	var Mo, Di, Mi, Do, Fr string
 	Mo = "*Montag*:\n"
@@ -487,7 +496,7 @@ func loadFoodWeekArray() {
 }
 
 // Load food for next week into array
-func loadFoodNextWeekArray() {
+/*func loadFoodNextWeekArray() {
 	// Check if exists
 	// checks if new file has to be downloaded and does so - does also remove the old file
 	loc, _ := time.LoadLocation("Europe/Berlin")
@@ -518,11 +527,11 @@ func loadFoodNextWeekArray() {
 		// Build Slice by appending every line
 		nextvalues = append(nextvalues, record)
 	}
-}
+}*/
 
 // As transformAndSaveFoodWeekData(input io.Reader) also changes all the commas in the prices to semicolons this func does the opposite
 func transcor(input string) string {
-	output := strings.Replace(input, ";", ",", -1)
+	output := strings.ReplaceAll(input, ";", ",")
 	return output
 }
 
@@ -544,9 +553,9 @@ func transformAndSaveFoodWeekData(input io.Reader, week string) error {
 		mensaBotLog.Error("Error reading from io.Reader to transform file: ", err)
 		return err
 	}
-	newContents := strings.Replace(buf.String(), ",", "*", -1)
-	newContents = strings.Replace(newContents, ";", ",", -1)
-	newContents = strings.Replace(newContents, "*", ";", -1)
+	newContents := strings.ReplaceAll(buf.String(), ",", "*")
+	newContents = strings.ReplaceAll(newContents, ";", ",")
+	newContents = strings.ReplaceAll(newContents, "*", ";")
 	setTmp("mensa", "food|week|"+week, newContents, time.Until(now.EndOfWeek()))
 	return nil
 }
@@ -605,13 +614,6 @@ func simpleExit() {
 	// Exit without using graceful shutdown channels
 	mensaBotLog.Info("Shutting down...")
 	os.Exit(0)
-}
-
-// Print an error with given message
-func checkmsg(message string, e error) {
-	if e != nil {
-		mensaBotLog.Fatal(message, e)
-	}
 }
 
 // Print info regarding a given message

@@ -1,11 +1,9 @@
 package main
 
 import (
-	"errors"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -25,10 +23,6 @@ type glyphDiscordMsgAPIObject struct {
 	ChannelID string `form:"channelid" json:"channelid" binding:"required"`
 	Message   string `form:"message" json:"message" binding:"required"`
 	Token     string `form:"token" json:"token" binding:"required"`
-}
-
-type tokenStruct struct {
-	Token string `json:"token"`
 }
 
 func apiRoutes(router *gin.Engine) {
@@ -57,23 +51,6 @@ func apiRoutes(router *gin.Engine) {
 	router.POST("/glyph/discord/send", glyphDiscordHandler)
 	//router.GET("/glyph/telegram/send", glyphTelegramHandler)
 	//router.GET("/glyph/matrix/send", glyphMatrixHandler)
-}
-
-func assistantOrder(orderNumber string) error {
-	num, err := strconv.Atoi(orderNumber)
-	if err != nil {
-		return err
-	}
-	switch num {
-	case 31:
-		_, err := http.Get("https://maker.ifttt.com/trigger/node_on/with/key/cxGr-6apUjU9_cwUQMCGQ5")
-		if err != nil {
-			return err
-		}
-	default:
-		return errors.New("Tasadar-Assistant: Unknown command")
-	}
-	return nil
 }
 
 func glyphDiscordHandler(c *gin.Context) {

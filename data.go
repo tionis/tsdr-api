@@ -8,12 +8,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/go-redis/redis/v7"
 	"github.com/keybase/go-logging"
 	_ "github.com/lib/pq"
 )
 
-var redclient *redis.Client
+//var redclient *redis.Client
 var db *sql.DB
 
 var dataLog = logging.MustGetLogger("data")

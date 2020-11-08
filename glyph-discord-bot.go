@@ -17,7 +17,7 @@ import (
 )
 
 // Discord ID of admin
-var discordAdminID string = "259076782408335360"
+//var discordAdminID string = "259076782408335360"
 var discordServerID string = "695330213953011733"
 
 // Needed for onlyonce execution of random source
