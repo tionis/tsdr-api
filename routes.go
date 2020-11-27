@@ -10,13 +10,14 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/keybase/go-logging"
+	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
 
 var apiLog = logging.MustGetLogger("API")
 
 /*type tasadarToken struct {
-	jwt.Payload
-	Groups string `json:"groups,omitempty"`
+    jwt.Payload
+    Groups string `json:"groups,omitempty"`
 }*/
 
 type glyphDiscordMsgAPIObject struct {
@@ -103,13 +104,13 @@ func notFound(c *gin.Context) {
 
 // handle simple GET requests for food
 func retFoodToday(c *gin.Context) {
-	c.String(200, foodtoday())
+	c.String(200, UniPassauBot.FoodToday())
 }
 func retFoodTomorow(c *gin.Context) {
-	c.String(200, foodtomorrow())
+	c.String(200, UniPassauBot.FoodTomorrow())
 }
 func retFoodWeek(c *gin.Context) {
-	c.String(200, foodweek())
+	c.String(200, UniPassauBot.FoodWeek())
 }
 
 // Handle Cors Proxy

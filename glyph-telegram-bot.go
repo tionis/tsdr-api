@@ -13,6 +13,7 @@ import (
 
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/keybase/go-logging"
+	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -41,7 +42,7 @@ func glyphTelegramBot() {
 		}
 	}()
 
-	//Define Keyboards
+	// Define Keyboards
 	// Define Keyboards for Quotator
 	replyBtnLanguageTopLeft := tb.ReplyButton{Text: "English"}
 	replyBtnLanguageTopRight := tb.ReplyButton{Text: "German"}
@@ -101,64 +102,64 @@ func glyphTelegramBot() {
 	// Handle Uni Passau Commands
 	glyph.Handle("/food", func(m *tb.Message) {
 		if !m.Private() {
-			_, _ = glyph.Send(m.Chat, foodtoday())
+			_, _ = glyph.Send(m.Chat, UniPassauBot.FoodToday())
 			glyphTelegramLog.Info("Group Message:")
 		} else {
-			_, _ = glyph.Send(m.Sender, foodtoday(), tb.ModeMarkdown)
+			_, _ = glyph.Send(m.Sender, UniPassauBot.FoodToday(), tb.ModeMarkdown)
 		}
 		printInfoGlyph(m)
 	})
 	glyph.Handle("food", func(m *tb.Message) {
 		if !m.Private() {
-			_, _ = glyph.Send(m.Chat, foodtoday())
+			_, _ = glyph.Send(m.Chat, UniPassauBot.FoodToday())
 			glyphTelegramLog.Info("Group Message:")
 		} else {
-			_, _ = glyph.Send(m.Sender, foodtoday(), tb.ModeMarkdown)
+			_, _ = glyph.Send(m.Sender, UniPassauBot.FoodToday(), tb.ModeMarkdown)
 		}
 		printInfoGlyph(m)
 	})
 	glyph.Handle("/foodtoday", func(m *tb.Message) {
 		if !m.Private() {
-			_, _ = glyph.Send(m.Chat, foodtoday(), tb.ModeMarkdown)
+			_, _ = glyph.Send(m.Chat, UniPassauBot.FoodToday(), tb.ModeMarkdown)
 			glyphTelegramLog.Info("Group Message:")
 		} else {
-			_, _ = glyph.Send(m.Sender, foodtoday(), tb.ModeMarkdown)
+			_, _ = glyph.Send(m.Sender, UniPassauBot.FoodToday(), tb.ModeMarkdown)
 		}
 		printInfoGlyph(m)
 	})
 	glyph.Handle("/foodtomorrow", func(m *tb.Message) {
 		if !m.Private() {
-			_, _ = glyph.Send(m.Chat, foodtomorrow(), tb.ModeMarkdown)
+			_, _ = glyph.Send(m.Chat, UniPassauBot.FoodTomorrow(), tb.ModeMarkdown)
 			glyphTelegramLog.Info("Group Message:")
 		} else {
-			_, _ = glyph.Send(m.Sender, foodtomorrow(), tb.ModeMarkdown)
+			_, _ = glyph.Send(m.Sender, UniPassauBot.FoodTomorrow(), tb.ModeMarkdown)
 		}
 		printInfoGlyph(m)
 	})
 	glyph.Handle("food tomorrow", func(m *tb.Message) {
 		if !m.Private() {
-			_, _ = glyph.Send(m.Chat, foodtomorrow(), tb.ModeMarkdown)
+			_, _ = glyph.Send(m.Chat, UniPassauBot.FoodTomorrow(), tb.ModeMarkdown)
 			glyphTelegramLog.Info("Group Message:")
 		} else {
-			_, _ = glyph.Send(m.Sender, foodtomorrow(), tb.ModeMarkdown)
+			_, _ = glyph.Send(m.Sender, UniPassauBot.FoodTomorrow(), tb.ModeMarkdown)
 		}
 		printInfoGlyph(m)
 	})
 	glyph.Handle("/foodweek", func(m *tb.Message) {
 		if !m.Private() {
-			_, _ = glyph.Send(m.Chat, foodweek())
+			_, _ = glyph.Send(m.Chat, UniPassauBot.FoodWeek())
 			glyphTelegramLog.Info("Group Message:")
 		} else {
-			_, _ = glyph.Send(m.Sender, foodweek(), tb.ModeMarkdown)
+			_, _ = glyph.Send(m.Sender, UniPassauBot.FoodWeek(), tb.ModeMarkdown)
 		}
 		printInfoGlyph(m)
 	})
 	glyph.Handle("food week", func(m *tb.Message) {
 		if !m.Private() {
-			_, _ = glyph.Send(m.Chat, foodweek())
+			_, _ = glyph.Send(m.Chat, UniPassauBot.FoodWeek())
 			glyphTelegramLog.Info("Group Message:")
 		} else {
-			_, _ = glyph.Send(m.Sender, foodweek(), tb.ModeMarkdown)
+			_, _ = glyph.Send(m.Sender, UniPassauBot.FoodWeek(), tb.ModeMarkdown)
 		}
 		printInfoGlyph(m)
 	})
@@ -430,4 +431,18 @@ func addQuote(m *tb.Message) string {
 		return "Sorry, there was an internal error!"
 	}
 	return "Added quote from " + author + " to database"
+}
+
+// Stop the program and kill hanging routines
+func exit(quit chan bool) {
+	// function for normal exit
+	quit <- true
+	simpleExit()
+}
+
+// Exit while ignoring running routines
+func simpleExit() {
+	// Exit without using graceful shutdown channels
+	glyphTelegramLog.Info("Shutting down...")
+	os.Exit(0)
 }
