@@ -48,8 +48,8 @@ func dbInit() {
 
 	// Init postgres
 
-	if os.Getenv("DATABASE_URL") == "" || os.Getenv("REDIS_URL") == "" {
-		dataLog.Info("Database: " + os.Getenv("DATABASE_URL") + "  |Redis:  " + os.Getenv("REDIS_URL"))
+	if os.Getenv("DATABASE_URL") == "" {
+		dataLog.Info("Database: " + os.Getenv("DATABASE_URL"))
 		dataLog.Fatal("Fatal Error getting Database Information!")
 	}
 	var err error

@@ -12,10 +12,11 @@ COPY go.sum go.sum
 RUN go mod download
 COPY . .
 #COPY --from=frontend /usr/src/app/build ./frontend/build
-RUN go run cmd/mage/main.go backend:build
+RUN go build -o api
 
 FROM alpine:latest
 WORKDIR /root/
-COPY --from=backend /usr/src/app/dist/api .
+COPY --from=backend /usr/src/app/api .
+RUN apk --no-cache add tzdata
 #COPY --from=backend /usr/src/app/conf/app.example.toml conf/app.toml
 CMD ["./api", "web"]
