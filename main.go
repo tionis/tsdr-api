@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/keybase/go-logging"
+	"github.com/tionis/tsdr-api/data"
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
 
@@ -27,7 +28,7 @@ var isProduction bool
 func main() {
 	logging.SetFormatter(logFormat)
 	// Initialize basic requirements
-	dbInit()
+	data.DBInit()
 
 	// Detect Development Mode
 	switch strings.ToUpper(os.Getenv("MODE")) {

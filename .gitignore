@@ -24,8 +24,8 @@ static/login/loginv4/*
 __debug_bin
 
 # Project Specific
-api
+tsdr-api
 .issues
 *.csv
-run.sh
+scripts/run.sh
 docker-compose.dev.yml

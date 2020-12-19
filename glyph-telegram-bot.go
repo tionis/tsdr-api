@@ -13,6 +13,7 @@ import (
 
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/keybase/go-logging"
+	"github.com/tionis/tsdr-api/data"
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -82,8 +83,7 @@ func glyphTelegramBot() {
 	})
 	glyph.Handle("/help", func(m *tb.Message) {
 		sendString := ""
-		if isTasadarTGAdmin(m.Sender.ID) {
-			sendString = `**Following Commands are Available:**
+		sendString = `**Following Commands are Available:**
 **UniPassau-Commands:**
   - /foodtoday - Food for today
   - /foodtomorrow - Food for tomorrow
@@ -92,9 +92,6 @@ func glyphTelegramBot() {
   - /getquote - Get a random quote. You can also specify parameters by saying for example:  /getquote language german author "Emanuel Kant" 
   - /addquote - add a quote to the database
   - /quoteoftheday - Get your personal quote of the day`
-		} else {
-			sendString = "There is no help!"
-		}
 		_, _ = glyph.Send(m.Sender, sendString, tb.ModeMarkdown, &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 		printInfoGlyph(m)
 	})
@@ -166,7 +163,7 @@ func glyphTelegramBot() {
 
 	// Handle Quotator Commands
 	glyph.Handle("/getquote", func(m *tb.Message) {
-		delTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
+		data.DelTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
 		author, language, universe, err := parseGetQuote(strings.TrimPrefix(m.Text, "/getquote "))
 		if err != nil {
 			glyphTelegramLog.Error("[glyph] Error parsing getQuote: ", err)
@@ -176,15 +173,15 @@ func glyphTelegramBot() {
 		}
 	})
 	glyph.Handle("/setquote", func(m *tb.Message) {
-		setTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", glyphTelegramContextDelay)
+		data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", glyphTelegramContextDelay)
 		_, _ = glyph.Send(m.Chat, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 	})
 	glyph.Handle("/addquote", func(m *tb.Message) {
-		setTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", glyphTelegramContextDelay)
+		data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", glyphTelegramContextDelay)
 		_, _ = glyph.Send(m.Chat, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 	})
 	glyph.Handle("/quoteoftheday", func(m *tb.Message) {
-		quote := getTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote")
+		quote := data.GetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote")
 		if quote != "" {
 			_, _ = glyph.Send(m.Chat, quote)
 		} else {
@@ -192,7 +189,7 @@ func glyphTelegramBot() {
 			now := time.Now()
 			year, month, day := now.Date()
 			midnight := time.Date(year, month, day+1, 0, 0, 0, 0, now.Location())
-			setTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
+			data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
 			_, _ = glyph.Send(m.Chat, quote)
 		}
 		printInfoGlyph(m)
@@ -200,7 +197,7 @@ func glyphTelegramBot() {
 
 	// Handle non command text
 	glyph.Handle(tb.OnText, func(m *tb.Message) {
-		context := getTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
+		context := data.GetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
 		if context == "" {
 			if !m.Private() {
 				printInfoGlyph(m)
@@ -211,23 +208,23 @@ func glyphTelegramBot() {
 		} else {
 			switch context {
 			case "quoteRequired":
-				setTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote", m.Text, glyphTelegramContextDelay)
-				setTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "authorRequired", glyphTelegramContextDelay)
+				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote", m.Text, glyphTelegramContextDelay)
+				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "authorRequired", glyphTelegramContextDelay)
 				_, _ = glyph.Send(m.Sender, "Thanks, now the author please.")
 				printInfoGlyph(m)
 			case "authorRequired":
-				setTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor", m.Text, glyphTelegramContextDelay)
-				setTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "languageRequired", glyphTelegramContextDelay)
+				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor", m.Text, glyphTelegramContextDelay)
+				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "languageRequired", glyphTelegramContextDelay)
 				_, _ = glyph.Send(m.Sender, "Thanks, now the language please.", &tb.ReplyMarkup{ReplyKeyboard: replyKeysLanguage})
 				printInfoGlyph(m)
 			case "languageRequired":
-				setTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage", m.Text, glyphTelegramContextDelay)
-				setTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "universeRequired", glyphTelegramContextDelay)
+				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage", m.Text, glyphTelegramContextDelay)
+				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "universeRequired", glyphTelegramContextDelay)
 				_, _ = glyph.Send(m.Sender, "And now the universe it comes from please:", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
 				printInfoGlyph(m)
 			case "universeRequired":
-				setTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text, glyphTelegramContextDelay)
-				delTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
+				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text, glyphTelegramContextDelay)
+				data.DelTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
 				_, _ = glyph.Send(m.Sender, addQuote(m))
 				printInfoGlyph(m)
 			default:
@@ -396,7 +393,7 @@ func parseString(command string) ([]string, error) {
 }
 
 func getRandomQuote(byAuthor, inLanguage, inUniverse string) string {
-	stmt, err := db.Prepare(`SELECT quote, author FROM quotes WHERE (length($1)=0 OR author=$1) AND (length($2)=0 OR language=$2) AND (length($3)=0 OR universe=$3) ORDER BY RANDOM() LIMIT 1`)
+	stmt, err := data.DB.Prepare(`SELECT quote, author FROM quotes WHERE (length($1)=0 OR author=$1) AND (length($2)=0 OR language=$2) AND (length($3)=0 OR universe=$3) ORDER BY RANDOM() LIMIT 1`)
 	if err != nil {
 		glyphTelegramLog.Error("Couldn't prepare statement: ", err)
 		return "Sorry, an internal error occurred!"
@@ -416,11 +413,11 @@ func getRandomQuote(byAuthor, inLanguage, inUniverse string) string {
 }
 
 func addQuote(m *tb.Message) string {
-	quote := getTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote")
-	author := getTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor")
-	language := strings.ToLower(getTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage"))
-	universe := getTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse")
-	stmt, err := db.Prepare(`INSERT INTO quotes (quote, author, language, universe) VALUES ($1, $2, $3, $4)`)
+	quote := data.GetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote")
+	author := data.GetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor")
+	language := strings.ToLower(data.GetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage"))
+	universe := data.GetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse")
+	stmt, err := data.DB.Prepare(`INSERT INTO quotes (quote, author, language, universe) VALUES ($1, $2, $3, $4)`)
 	if err != nil {
 		glyphTelegramLog.Error("Error preparing database statement: ", err)
 		return "Sorry, there was an internal error!"

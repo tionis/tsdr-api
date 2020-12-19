@@ -59,10 +59,11 @@ func glyphDiscordHandler(c *gin.Context) {
 	err := c.Bind(messageData) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
 		apiLog.Error("Error while trying to bind glyph discord message:", err)
-		c.String(401, "Error in your request")
+		c.String(400, "Error in your request")
 		return
 	}
-	c.String(200, messageData.ChannelID)
+	glyphSend <- glyphDiscordMsgObject{messageData.ChannelID, messageData.Message}
+	c.String(200, "Ok")
 }
 
 // handle test case
