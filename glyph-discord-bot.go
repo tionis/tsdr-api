@@ -26,8 +26,7 @@ var discordServerID string = "695330213953011733"
 
 var glyphSend chan glyphDiscordMsgObject
 
-var discordBotMention1 string
-var discordBotMention2 string
+var discordBotMention string
 
 // Needed for onlyonce execution of random source
 var onlyOnce sync.Once
@@ -62,6 +61,7 @@ func glyphDiscordBot() {
 	_ = dg.UpdateStatus(0, "/help for help")
 
 	// Init both mention strings
+	discordBotMention = "<@!510954240441712660>"
 
 	go func(dg *discordgo.Session) {
 		for {
@@ -161,11 +161,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if strings.HasPrefix(tokens[0], "/") {
 		message.Content = strings.TrimPrefix(message.Content, "/")
-	} else if tokens[0] == discordBotMention1 {
-		message.Content = strings.TrimPrefix(message.Content, discordBotMention1+" ")
-	} else if tokens[0] == discordBotMention2 {
-		message.Content = strings.TrimPrefix(message.Content, discordBotMention2+" ")
+	} else if tokens[0] == discordBotMention {
+		glyphDiscordLog.Debug("1")
+		message.Content = strings.TrimPrefix(message.Content, discordBotMention)
 	}
+
+	message.Content = strings.TrimLeft(message.Content, "\t \r \n \v \f ")
+
+	glyphDiscordLog.Debug("|" + message.Content)
 
 	// Pass message object to glyph bot logic
 	go glyph.HandleAll(message)

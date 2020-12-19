@@ -6,13 +6,17 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/go-kivik/couchdb/v4" // The CouchDB driver
+	kivik "github.com/go-kivik/kivik/v4"
 	"github.com/keybase/go-logging"
-	_ "github.com/lib/pq"
+	_ "github.com/lib/pq" // The PostgreSQL Driver
 )
 
 // DB represents an postgres DB object
 // TODO: to be removed
 var DB *sql.DB
+
+var couch *kivik.Client
 
 var dataLog = logging.MustGetLogger("data")
 
@@ -29,7 +33,6 @@ func DBInit() {
 	tmpData = make(map[string]map[string]tmpDataObject)
 
 	// Init postgres
-
 	if os.Getenv("DATABASE_URL") == "" {
 		dataLog.Info("Database: " + os.Getenv("DATABASE_URL"))
 		dataLog.Fatal("Fatal Error getting Database Information!")
@@ -48,6 +51,16 @@ func DBInit() {
 			dataLog.Warning("PostgreSQL Error closing Postgres Session")
 		}
 		return
+	}
+
+	// Init Couchdb
+	if os.Getenv("COUCHDB_URL") == "" {
+		dataLog.Info("Database: " + os.Getenv("COUCHDB_URL"))
+		dataLog.Fatal("Fatal Error getting CouchDB Database Information!")
+	}
+	couch, err = kivik.New("couch", "https://localhost:5984/")
+	if err != nil {
+		panic(err)
 	}
 
 	// Init the Database

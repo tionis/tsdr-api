@@ -6,15 +6,16 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
 
 // ErrNoCommandMatched represents the state in which no command could be matched
 var ErrNoCommandMatched = errors.New("no command was matched")
 var standardContextDelay = time.Minute * 5
+var once sync.Once
 
 // MessageData represents an message the bot can act on with callback functions
 type MessageData struct {
@@ -39,64 +40,64 @@ func HandleAll(message MessageData) error {
 		go handleHelp(message)
 	case "unip":
 		go handleUnip(message)
-	case "/help":
-		go handleHelp(message)
-	case "/unip":
-		go handleUnip(message)
-	case "/pnp":
+	case "pnp":
 		go handlePnPHelp(message)
 
 	// Food commands
-	case "/food":
+	case "food":
 		go handleFoodToday(message)
-	case "/food tomorrow":
+	case "food tomorrow":
 		go handleFoodTomorrow(message)
 
 	// Config commands
-	case "/config":
+	case "config":
 		go handleConfig(message)
 
 	// MISC commands
-	case "/ping":
+	case "ping":
 		go handlePing(message)
-	case "/id":
+	case "id":
 		go handleID(message)
-	case "/isDM":
+	case "isDM":
 		go handleIsDM(message)
 
-	case "/roll", "/r":
+	case "roll", "r":
 		if len(tokens) < 2 {
 			message.SendMessageToChannel(message.ChannelID, "To roll dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
 		} else {
-			rollHelper(s, m)
+			rollHelper(message)
 		}
 
 	// Diagnostic Commands
-	case "/diag":
+	case "diag":
 		switch tokens[1] {
 		case "dice":
-			diceDiagnosticHelper(s, m)
+			diceDiagnosticHelper(message)
 		default:
 			message.SendMessageToChannel(message.ChannelID, "Unknown Command!")
 		}
 	// Help commands
-	case "/gm":
-		switch tokens[1] {
-		case "help":
-			message.SendMessageToChannel(message.ChannelID, "Available Commands:\n - /gm rollinit COUNT INIT")
-		case "rollinit":
-			rollCount, err := strconv.Atoi(tokens[2])
-			rollInit, err := strconv.Atoi(tokens[3])
-			if err != nil {
-				message.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
+	case "gm":
+		if len(tokens) == 1 {
+			message.SendMessageToChannel(message.ChannelID, "# Available Commands:\n - /gm rollinit COUNT INIT")
+		} else {
+			switch tokens[1] {
+			case "help":
+				message.SendMessageToChannel(message.ChannelID, "# Available Commands:\n - /gm rollinit COUNT INIT")
+			case "rollinit":
+				rollCount, err := strconv.Atoi(tokens[2])
+				rollInit, err := strconv.Atoi(tokens[3])
+				if err != nil {
+					message.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
+				}
+				message.SendMessageToChannel(message.ChannelID, rollMassInit(rollCount, rollInit))
 			}
-			message.SendMessageToChannel(message.ChannelID, rollMassInit(rollCount, rollInit))
 		}
-	}
-
-	if message.GetContext(message.AuthorID, message.ChannelID) != "" {
-		go message.SetContext(message.AuthorID, message.ChannelID, "", time.Second)
-		go handleGenericError(message)
+	default:
+		if message.GetContext(message.AuthorID, message.ChannelID) != "" {
+			go message.SetContext(message.AuthorID, message.ChannelID, "", time.Second)
+			go handleGenericError(message)
+		}
 	}
 	return ErrNoCommandMatched
 }
@@ -204,8 +205,8 @@ func rollMassInit(rollCount, initMod int) string {
 }
 
 // Parse Dice diagnostics
-func diceDiagnosticHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
-	inputString := strings.Split(m.Content, " ")
+func diceDiagnosticHelper(message MessageData) {
+	inputString := strings.Split(message.Content, " ")
 	count := 0
 	if len(inputString) < 3 {
 		count = 100000
@@ -213,12 +214,12 @@ func diceDiagnosticHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		var err error
 		count, err = strconv.Atoi(inputString[2])
 		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "There was an error parsing your command!")
+			message.SendMessageToChannel(message.ChannelID, "There was an error parsing your command!")
 			return
 		}
 	}
 	if count > 1000000 {
-		s.ChannelMessageSend(m.ChannelID, "Please choose a valid range!")
+		message.SendMessageToChannel(message.ChannelID, "Please choose a valid range!")
 		return
 	}
 	sidesCount := make([]int, 10)
@@ -233,7 +234,7 @@ func diceDiagnosticHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		percentString := floatToString((float64(sidesCount[i])/countFloat)*100) + "%"
 		output.WriteString("Side " + strconv.Itoa(i+1) + ": " + percentString + "\n")
 	}
-	s.ChannelMessageSend(m.ChannelID, output.String())
+	message.SendMessageToChannel(message.ChannelID, output.String())
 }
 
 // convert a Float64 into a string
@@ -243,65 +244,67 @@ func floatToString(inputNum float64) string {
 }
 
 // Parse roll command
-func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
+func rollHelper(message MessageData) {
 	// Catch errors in command
-	inputString := strings.Split(m.Content, " ")
+	inputString := strings.Split(message.Content, " ")
 	if len(inputString) < 2 {
-		_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+		message.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
 		return
 	}
 
 	// Catch simple commands
 	switch inputString[1] {
 	case "one":
-		_, _ = s.ChannelMessageSend(m.ChannelID, "Simple 1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
+		message.SendMessageToChannel(message.ChannelID, "Simple 1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
 		return
 	case "chance":
 		diceRollResult := rollXSidedDie(1, 10)[0]
 		switch diceRollResult {
 		case 10:
-			_, _ = s.ChannelMessageSend(m.ChannelID, "**Success!** Your Chance Die showed a 10!")
+			message.SendMessageToChannel(message.ChannelID, "**Success!** Your Chance Die showed a 10!")
 		case 1:
-			_, _ = s.ChannelMessageSend(m.ChannelID, "**Epic Fail!** Your Chance Die failed spectacularly!")
+			message.SendMessageToChannel(message.ChannelID, "**Epic Fail!** Your Chance Die failed spectacularly!")
 		default:
-			_, _ = s.ChannelMessageSend(m.ChannelID, "**Fail!** You rolled a **"+strconv.Itoa(diceRollResult)+"** on your Chance die!")
+			message.SendMessageToChannel(message.ChannelID, "**Fail!** You rolled a **"+strconv.Itoa(diceRollResult)+"** on your Chance die!")
 		}
 		return
 	case "init":
 		/*var initModSliceObject interface{}
 		  err := Load("glyph/discord:"+m.Author.ID+"/initmod", &initModSliceObject)
 		  if err != nil || reflect.TypeOf(initModSliceObject) != reflect.TypeOf("") {
-		      _, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error, please try again!")
+		      message.SendMessageToChannel(message.ChannelID, "There was an internal error, please try again!")
 		      del("glyph/discord:" + m.Author.ID + "/initmod")
 		      glyphDiscordLog.Warning("Error while getting init from data with type of "+reflect.TypeOf(initModSliceObject).String()+" and error: ", err.Error())
 		      return
 		  }
 		  initModSlice := initModSliceObject.([]string)*/
-		initModSlice := strings.Split(data.GetTmp("glyph", "dg:"+m.Author.ID+"|initmod"), "|")
+		initMod := message.GetUserData(message.AuthorID, "initmod")
+		switch initMod.(type) {
+		case []int:
+		default:
+			message.SendMessageToChannel(message.ChannelID, "There was an error loading your init modifier")
+			return
+		}
+		initModSlice := initMod.([]int)
 		number := 1
 		if len(inputString) > 2 {
 			var err error
 			number, err = strconv.Atoi(inputString[2])
 			if err != nil {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error parsing your command!")
+				message.SendMessageToChannel(message.ChannelID, "There was an error parsing your command!")
 				return
 			}
 		}
 		if number < 1 || number > len(initModSlice) {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Please specify a valid number!")
+			message.SendMessageToChannel(message.ChannelID, "Please specify a valid number!")
 			return
 		}
-		initModString := initModSlice[number-1]
-		initMod, err := strconv.Atoi(initModString)
-		if err != nil {
-			initModString = ""
-		}
-		if initModString == "" {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "No init modifier saved, here's a simple D10 throw:\n1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
+		if len(initModSlice) == 0 {
+			message.SendMessageToChannel(message.ChannelID, "No init modifier saved, here's a simple D10 throw:\n1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
 		} else {
 			diceResult := rollXSidedDie(1, 10)[0]
-			endResult := diceResult + initMod
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Your Initiative is: **"+strconv.Itoa(endResult)+"**\n"+strconv.Itoa(diceResult)+" + "+strconv.Itoa(initMod)+" = "+strconv.Itoa(endResult))
+			endResult := diceResult + initModSlice[number-1]
+			message.SendMessageToChannel(message.ChannelID, "Your Initiative is: **"+strconv.Itoa(endResult)+"**\n"+strconv.Itoa(diceResult)+" + "+strconv.Itoa(initModSlice[number-1])+" = "+strconv.Itoa(endResult))
 		}
 		return
 	}
@@ -311,35 +314,35 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Catch error in dice designation [/roll 1*s*10 ]
 		diceIndex := strings.Split(inputString[1], "d")
 		if len(diceIndex) < 2 {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			message.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
 			return
 		}
 		sides, err := strconv.Atoi(diceIndex[1])
 		if err != nil {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			message.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
 			return
 		}
 		amount, err := strconv.Atoi(diceIndex[0])
 		if err != nil {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			message.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
 			return
 		}
 
 		// Catch d-notation and read modifiers
 		if amount < 1 {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Nice try!")
+			message.SendMessageToChannel(message.ChannelID, "Nice try!")
 			return
 		}
 		switch {
 		case sides < 1:
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Nice try!")
+			message.SendMessageToChannel(message.ChannelID, "Nice try!")
 			return
 		case sides == 1:
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Really? That's one times "+diceIndex[0]+". I think you can do the math yourself!")
+			message.SendMessageToChannel(message.ChannelID, "Really? That's one times "+diceIndex[0]+". I think you can do the math yourself!")
 			return
 		default:
 			if amount > 1000 {
-				_, _ = s.ChannelMessageSend(m.ChannelID, "Maybe try a few less dice. We're not playing Warhammer Ultimate here.")
+				message.SendMessageToChannel(message.ChannelID, "Maybe try a few less dice. We're not playing Warhammer Ultimate here.")
 				return
 			}
 			retSlice := rollXSidedDie(amount, sides)
@@ -354,7 +357,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 					retString.Write([]byte(strconv.Itoa(retSlice[i]) + " = " + strconv.Itoa(endResult)))
 				}
 			}
-			_, _ = s.ChannelMessageSend(m.ChannelID, retString.String())
+			message.SendMessageToChannel(message.ChannelID, retString.String())
 			return
 		}
 	} else if inputString[1] == "chance" {
@@ -369,7 +372,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		default:
 			retString = "Fail! Your rolled a " + strconv.Itoa(result) + "!"
 		}
-		_, _ = s.ChannelMessageSend(m.ChannelID, retString)
+		message.SendMessageToChannel(message.ChannelID, retString)
 		return
 	} else {
 		// Assume that input was construct notation
@@ -384,11 +387,11 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Catch invalid number of dice to throw
 		throwCount, err := strconv.Atoi(inputString[1])
 		if err != nil {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error in your command!")
+			message.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
 			return
 		}
 		if throwCount > 1000 {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Don't you think that are a few to many dice to throw?")
+			message.SendMessageToChannel(message.ChannelID, "Don't you think that are a few to many dice to throw?")
 			return
 		}
 		var retSlice [][]int
@@ -420,7 +423,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 				if noReroll {
 					retSlice = constructRolln(throwCount)
 				} else {
-					_, _ = s.ChannelMessageSend(m.ChannelID, "There was an error while parsing your input!")
+					message.SendMessageToChannel(message.ChannelID, "There was an error while parsing your input!")
 					return
 				}
 			}
@@ -429,7 +432,7 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		// Parse Slice here
 		var successes, critfails int
 		var output strings.Builder
-		output.WriteString("Results for " + m.Author.Mention() + ": ")
+		output.WriteString("Results for " + message.GetMention(message.AuthorID) + ": ")
 		for i := range retSlice {
 			output.WriteString("[")
 			for j := range retSlice[i] {
@@ -465,13 +468,13 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 				output.WriteString("\nNo Success for you! That's bad, isn`t it?")
 			}
 		}
-		_, _ = s.ChannelMessageSend(m.ChannelID, output.String())
+		message.SendMessageToChannel(message.ChannelID, output.String())
 	}
 }
 
 // Role x dice with given amount of sides
 func rollXSidedDie(throwCount, sides int) []int {
-	onlyOnce.Do(func() {
+	once.Do(func() {
 		rand.Seed(time.Now().UnixNano()) // only run once
 	})
 	retSlice := make([]int, throwCount)
