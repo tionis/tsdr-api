@@ -34,6 +34,8 @@ var onlyOnce sync.Once
 // Logger
 var glyphDiscordLog = logging.MustGetLogger("glyphDiscord")
 
+var discordGlyphBot *glyph.Bot
+
 // Main and Init
 func glyphDiscordBot() {
 	glyphSend = make(chan glyphDiscordMsgObject, 2)
@@ -60,38 +62,15 @@ func glyphDiscordBot() {
 	  }*/
 	_ = dg.UpdateStatus(0, "/help for help")
 
-	// Init both mention strings
-	discordBotMention = "<@!510954240441712660>"
+	// Init mention string
+	discordBotMention = "<@!" + dg.State.User.ID + ">"
 
-	go func(dg *discordgo.Session) {
-		for {
-			sig := <-glyphSend
-			dg.ChannelMessageSend(sig.ChannelID, sig.Message)
-		}
-	}(dg)
-
-	// Wait here until CTRL-C or other term signal is received.
-	glyphDiscordLog.Info("Glyph Discord Bot was started.")
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, syscall.SIGQUIT, syscall.SIGHUP)
-	<-sc
-
-	// Cleanly close down the Discord session.
-	_ = dg.Close()
-}
-
-// This function will be called (due to AddHandler above) every time a new
-// message is created on any channel that the authenticated bot has access to.
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
-	// Build callback functions
-	var discordSend = func(channelID, message string) {
-		_, err := s.ChannelMessageSend(channelID, message)
+	// Init callback functions
+	var discordSendMessage = func(channelID, message string) {
+		_, err := dg.ChannelMessageSend(channelID, message)
 		if err != nil {
 			glyphDiscordLog.Errorf("Error sending message to %v: %v", channelID, err)
 		}
-	}
-	var discordGetMention = func(userID string) string {
-		return "<@" + userID + ">"
 	}
 	var discordSetUserData = func(discordUserID, key string, value interface{}) {
 		userID, err := data.GetUserIDFromDiscordID(discordUserID)
@@ -118,12 +97,44 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 		return value
 	}
-	var discordSetContext = func(userID, key, value string, ttl time.Duration) {
-		data.SetTmp("glyph:dc:ctx", key, value, ttl)
+	var discordSetContext = func(userID, channelID, key, value string, ttl time.Duration) {
+		data.SetTmp("glyph:dc:"+channelID+":"+userID, key, value, ttl)
 	}
-	var discordGetContext = func(userID, key string) string {
-		return data.GetTmp("glyph:dc:ctx", key)
+	var discordGetContext = func(userID, channelID, key string) string {
+		return data.GetTmp("glyph:dc:"+channelID+":"+userID, key)
 	}
+	discordGlyphBot = &glyph.Bot{
+		AddQuote:             data.AddQuote,
+		GetRandomQuote:       data.GetRandomQuote,
+		SetContext:           discordSetContext,
+		GetContext:           discordGetContext,
+		GetUserData:          discordGetUserData,
+		SetUserData:          discordSetUserData,
+		SendMessageToChannel: discordSendMessage,
+		GetMention:           func(userID string) string { return "<@" + userID + ">" },
+	}
+
+	go func(dg *discordgo.Session) {
+		for {
+			sig := <-glyphSend
+			dg.ChannelMessageSend(sig.ChannelID, sig.Message)
+		}
+	}(dg)
+
+	// Wait here until CTRL-C or other term signal is received.
+	glyphDiscordLog.Info("Glyph Discord Bot was started.")
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, syscall.SIGQUIT, syscall.SIGHUP)
+	<-sc
+
+	// Cleanly close down the Discord session.
+	_ = dg.Close()
+}
+
+// This function will be called (due to AddHandler above) every time a new
+// message is created on any channel that the authenticated bot has access to.
+func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+	// Build callback functions
 
 	// Ignore all messages created by the bot itself
 	if m.Author.ID == s.State.User.ID {
@@ -143,17 +154,11 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Build message object
 	message := glyph.MessageData{
-		Content:              m.Content,
-		AuthorID:             m.Author.ID,
-		ChannelID:            m.ChannelID,
-		SendMessageToChannel: discordSend,
-		IsDM:                 m.ChannelID == AuthorDMChannelID,
-		SupportsMarkdown:     true,
-		GetMention:           discordGetMention,
-		SetUserData:          discordSetUserData,
-		GetUserData:          discordGetUserData,
-		GetContext:           discordGetContext,
-		SetContext:           discordSetContext,
+		Content:          m.Content,
+		AuthorID:         m.Author.ID,
+		ChannelID:        m.ChannelID,
+		IsDM:             m.ChannelID == AuthorDMChannelID,
+		SupportsMarkdown: true,
 	}
 
 	// Split message into chunks
@@ -168,10 +173,8 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	message.Content = strings.TrimLeft(message.Content, "\t \r \n \v \f ")
 
-	glyphDiscordLog.Debug("|" + message.Content)
-
 	// Pass message object to glyph bot logic
-	go glyph.HandleAll(message)
+	go discordGlyphBot.HandleAll(message)
 }
 
 // Check if a user has a given role in a given guild

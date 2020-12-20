@@ -14,7 +14,7 @@ import (
 
 // DB represents an postgres DB object
 // TODO: to be removed
-var DB *sql.DB
+var db *sql.DB
 
 var couch *kivik.Client
 
@@ -38,15 +38,15 @@ func DBInit() {
 		dataLog.Fatal("Fatal Error getting Database Information!")
 	}
 	var err error
-	DB, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		dataLog.Fatal("PostgreSQL Server Connection failed: ", err)
 	}
-	DB.SetMaxOpenConns(19) // Heroku free plan limit - 1 debug connection
-	err = DB.Ping()
+	db.SetMaxOpenConns(19) // Heroku free plan limit - 1 debug connection
+	err = db.Ping()
 	if err != nil {
 		dataLog.Fatal("PostgreSQL Server Ping failed: ", err)
-		err = DB.Close()
+		err = db.Close()
 		if err != nil {
 			dataLog.Warning("PostgreSQL Error closing Postgres Session")
 		}
@@ -65,7 +65,7 @@ func DBInit() {
 
 	// Init the Database
 	// Quotator Database
-	_, err = DB.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text)`)
+	_, err = db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text)`)
 	if err != nil {
 		dataLog.Fatal("Error creating table quotes: ", err)
 	}
@@ -106,6 +106,7 @@ func DelTmp(bucket string, key string) {
 
 // GetUserIDFromDiscordID returns a userID assigned to a given discord ID
 func GetUserIDFromDiscordID(discordUserID string) (string, error) {
+	// TODO
 	return "tionis", nil
 }
 
@@ -120,3 +121,65 @@ func GetUserData(userID, bucket, key string) (interface{}, error) {
 	// TODO
 	return nil, errors.New("not implemented")
 }
+
+/*
+package persist
+
+import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"os"
+	"sync"
+)
+
+var lock sync.Mutex
+
+// Marshal is a function that marshals the object into an
+// io.Reader.
+// By default, it uses the JSON marshaller.
+var Marshal = func(v interface{}) (io.Reader, error) {
+	b, err := json.MarshalIndent(v, "", "\t")
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(b), nil
+}
+
+// Unmarshal is a function that unmarshals the data from the
+// reader into the specified value.
+// By default, it uses the JSON unmarshaller.
+var Unmarshal = func(r io.Reader, v interface{}) error {
+	return json.NewDecoder(r).Decode(v)
+}
+
+// Save saves a representation of v to the file at path.
+func Save(path string, v interface{}) error {
+	lock.Lock()
+	defer lock.Unlock()
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	r, err := Marshal(v)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(f, r)
+	return err
+}
+
+// Load loads the file at path into v.
+// Use os.IsNotExist() to see if the returned error is due
+// to the file being missing.
+func Load(path string, v interface{}) error {
+	lock.Lock()
+	defer lock.Unlock()
+	f, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return Unmarshal(f, v)
+}*/
