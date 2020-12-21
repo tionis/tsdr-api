@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/heroku/x/hmetrics/onload"
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )

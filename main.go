@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/heroku/x/hmetrics/onload"
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"
 	"github.com/tionis/tsdr-api/data"
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
@@ -56,7 +56,7 @@ func main() {
 	go glyphDiscordBot()
 
 	// Start Glyph Telegram Bot
-	go glyphTelegramBot()
+	go glyphTelegramBot(!isProduction)
 
 	// Cronjob Definitions
 	// MC Cronjobs

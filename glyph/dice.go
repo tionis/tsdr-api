@@ -7,10 +7,40 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 )
 
 // randomSeedOnce ensures that the random number generator is only seeded once
 var randomSeedOnce sync.Once
+
+// handleRoll handles the roll command, taking a message struct and the input tokens
+func (g Bot) handleRoll(message MessageData, tokens []string) {
+	if len(tokens) < 2 {
+		g.SendMessageToChannel(message.ChannelID, "To roll dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
+	} else {
+		g.rollHelper(message)
+	}
+}
+
+// handleGM handles GM subcommands
+func (g Bot) handleGM(message MessageData, tokens []string) {
+	if len(tokens) == 1 {
+		g.SendMessageToChannel(message.ChannelID, "# Available Commands:\n - /gm rollinit COUNT INIT")
+	} else {
+		switch tokens[1] {
+		case "help":
+			g.SendMessageToChannel(message.ChannelID, "# Available Commands:\n - /gm rollinit COUNT INIT")
+		case "rollinit":
+			rollCount, err := strconv.Atoi(tokens[2])
+			rollInit, err := strconv.Atoi(tokens[3])
+			if err != nil {
+				g.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
+			}
+			g.SendMessageToChannel(message.ChannelID, g.rollMassInit(rollCount, rollInit))
+		}
+	}
+}
 
 // Roll init rollCount times with given initmod and return a string for user
 func (g Bot) rollMassInit(rollCount, initMod int) string {

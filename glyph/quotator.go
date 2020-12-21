@@ -4,12 +4,87 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
+
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 )
 
 type quoteSelector struct {
 	author   string
 	language string
 	universe string
+}
+
+func (g Bot) handleGetQuote(message MessageData) {
+	quoteSel, err := parseGetQuote(message.Content)
+	if err != nil {
+		g.handleGenericError(message)
+	}
+	quote, err := g.GetRandomQuote(quoteSel.author, quoteSel.language, quoteSel.universe)
+	if err != nil {
+		g.handleGenericError(message)
+	}
+	if message.IsDM {
+		g.SendMessageToChannel(message.ChannelID, quote.Content)
+	} else {
+		g.SendMessageToChannel(message.ChannelID, g.GetMention(message.AuthorID)+"\n"+quote.Content)
+	}
+}
+
+func (g Bot) handleAddQuoteInit(message MessageData) {
+	// TODO
+	// "Ok, now please send me your Quote."
+}
+
+func (g Bot) handleAddQuoteContent(message MessageData) {
+	// TODO
+}
+
+func (g Bot) handleAddQuoteAuthor(message MessageData) {
+	// TODO
+}
+
+func (g Bot) handleAddQuoteLanguage(message MessageData) {
+	// TODO
+}
+
+func (g Bot) handleAddQuoteUniverse(message MessageData) {
+	// TODO
+}
+
+func (g Bot) handleQuoteOfTheDay(message MessageData) {
+	if qotd := g.GetUserData(message.AuthorID, "QuoteOfTheDay"); qotd != nil {
+		switch qotd.(type) {
+		case stringWithTTL:
+			if qotd.(stringWithTTL).isValid() {
+				g.SendMessageToChannel(message.ChannelID, qotd.(stringWithTTL).Content)
+			} else {
+				g.handleNewQuoteOfTheDay(message)
+			}
+		default:
+			g.handleGenericError(message)
+		}
+	}
+}
+
+func (g Bot) handleNewQuoteOfTheDay(message MessageData) {
+	quote, err := g.GetRandomQuote("", "", "")
+	if err != nil {
+		g.handleGenericError(message)
+	}
+	now := time.Now()
+	year, month, day := now.Date()
+	midnight := time.Date(year, month, day+1, 0, 0, 0, 0, now.Location())
+	qotd := stringWithTTL{
+		Content:    quote.Content,
+		ValidUntil: midnight,
+	}
+	g.SetUserData(message.AuthorID, "QuoteOfTheDay", qotd)
+	if message.IsDM {
+		g.SendMessageToChannel(message.ChannelID, qotd.Content)
+	} else {
+		g.SendMessageToChannel(message.ChannelID, g.GetMention(message.AuthorID)+"\n"+qotd.Content)
+	}
 }
 
 func (g Bot) addQuoteToDB(message MessageData) error {
@@ -88,8 +163,8 @@ func parseCommandString(command string) ([]string, error) {
 }
 
 func parseGetQuote(message string) (quoteSelector, error) {
-	// TODO what the hell did I mean to do here????
-	if message == "/getquote" {
+	// Do not run code if no additional parameters were given
+	if message == "getquote" {
 		return quoteSelector{}, nil
 	}
 	args, err := parseCommandString(message)

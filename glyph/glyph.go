@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
+
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
 
@@ -20,12 +22,18 @@ type MessageData struct {
 	IsDM             bool   `json:"isDM,omitempty"`
 	SupportsMarkdown bool   `json:"supportsMarkdown,omitempty"`
 	ChannelID        string `json:"channelID,omitempty"`
+	IsCommand        bool   `json:"isCommand,omitempty"`
 }
 
 // QuoteDB contains all functions to interface with an Database containing quotes
 type QuoteDB struct {
 	GetRandomQuote func(byAuthor, inLanguage, inUniverse string) (Quote, error)
 	AddQuote       func(Quote) error
+}
+
+type stringWithTTL struct {
+	Content    string
+	ValidUntil time.Time
 }
 
 // Quote represents a Quote
@@ -46,12 +54,18 @@ type Bot struct {
 	SetUserData          func(userID, key string, value interface{})                   // A function that saves data to a specific user by key
 	GetUserData          func(userID, key string) interface{}                          // A function that gets data to a specific user by key
 	SendMessageToChannel func(channelID, message string)                               // A function that sends a simple text message to specified channel
+	Prefix               string                                                        // The command prefix used
 }
 
 // HandleAll takes a MessageData object and parses it for the glyph bot, calling callback functions as needed
-func (g Bot) HandleAll(message MessageData) error {
+func (g Bot) HandleAll(message MessageData) {
+	if !message.IsCommand {
+		go g.handleNonCommandMessage(message)
+	}
+
 	tokens := strings.Split(message.Content, " ")
-	switch tokens[0] {
+	switch strings.ToLower(tokens[0]) {
+	// Help Commands
 	case "help":
 		go g.handleHelp(message)
 	case "unip":
@@ -76,13 +90,18 @@ func (g Bot) HandleAll(message MessageData) error {
 		go g.handleID(message)
 	case "isDM":
 		go g.handleIsDM(message)
-
 	case "roll", "r":
-		if len(tokens) < 2 {
-			g.SendMessageToChannel(message.ChannelID, "To roll dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
-		} else {
-			g.rollHelper(message)
-		}
+		go g.handleRoll(message, tokens)
+	case "cancel":
+		go g.handleCancelContext(message)
+
+	// Quotator Commands
+	case "getquote":
+		go g.handleGetQuote(message)
+	case "addquote":
+		go g.handleAddQuoteInit(message)
+	case "quoteoftheday":
+		go g.handleQuoteOfTheDay(message)
 
 	// Diagnostic Commands
 	case "diag":
@@ -94,28 +113,24 @@ func (g Bot) HandleAll(message MessageData) error {
 		}
 	// Help commands
 	case "gm":
-		if len(tokens) == 1 {
-			g.SendMessageToChannel(message.ChannelID, "# Available Commands:\n - /gm rollinit COUNT INIT")
-		} else {
-			switch tokens[1] {
-			case "help":
-				g.SendMessageToChannel(message.ChannelID, "# Available Commands:\n - /gm rollinit COUNT INIT")
-			case "rollinit":
-				rollCount, err := strconv.Atoi(tokens[2])
-				rollInit, err := strconv.Atoi(tokens[3])
-				if err != nil {
-					g.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
-				}
-				g.SendMessageToChannel(message.ChannelID, g.rollMassInit(rollCount, rollInit))
-			}
-		}
+		go g.handleGM(message, tokens)
 	default:
-		if g.GetContext(message.AuthorID, message.ChannelID, "ctx") != "" {
-			go g.SetContext(message.AuthorID, message.ChannelID, "ctx", "", time.Second)
-			go g.handleGenericError(message)
-		}
+		go g.handleInvalidCommand(message)
 	}
-	return ErrNoCommandMatched
+}
+
+func (g Bot) handleNonCommandMessage(message MessageData) {
+	switch g.GetContext(message.AuthorID, message.ChannelID, "ctx") {
+	// Quotator Contexts
+	case "quoteRequired":
+		// TODO
+	case "authorRequired":
+	case "languageRequired":
+	case "universeRequired":
+	default:
+		g.SetContext(message.AuthorID, message.ChannelID, "ctx", "", time.Second)
+		g.handleGenericError(message)
+	}
 }
 
 func (g Bot) handleHelp(message MessageData) {
@@ -209,4 +224,15 @@ func (g Bot) handleGenericError(message MessageData) {
 	g.SendMessageToChannel(message.ChannelID, "Sorry, an internal error occurred. Please try again or contact the bot administrator.")
 }
 
-// To be imported
+func (g Bot) handleInvalidCommand(message MessageData) {
+	g.SendMessageToChannel(message.ChannelID, "Unknown Command, to get a list of available command use the "+g.Prefix+"help command")
+}
+
+func (g Bot) handleCancelContext(message MessageData) {
+	g.SetContext(message.AuthorID, message.ChannelID, "ctx", "", 1*time.Second)
+	g.SendMessageToChannel(message.ChannelID, "I canceled the process!")
+}
+
+func (s stringWithTTL) isValid() bool {
+	return s.ValidUntil.Before(time.Now())
+}

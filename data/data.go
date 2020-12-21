@@ -8,6 +8,7 @@ import (
 
 	_ "github.com/go-kivik/couchdb/v4" // The CouchDB driver
 	kivik "github.com/go-kivik/kivik/v4"
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"
 	_ "github.com/lib/pq" // The PostgreSQL Driver
 )
@@ -107,7 +108,12 @@ func DelTmp(bucket string, key string) {
 // GetUserIDFromDiscordID returns a userID assigned to a given discord ID
 func GetUserIDFromDiscordID(discordUserID string) (string, error) {
 	// TODO
-	return "tionis", nil
+	return "@tionis:tasadar.net", nil
+}
+
+func GetUserIDFromTelegramID(telegramUserID string) (string, error) {
+	// TODO
+	return "@tionis:tasadar.net", nil
 }
 
 // SetUserData sets the key in the bucket in the data of a user to the data from value

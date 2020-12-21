@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/tionis/tsdr-api/glyph"
 )
 

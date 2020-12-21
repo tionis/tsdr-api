@@ -1,17 +1,15 @@
 package main
 
 import (
-	"os"
-	"os/signal"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
-	_ "github.com/heroku/x/hmetrics/onload"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"
 	"github.com/tionis/tsdr-api/data"
-	tb "gopkg.in/tucnak/telebot.v2"
+	"github.com/tionis/tsdr-api/glyph"
 )
 
 var glyphTelegramLog = logging.MustGetLogger("glyphTelegram")
@@ -20,153 +18,98 @@ const glyphTelegramContextDelay = time.Hour * 24
 
 var msgGlyph chan string
 
-// GlyphTelegramBot handles all the legacy Glyph-Telegram-Bot code for telegram
-func glyphTelegramBot() {
-
-	botquit := make(chan bool) // channel for quitting of bot
-
-	// catch os signals like sigterm and interrupt
-	signalChannel := make(chan os.Signal, 2)
-	signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		sig := <-signalChannel
-		switch sig {
-		case os.Interrupt:
-			glyphTelegramLog.Info("Interruption Signal received, shutting down...")
-			exit(botquit)
-		case syscall.SIGTERM:
-			botquit <- true
-		}
-	}()
-
-	// Define Keyboards
-	// Define Keyboards for Quotator
-	replyBtnLanguageTopLeft := tb.ReplyButton{Text: "English"}
-	replyBtnLanguageTopRight := tb.ReplyButton{Text: "German"}
-	replyBtnLanguageBottomLeft := tb.ReplyButton{Text: "Latin"}
-	replyBtnLanguageBottomRight := tb.ReplyButton{Text: "Spanish"}
-	replyKeysLanguage := [][]tb.ReplyButton{
-		{replyBtnLanguageTopLeft, replyBtnLanguageTopRight}, {replyBtnLanguageBottomLeft, replyBtnLanguageBottomRight}}
-
-	// check for and read config variable, then create bot object
-	glyphToken := os.Getenv("TELEGRAM_TOKEN")
-	glyph, err := tb.NewBot(tb.Settings{
-		Token:  glyphToken,
-		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
-	})
+// GlyphTelegramBot handles all the glyph bot interfacing between the glyph logic and telegram
+func glyphTelegramBot(debug bool) {
+	bot, err := tgbotapi.NewBotAPI("MyAwesomeBotToken")
 	if err != nil {
 		glyphTelegramLog.Fatal(err)
-		return
 	}
 
-	// Handle Quotator Commands
-	glyph.Handle("/getquote", func(m *tb.Message) {
-		data.DelTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
-		author, language, universe, err := parseGetQuote(strings.TrimPrefix(m.Text, "/getquote "))
-		if err != nil {
-			glyphTelegramLog.Error("[glyph] Error parsing getQuote: ", err)
-			_, _ = glyph.Send(m.Chat, "There was an error please check your command and try again later.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
-		} else {
-			_, _ = glyph.Send(m.Chat, getRandomQuote(author, language, universe), &tb.ReplyMarkup{ReplyKeyboardRemove: true})
-		}
-	})
-	glyph.Handle("/addquote", func(m *tb.Message) {
-		data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "quoteRequired", glyphTelegramContextDelay)
-		_, _ = glyph.Send(m.Chat, "Please write me your Quote.", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
-	})
-	glyph.Handle("/quoteoftheday", func(m *tb.Message) {
-		quote := data.GetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote")
-		if quote != "" {
-			_, _ = glyph.Send(m.Chat, quote)
-		} else {
-			quote = getRandomQuote("", "", "")
-			now := time.Now()
-			year, month, day := now.Date()
-			midnight := time.Date(year, month, day+1, 0, 0, 0, 0, now.Location())
-			data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|dayquote", quote, time.Until(midnight))
-			_, _ = glyph.Send(m.Chat, quote)
-		}
-		printInfoGlyph(m)
-	})
-
-	// Handle non command text
-	glyph.Handle(tb.OnText, func(m *tb.Message) {
-		context := data.GetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
-		if context == "" {
-			if !m.Private() {
-				printInfoGlyph(m)
-			} else {
-				_, _ = glyph.Send(m.Chat, "Unknown Command - use help to get a list of available commands", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
-				printInfoGlyph(m)
-			}
-		} else {
-			switch context {
-			case "quoteRequired":
-				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentQuote", m.Text, glyphTelegramContextDelay)
-				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "authorRequired", glyphTelegramContextDelay)
-				_, _ = glyph.Send(m.Sender, "Thanks, now the author please.")
-				printInfoGlyph(m)
-			case "authorRequired":
-				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentAuthor", m.Text, glyphTelegramContextDelay)
-				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "languageRequired", glyphTelegramContextDelay)
-				_, _ = glyph.Send(m.Sender, "Thanks, now the language please.", &tb.ReplyMarkup{ReplyKeyboard: replyKeysLanguage})
-				printInfoGlyph(m)
-			case "languageRequired":
-				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentLanguage", m.Text, glyphTelegramContextDelay)
-				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context", "universeRequired", glyphTelegramContextDelay)
-				_, _ = glyph.Send(m.Sender, "And now the universe it comes from please:", &tb.ReplyMarkup{ReplyKeyboardRemove: true})
-				printInfoGlyph(m)
-			case "universeRequired":
-				data.SetTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|currentUniverse", m.Text, glyphTelegramContextDelay)
-				data.DelTmp("glyph", "telegram:"+strconv.Itoa(m.Sender.ID)+"|context")
-				_, _ = glyph.Send(m.Sender, addQuote(m))
-				printInfoGlyph(m)
-			default:
-				_, _ = glyph.Send(m.Sender, "Unknown Command - use help to get a list of available commands")
-			}
-
-		}
-	})
-
-	// Graceful Shutdown (botquit)
-	go func() {
-		<-botquit
-		glyph.Stop()
-		glyphTelegramLog.Info("Glyph Telegram Bot was stopped")
-		os.Exit(3)
-	}()
-
-	// Channel for sending messages
-	go func(glyph *tb.Bot) {
-		msgGlyph = make(chan string)
-		for {
-			toSend := <-msgGlyph
-			tionis := tb.Chat{ID: 248533143}
-			_, _ = glyph.Send(&tionis, toSend, tb.ModeMarkdown)
-		}
-	}(glyph)
-
-	// print startup message
 	glyphTelegramLog.Info("Glyph Telegram Bot was started.")
-	glyph.Start()
-}
 
-// General Telegram Glyph Logic
+	bot.Debug = debug
 
-func printInfoGlyph(m *tb.Message) {
-	glyphTelegramLog.Info(m.Sender.Username + " - " + m.Sender.FirstName + " " + m.Sender.LastName + " - ID: " + strconv.Itoa(m.Sender.ID) + "Message: " + m.Text)
-}
+	u := tgbotapi.NewUpdate(0)
+	u.Timeout = 60
 
-// Stop the program and kill hanging routines
-func exit(quit chan bool) {
-	// function for normal exit
-	quit <- true
-	simpleExit()
-}
+	updates, err := bot.GetUpdatesChan(u)
 
-// Exit while ignoring running routines
-func simpleExit() {
-	// Exit without using graceful shutdown channels
-	glyphTelegramLog.Info("Shutting down...")
-	os.Exit(0)
+	// Init callback functions
+	var telegramSendMessage = func(channelID, message string) {
+		id, err := strconv.ParseInt(channelID, 10, 64)
+		if err != nil {
+			glyphDiscordLog.Errorf("Error parsing channelID %v: %v", channelID, err)
+		}
+		msg := tgbotapi.NewMessage(id, message)
+		_, err = bot.Send(msg)
+		if err != nil {
+			glyphDiscordLog.Errorf("Error sending message to %v: %v", channelID, err)
+		}
+	}
+	var telegramSetUserData = func(discordUserID, key string, value interface{}) {
+		userID, err := data.GetUserIDFromTelegramID(discordUserID)
+		if err != nil {
+			glyphDiscordLog.Errorf("error setting user data: %v", err)
+			return
+		}
+		err = data.SetUserData(userID, "glyph", key, value)
+		if err != nil {
+			glyphDiscordLog.Errorf("error setting user data: %v", err)
+			return
+		}
+	}
+	var telegramGetUserData = func(discordUserID, key string) interface{} {
+		userID, err := data.GetUserIDFromTelegramID(discordUserID)
+		if err != nil {
+			glyphDiscordLog.Errorf("error setting user data: %v", err)
+			return ""
+		}
+		value, err := data.GetUserData(userID, "glyph", key)
+		if err != nil {
+			glyphDiscordLog.Errorf("error setting user data: %v", err)
+			return ""
+		}
+		return value
+	}
+	var telegramSetContext = func(userID, channelID, key, value string, ttl time.Duration) {
+		data.SetTmp("glyph:tg:"+channelID+":"+userID, key, value, ttl)
+	}
+	var telegramGetContext = func(userID, channelID, key string) string {
+		return data.GetTmp("glyph:tg:"+channelID+":"+userID, key)
+	}
+	var telegramGetMention = func(userID string) string {
+		return "[inline mention of a user](tg://user?id=" + userID + ")"
+	}
+
+	telegramGlyphBot := &glyph.Bot{
+		AddQuote:             data.AddQuote,
+		GetRandomQuote:       data.GetRandomQuote,
+		SetContext:           telegramSetContext,
+		GetContext:           telegramGetContext,
+		GetUserData:          telegramGetUserData,
+		SetUserData:          telegramSetUserData,
+		SendMessageToChannel: telegramSendMessage,
+		GetMention:           telegramGetMention,
+		Prefix:               "/",
+	}
+
+	for update := range updates {
+		if update.Message == nil { // ignore any non-Message Updates
+			continue
+		}
+
+		// Trim prefix
+		content := strings.TrimPrefix(update.Message.Text, telegramGlyphBot.Prefix)
+
+		message := glyph.MessageData{
+			Content:          content,
+			AuthorID:         strconv.Itoa(update.Message.From.ID),
+			IsDM:             !update.Message.Chat.IsGroup(),
+			SupportsMarkdown: true,
+			ChannelID:        strconv.FormatInt(update.Message.Chat.ID, 10),
+			IsCommand:        update.Message.IsCommand(),
+		}
+
+		go telegramGlyphBot.HandleAll(message)
+	}
 }

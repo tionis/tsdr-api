@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/bwmarrin/discordgo"
-	_ "github.com/heroku/x/hmetrics/onload"
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"
 	"github.com/tionis/tsdr-api/data"
 	"github.com/tionis/tsdr-api/glyph"
@@ -112,6 +112,7 @@ func glyphDiscordBot() {
 		SetUserData:          discordSetUserData,
 		SendMessageToChannel: discordSendMessage,
 		GetMention:           func(userID string) string { return "<@" + userID + ">" },
+		Prefix:               "/",
 	}
 
 	go func(dg *discordgo.Session) {
@@ -159,16 +160,18 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		ChannelID:        m.ChannelID,
 		IsDM:             m.ChannelID == AuthorDMChannelID,
 		SupportsMarkdown: true,
+		IsCommand:        false,
 	}
 
 	// Split message into chunks
 	tokens := strings.Split(message.Content, " ")
 
-	if strings.HasPrefix(tokens[0], "/") {
+	if strings.HasPrefix(tokens[0], discordGlyphBot.Prefix) {
 		message.Content = strings.TrimPrefix(message.Content, "/")
+		message.IsCommand = true
 	} else if tokens[0] == discordBotMention {
-		glyphDiscordLog.Debug("1")
 		message.Content = strings.TrimPrefix(message.Content, discordBotMention)
+		message.IsCommand = true
 	}
 
 	message.Content = strings.TrimLeft(message.Content, "\t \r \n \v \f ")
