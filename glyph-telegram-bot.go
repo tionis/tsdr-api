@@ -58,12 +58,16 @@ func glyphTelegramBot(debug bool) {
 
 		glyphTelegramLog.Debug(update.Message.Text)
 
+		// Save Username to cache
+		userID := strconv.Itoa(update.Message.From.ID)
+		go data.SetTmp("glyph:tg:nameCache", userID, update.Message.From.FirstName+" "+update.Message.From.LastName, 30*time.Minute)
+
 		// Trim prefix
 		content := strings.TrimPrefix(update.Message.Text, telegramGlyphBot.Prefix)
 
 		message := glyph.MessageData{
 			Content:          content,
-			AuthorID:         strconv.Itoa(update.Message.From.ID),
+			AuthorID:         userID,
 			IsDM:             !update.Message.Chat.IsGroup(),
 			SupportsMarkdown: true,
 			ChannelID:        strconv.FormatInt(update.Message.Chat.ID, 10),
@@ -133,8 +137,10 @@ func getTelegramGetContext() func(userID, channelID, key string) (string, error)
 
 func getTelegramGetMention() func(userID string) (string, error) {
 	return func(userID string) (string, error) {
-		// TODO get name of user from userID --> caching???
-		friendlyName := userID
+		friendlyName := data.GetTmp("glyph:tg:nameCache", userID)
+		if friendlyName == "" {
+			friendlyName = userID
+		}
 		return "[" + friendlyName + "](tg://user?id=" + userID + ")", nil
 	}
 }
