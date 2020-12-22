@@ -7,12 +7,17 @@ import (
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
+	"github.com/keybase/go-logging"
 
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
 
 // ErrNoCommandMatched represents the state in which no command could be matched
 var ErrNoCommandMatched = errors.New("no command was matched")
+
+// ErrUserNotFound is thrown when the searched user could not be found
+var ErrUserNotFound = errors.New("user not found")
+
 var standardContextDelay = time.Minute * 5
 
 // MessageData represents an message the bot can act on with callback functions
@@ -46,15 +51,21 @@ type Quote struct {
 
 // Bot represents a glyph bot instance with configuration
 type Bot struct {
-	AddQuote             func(quote Quote) error                                       // A function that saves a given Quote
-	GetRandomQuote       func(byAuthor, inLanguage, inUniverse string) (Quote, error)  // A function that gets a random quote based on parameters
-	GetMention           func(userID string) string                                    // A function that when passed an userID returns an string mentioning the user
-	GetContext           func(userID, channelID, key string) string                    // A function that when passed an channelID and UserID returns the current chat context for the specified key
-	SetContext           func(userID, channelID, key, value string, ttl time.Duration) // A function that allows setting the current channelID+UserID context with a specific key
-	SetUserData          func(userID, key string, value interface{})                   // A function that saves data to a specific user by key
-	GetUserData          func(userID, key string) interface{}                          // A function that gets data to a specific user by key
-	SendMessageToChannel func(channelID, message string)                               // A function that sends a simple text message to specified channel
-	Prefix               string                                                        // The command prefix used
+	QuoteDBHandler       *QuoteDBHandler
+	GetMention           func(userID string) (string, error)                                 // A function that when passed an userID returns an string mentioning the user
+	GetContext           func(userID, channelID, key string) (string, error)                 // A function that when passed an channelID and UserID returns the current chat context for the specified key
+	SetContext           func(userID, channelID, key, value string, ttl time.Duration) error // A function that allows setting the current channelID+UserID context with a specific key
+	SetUserData          func(userID, key string, value interface{}) error                   // A function that saves data to a specific user by key
+	GetUserData          func(userID, key string) (interface{}, error)                       // A function that gets data to a specific user by key
+	SendMessageToChannel func(channelID, message string) error                               // A function that sends a simple text message to specified channel
+	Prefix               string                                                              // The command prefix used
+	Logger               *logging.Logger
+}
+
+// QuoteDBHandler exposes functions to interact with a Quote DB
+type QuoteDBHandler struct {
+	AddQuote       func(quote Quote) error                                      // A function that saves a given Quote
+	GetRandomQuote func(byAuthor, inLanguage, inUniverse string) (Quote, error) // A function that gets a random quote based on parameters
 }
 
 // HandleAll takes a MessageData object and parses it for the glyph bot, calling callback functions as needed
@@ -120,7 +131,12 @@ func (g Bot) HandleAll(message MessageData) {
 }
 
 func (g Bot) handleNonCommandMessage(message MessageData) {
-	switch g.GetContext(message.AuthorID, message.ChannelID, "ctx") {
+	context, err := g.GetContext(message.AuthorID, message.ChannelID, "ctx")
+	if err != nil {
+		g.Logger.Error("could not get context for %v in Channel %v: %v", message.AuthorID, message.ChannelID, err)
+		return
+	}
+	switch context {
 	// Quotator Contexts
 	case "quoteRequired":
 		g.handleAddQuoteContent(message)
@@ -245,6 +261,10 @@ func (g Bot) sendMessageDefault(messageToParse MessageData, messageToSend string
 	if messageToParse.IsDM {
 		g.SendMessageToChannel(messageToParse.ChannelID, messageToSend)
 	} else {
-		g.SendMessageToChannel(messageToParse.ChannelID, g.GetMention(messageToParse.AuthorID)+"\n"+messageToSend)
+		mention, err := g.GetMention(messageToParse.AuthorID)
+		if err != nil {
+			g.Logger.Warningf("Could not get mention for %v: %v", messageToParse.AuthorID, err)
+		}
+		g.SendMessageToChannel(messageToParse.ChannelID, mention+"\n"+messageToSend)
 	}
 }

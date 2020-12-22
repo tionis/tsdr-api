@@ -65,53 +65,18 @@ func glyphDiscordBot() {
 	// Init mention string
 	discordBotMention = "<@!" + dg.State.User.ID + ">"
 
-	// Init callback functions
-	var discordSendMessage = func(channelID, message string) {
-		_, err := dg.ChannelMessageSend(channelID, message)
-		if err != nil {
-			glyphDiscordLog.Errorf("Error sending message to %v: %v", channelID, err)
-		}
-	}
-	var discordSetUserData = func(discordUserID, key string, value interface{}) {
-		userID, err := data.GetUserIDFromDiscordID(discordUserID)
-		if err != nil {
-			glyphDiscordLog.Errorf("error setting user data: %v", err)
-			return
-		}
-		err = data.SetUserData(userID, "glyph", key, value)
-		if err != nil {
-			glyphDiscordLog.Errorf("error setting user data: %v", err)
-			return
-		}
-	}
-	var discordGetUserData = func(discordUserID, key string) interface{} {
-		userID, err := data.GetUserIDFromDiscordID(discordUserID)
-		if err != nil {
-			glyphDiscordLog.Errorf("error setting user data: %v", err)
-			return ""
-		}
-		value, err := data.GetUserData(userID, "glyph", key)
-		if err != nil {
-			glyphDiscordLog.Errorf("error setting user data: %v", err)
-			return ""
-		}
-		return value
-	}
-	var discordSetContext = func(userID, channelID, key, value string, ttl time.Duration) {
-		data.SetTmp("glyph:dc:"+channelID+":"+userID, key, value, ttl)
-	}
-	var discordGetContext = func(userID, channelID, key string) string {
-		return data.GetTmp("glyph:dc:"+channelID+":"+userID, key)
-	}
 	discordGlyphBot = &glyph.Bot{
-		AddQuote:             data.AddQuote,
-		GetRandomQuote:       data.GetRandomQuote,
-		SetContext:           discordSetContext,
-		GetContext:           discordGetContext,
-		GetUserData:          discordGetUserData,
-		SetUserData:          discordSetUserData,
-		SendMessageToChannel: discordSendMessage,
-		GetMention:           func(userID string) string { return "<@" + userID + ">" },
+		QuoteDBHandler: &glyph.QuoteDBHandler{
+			AddQuote:       data.AddQuote,
+			GetRandomQuote: data.GetRandomQuote,
+		},
+		SetContext:           getDiscordSetContext(),
+		GetContext:           getDiscordGetContext(),
+		GetUserData:          getDiscordGetUserData(),
+		SetUserData:          getDiscordSetUserData(),
+		SendMessageToChannel: getDiscordSendMessage(dg),
+		GetMention:           getDiscordGetMention(),
+		Logger:               glyphDiscordLog,
 		Prefix:               "/",
 	}
 
@@ -203,3 +168,61 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	return false, nil
 }*/
+
+func getDiscordGetContext() func(userID, channelID, key string) (string, error) {
+	return func(userID, channelID, key string) (string, error) {
+		return data.GetTmp("glyph:dc:"+channelID+":"+userID, key), nil
+	}
+}
+
+func getDiscordSetContext() func(userID, channelID, key, value string, ttl time.Duration) error {
+	return func(userID, channelID, key, value string, ttl time.Duration) error {
+		data.SetTmp("glyph:dc:"+channelID+":"+userID, key, value, ttl)
+		return nil
+	}
+}
+
+func getDiscordSendMessage(dg *discordgo.Session) func(channelID, message string) error {
+	return func(channelID, message string) error {
+		_, err := dg.ChannelMessageSend(channelID, message)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func getDiscordGetMention() func(userID string) (string, error) {
+	return func(userID string) (string, error) {
+		return "<@" + userID + ">", nil
+	}
+}
+
+func getDiscordSetUserData() func(discordUserID, key string, value interface{}) error {
+	return func(discordUserID, key string, value interface{}) error {
+		userID, err := data.GetUserIDFromDiscordID(discordUserID)
+		if err != nil {
+			return err
+		}
+		err = data.SetUserData(userID, "glyph", key, value)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func getDiscordGetUserData() func(discordUserID, key string) (interface{}, error) {
+	return func(discordUserID, key string) (interface{}, error) {
+		userID, err := data.GetUserIDFromDiscordID(discordUserID)
+		if err != nil {
+			return nil, err
+		}
+		value, err := data.GetUserData(userID, "glyph", key)
+		if err != nil {
+			glyphDiscordLog.Errorf("error setting user data: %v", err)
+			return nil, err
+		}
+		return value, err
+	}
+}

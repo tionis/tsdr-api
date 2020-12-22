@@ -125,7 +125,12 @@ func (g Bot) rollHelper(message MessageData) {
 		      return
 		  }
 		  initModSlice := initModSliceObject.([]string)*/
-		initMod := g.GetUserData(message.AuthorID, "initmod")
+		initMod, err := g.GetUserData(message.AuthorID, "initmod")
+		if err != nil {
+			g.Logger.Error("could not get user data for %v: %v", message.AuthorID, err)
+			g.handleGenericError(message)
+			return
+		}
 		switch initMod.(type) {
 		case []int:
 		default:
@@ -279,7 +284,11 @@ func (g Bot) rollHelper(message MessageData) {
 		// Parse Slice here
 		var successes, critfails int
 		var output strings.Builder
-		output.WriteString("Results for " + g.GetMention(message.AuthorID) + ": ")
+		mention, err := g.GetMention(message.AuthorID)
+		if err != nil {
+			g.Logger.Warningf("Could not get mention for %v: %v", message.AuthorID, err)
+		}
+		output.WriteString("Results for " + mention + ": ")
 		for i := range retSlice {
 			output.WriteString("[")
 			for j := range retSlice[i] {

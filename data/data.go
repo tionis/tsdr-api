@@ -22,8 +22,13 @@ var couch *kivik.Client
 
 var dataLog = logging.MustGetLogger("data")
 
+// This could be a performance bottleneck in the future.
+// If the bot performs badly the cache logic should be rewritten.
 var tmpDataLock sync.RWMutex
 var tmpData map[string]map[string]tmpDataObject
+
+// Define errors
+var errUserNotFound = errors.New("user could not be found in the database")
 
 type tmpDataObject struct {
 	data       string
@@ -147,6 +152,7 @@ func GetUserIDFromDiscordID(discordUserID string) (string, error) {
 	return "@tionis:tasadar.net", nil
 }
 
+// GetUserIDFromTelegramID returns a userID assigned to a given telegram ID
 func GetUserIDFromTelegramID(telegramUserID string) (string, error) {
 	// TODO
 	return "@tionis:tasadar.net", nil

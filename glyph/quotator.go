@@ -22,7 +22,7 @@ func (g Bot) handleGetQuote(message MessageData) {
 	if err != nil {
 		g.handleGenericError(message)
 	}
-	quote, err := g.GetRandomQuote(quoteSel.author, quoteSel.language, quoteSel.universe)
+	quote, err := g.QuoteDBHandler.GetRandomQuote(quoteSel.author, quoteSel.language, quoteSel.universe)
 	if err != nil {
 		g.handleGenericError(message)
 	}
@@ -68,7 +68,7 @@ func (g Bot) handleAddQuoteFinished(message MessageData) {
 }
 
 func (g Bot) handleQuoteOfTheDay(message MessageData) {
-	if qotd := g.GetUserData(message.AuthorID, "QuoteOfTheDay"); qotd != nil {
+	if qotd, error := g.GetUserData(message.AuthorID, "QuoteOfTheDay"); error != nil && qotd != nil {
 		switch qotd.(type) {
 		case stringWithTTL:
 			if qotd.(stringWithTTL).isValid() {
@@ -76,14 +76,18 @@ func (g Bot) handleQuoteOfTheDay(message MessageData) {
 			} else {
 				g.handleNewQuoteOfTheDay(message)
 			}
+		case string: // Handle the case in which no quote was saved ("")
+			g.handleNewQuoteOfTheDay(message)
 		default:
 			g.handleGenericError(message)
 		}
+	} else {
+		g.handleGenericError(message)
 	}
 }
 
 func (g Bot) handleNewQuoteOfTheDay(message MessageData) {
-	quote, err := g.GetRandomQuote("", "", "")
+	quote, err := g.QuoteDBHandler.GetRandomQuote("", "", "")
 	if err != nil {
 		g.handleGenericError(message)
 	}
@@ -99,11 +103,27 @@ func (g Bot) handleNewQuoteOfTheDay(message MessageData) {
 }
 
 func (g Bot) addQuoteToDB(message MessageData) error {
-	return g.AddQuote(Quote{
-		Content:  g.GetContext(message.AuthorID, message.ChannelID, "currentQuote"),
-		Author:   g.GetContext(message.AuthorID, message.ChannelID, "currentAuthor"),
-		Language: g.GetContext(message.AuthorID, message.ChannelID, "currentLanguage"),
-		Universe: g.GetContext(message.AuthorID, message.ChannelID, "currentUniverse"),
+	quote, err := g.GetContext(message.AuthorID, message.ChannelID, "currentQuote")
+	if err != nil {
+		return err
+	}
+	author, err := g.GetContext(message.AuthorID, message.ChannelID, "currentAuthor")
+	if err != nil {
+		return err
+	}
+	language, err := g.GetContext(message.AuthorID, message.ChannelID, "currentLanguage")
+	if err != nil {
+		return err
+	}
+	universe, err := g.GetContext(message.AuthorID, message.ChannelID, "currentUniverse")
+	if err != nil {
+		return err
+	}
+	return g.QuoteDBHandler.AddQuote(Quote{
+		Content:  quote,
+		Author:   author,
+		Language: language,
+		Universe: universe,
 	})
 }
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"os"
 	"strconv"
 	"strings"
@@ -35,64 +36,18 @@ func glyphTelegramBot(debug bool) {
 
 	updates, err := bot.GetUpdatesChan(u)
 
-	// Init callback functions
-	var telegramSendMessage = func(channelID, message string) {
-		id, err := strconv.ParseInt(channelID, 10, 64)
-		if err != nil {
-			glyphDiscordLog.Errorf("Error parsing channelID %v: %v", channelID, err)
-		}
-		msg := tgbotapi.NewMessage(id, message)
-		msg.ParseMode = "Markdown"
-		_, err = bot.Send(msg)
-		if err != nil {
-			glyphDiscordLog.Errorf("Error sending message to %v: %v", channelID, err)
-		}
-	}
-	var telegramSetUserData = func(discordUserID, key string, value interface{}) {
-		userID, err := data.GetUserIDFromTelegramID(discordUserID)
-		if err != nil {
-			glyphDiscordLog.Errorf("error setting user data: %v", err)
-			return
-		}
-		err = data.SetUserData(userID, "glyph", key, value)
-		if err != nil {
-			glyphDiscordLog.Errorf("error setting user data: %v", err)
-			return
-		}
-	}
-	var telegramGetUserData = func(discordUserID, key string) interface{} {
-		userID, err := data.GetUserIDFromTelegramID(discordUserID)
-		if err != nil {
-			glyphDiscordLog.Errorf("error setting user data: %v", err)
-			return ""
-		}
-		value, err := data.GetUserData(userID, "glyph", key)
-		if err != nil {
-			glyphDiscordLog.Errorf("error setting user data: %v", err)
-			return ""
-		}
-		return value
-	}
-	var telegramSetContext = func(userID, channelID, key, value string, ttl time.Duration) {
-		data.SetTmp("glyph:tg:"+channelID+":"+userID, key, value, ttl)
-	}
-	var telegramGetContext = func(userID, channelID, key string) string {
-		return data.GetTmp("glyph:tg:"+channelID+":"+userID, key)
-	}
-	var telegramGetMention = func(userID string) string {
-		// TODO get name of user from userID --> caching???
-		return "[inline mention of a user](tg://user?id=" + userID + ")"
-	}
-
 	telegramGlyphBot := &glyph.Bot{
-		AddQuote:             data.AddQuote,
-		GetRandomQuote:       data.GetRandomQuote,
-		SetContext:           telegramSetContext,
-		GetContext:           telegramGetContext,
-		GetUserData:          telegramGetUserData,
-		SetUserData:          telegramSetUserData,
-		SendMessageToChannel: telegramSendMessage,
-		GetMention:           telegramGetMention,
+		QuoteDBHandler: &glyph.QuoteDBHandler{
+			AddQuote:       data.AddQuote,
+			GetRandomQuote: data.GetRandomQuote,
+		},
+		SetContext:           getTelegramSetContext(),
+		GetContext:           getTelegramGetContext(),
+		GetUserData:          getTelegramGetUserData(),
+		SetUserData:          getTelegramSetUserData(),
+		SendMessageToChannel: getTelegramSendMessage(bot),
+		GetMention:           getTelegramGetMention(),
+		Logger:               glyphTelegramLog,
 		Prefix:               "/",
 	}
 
@@ -116,5 +71,70 @@ func glyphTelegramBot(debug bool) {
 		}
 
 		go telegramGlyphBot.HandleAll(message)
+	}
+}
+
+// Init callback functions
+func getTelegramSendMessage(bot *tgbotapi.BotAPI) func(channelID, message string) error {
+	return func(channelID, message string) error {
+		id, err := strconv.ParseInt(channelID, 10, 64)
+		if err != nil {
+			return errors.New("Error parsing channelID " + channelID + ": " + err.Error())
+		}
+		msg := tgbotapi.NewMessage(id, message)
+		msg.ParseMode = "Markdown"
+		_, err = bot.Send(msg)
+		if err != nil {
+			return errors.New("error sending message to " + channelID + ": " + err.Error())
+		}
+		return nil
+	}
+}
+
+func getTelegramSetUserData() func(discordUserID, key string, value interface{}) error {
+	return func(discordUserID, key string, value interface{}) error {
+		userID, err := data.GetUserIDFromTelegramID(discordUserID)
+		if err != nil {
+			return err
+		}
+		err = data.SetUserData(userID, "glyph", key, value)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+func getTelegramGetUserData() func(discordUserID, key string) (interface{}, error) {
+	return func(discordUserID, key string) (interface{}, error) {
+		userID, err := data.GetUserIDFromTelegramID(discordUserID)
+		if err != nil {
+			return nil, err
+		}
+		value, err := data.GetUserData(userID, "glyph", key)
+		if err != nil {
+			return nil, err
+		}
+		return value, nil
+	}
+}
+func getTelegramSetContext() func(userID, channelID, key, value string, ttl time.Duration) error {
+	return func(userID, channelID, key, value string, ttl time.Duration) error {
+		data.SetTmp("glyph:tg:"+channelID+":"+userID, key, value, ttl)
+		return nil
+	}
+}
+
+func getTelegramGetContext() func(userID, channelID, key string) (string, error) {
+	return func(userID, channelID, key string) (string, error) {
+		return data.GetTmp("glyph:tg:"+channelID+":"+userID, key), nil
+	}
+}
+
+func getTelegramGetMention() func(userID string) (string, error) {
+	return func(userID string) (string, error) {
+		// TODO get name of user from userID --> caching???
+		friendlyName := userID
+		return "[" + friendlyName + "](tg://user?id=" + userID + ")", nil
 	}
 }
