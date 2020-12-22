@@ -123,10 +123,14 @@ func (g Bot) handleNonCommandMessage(message MessageData) {
 	switch g.GetContext(message.AuthorID, message.ChannelID, "ctx") {
 	// Quotator Contexts
 	case "quoteRequired":
-		// TODO
+		g.handleAddQuoteContent(message)
 	case "authorRequired":
+		g.handleAddQuoteAuthor(message)
 	case "languageRequired":
+		g.handleAddQuoteLanguage(message)
 	case "universeRequired":
+		g.handleAddQuoteUniverse(message)
+		g.handleAddQuoteFinished(message)
 	default:
 		g.SetContext(message.AuthorID, message.ChannelID, "ctx", "", time.Second)
 		g.handleGenericError(message)
@@ -235,4 +239,12 @@ func (g Bot) handleCancelContext(message MessageData) {
 
 func (s stringWithTTL) isValid() bool {
 	return s.ValidUntil.Before(time.Now())
+}
+
+func (g Bot) sendMessageDefault(messageToParse MessageData, messageToSend string) {
+	if messageToParse.IsDM {
+		g.SendMessageToChannel(messageToParse.ChannelID, messageToSend)
+	} else {
+		g.SendMessageToChannel(messageToParse.ChannelID, g.GetMention(messageToParse.AuthorID)+"\n"+messageToSend)
+	}
 }

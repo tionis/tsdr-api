@@ -15,6 +15,8 @@ type quoteSelector struct {
 	universe string
 }
 
+var addQuoteContextDelay = time.Minute * 15
+
 func (g Bot) handleGetQuote(message MessageData) {
 	quoteSel, err := parseGetQuote(message.Content)
 	if err != nil {
@@ -24,32 +26,45 @@ func (g Bot) handleGetQuote(message MessageData) {
 	if err != nil {
 		g.handleGenericError(message)
 	}
-	if message.IsDM {
-		g.SendMessageToChannel(message.ChannelID, quote.Content)
-	} else {
-		g.SendMessageToChannel(message.ChannelID, g.GetMention(message.AuthorID)+"\n"+quote.Content)
-	}
+	g.sendMessageDefault(message, quote.Content)
 }
 
 func (g Bot) handleAddQuoteInit(message MessageData) {
-	// TODO
-	// "Ok, now please send me your Quote."
+	g.SetContext(message.AuthorID, message.ChannelID, "ctx", "quoteRequired", standardContextDelay)
+	g.sendMessageDefault(message, "Ok, now please send me your Quote.")
 }
 
 func (g Bot) handleAddQuoteContent(message MessageData) {
-	// TODO
+	g.SetContext(message.AuthorID, message.ChannelID, "currentQuote", message.Content, addQuoteContextDelay)
+	g.SetContext(message.AuthorID, message.ChannelID, "ctx", "authorRequired", standardContextDelay)
+	g.sendMessageDefault(message, "Ok, now please send me the author of the quote.")
 }
 
 func (g Bot) handleAddQuoteAuthor(message MessageData) {
-	// TODO
+	g.SetContext(message.AuthorID, message.ChannelID, "currentAuthor", message.Content, addQuoteContextDelay)
+	g.SetContext(message.AuthorID, message.ChannelID, "ctx", "languageRequired", standardContextDelay)
+	g.sendMessageDefault(message, "Ok, now please send me the language the Quote is in.")
 }
 
 func (g Bot) handleAddQuoteLanguage(message MessageData) {
-	// TODO
+	g.SetContext(message.AuthorID, message.ChannelID, "currentLanguage", message.Content, addQuoteContextDelay)
+	g.SetContext(message.AuthorID, message.ChannelID, "ctx", "universeRequired", standardContextDelay)
+	g.sendMessageDefault(message, "Ok, now please send me the universe the Quote is from.")
 }
 
 func (g Bot) handleAddQuoteUniverse(message MessageData) {
-	// TODO
+	g.SetContext(message.AuthorID, message.ChannelID, "currentUniverse", message.Content, addQuoteContextDelay)
+	g.SetContext(message.AuthorID, message.ChannelID, "ctx", "", time.Second)
+	g.sendMessageDefault(message, "Ok, saving your Quote now...")
+}
+
+func (g Bot) handleAddQuoteFinished(message MessageData) {
+	err := g.addQuoteToDB(message)
+	if err != nil {
+		g.sendMessageDefault(message, "There was an error saving your Quote.\nPlease try again later.")
+	} else {
+		g.sendMessageDefault(message, "Quote saved!")
+	}
 }
 
 func (g Bot) handleQuoteOfTheDay(message MessageData) {
@@ -57,7 +72,7 @@ func (g Bot) handleQuoteOfTheDay(message MessageData) {
 		switch qotd.(type) {
 		case stringWithTTL:
 			if qotd.(stringWithTTL).isValid() {
-				g.SendMessageToChannel(message.ChannelID, qotd.(stringWithTTL).Content)
+				g.sendMessageDefault(message, qotd.(stringWithTTL).Content)
 			} else {
 				g.handleNewQuoteOfTheDay(message)
 			}
@@ -80,11 +95,7 @@ func (g Bot) handleNewQuoteOfTheDay(message MessageData) {
 		ValidUntil: midnight,
 	}
 	g.SetUserData(message.AuthorID, "QuoteOfTheDay", qotd)
-	if message.IsDM {
-		g.SendMessageToChannel(message.ChannelID, qotd.Content)
-	} else {
-		g.SendMessageToChannel(message.ChannelID, g.GetMention(message.AuthorID)+"\n"+qotd.Content)
-	}
+	g.sendMessageDefault(message, qotd.Content)
 }
 
 func (g Bot) addQuoteToDB(message MessageData) error {
