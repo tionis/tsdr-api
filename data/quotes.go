@@ -2,18 +2,14 @@ package data
 
 import (
 	"database/sql"
-	"errors"
 
 	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/tionis/tsdr-api/glyph"
 )
 
-// ErrNoQuotesFound is thrown if now quotes could be found
-var ErrNoQuotesFound = errors.New("no quote found")
-
 // GetRandomQuote gets a random quote with specified parameters. If they are emtpy strings they are ignored
 func GetRandomQuote(byAuthor, inLanguage, inUniverse string) (glyph.Quote, error) {
-	stmt, err := db.Prepare(`SELECT quote, author FROM quotes WHERE (length($1)=0 OR author=$1) AND (length($2)=0 OR language=$2) AND (length($3)=0 OR universe=$3) ORDER BY RANDOM() LIMIT 1`)
+	stmt, err := db.Prepare(`SELECT quote, author, language, universe FROM quotes WHERE (length($1)=0 OR author=$1) AND (length($2)=0 OR language=$2) AND (length($3)=0 OR universe=$3) ORDER BY RANDOM() LIMIT 1`)
 	if err != nil {
 		return glyph.Quote{}, err
 	}
@@ -23,7 +19,7 @@ func GetRandomQuote(byAuthor, inLanguage, inUniverse string) (glyph.Quote, error
 	err = row.Scan(&quote, &author, &language, &universe)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return glyph.Quote{}, ErrNoQuotesFound
+			return glyph.Quote{}, glyph.ErrNoQuotesFound
 		}
 		return glyph.Quote{}, err
 	}

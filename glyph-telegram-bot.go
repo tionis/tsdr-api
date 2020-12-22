@@ -56,8 +56,6 @@ func glyphTelegramBot(debug bool) {
 			continue
 		}
 
-		glyphTelegramLog.Debug(update.Message.Text)
-
 		// Save Username to cache
 		userID := strconv.Itoa(update.Message.From.ID)
 		go data.SetTmp("glyph:tg:nameCache", userID, update.Message.From.FirstName+" "+update.Message.From.LastName, 30*time.Minute)

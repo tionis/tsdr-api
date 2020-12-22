@@ -33,6 +33,9 @@ func (g Bot) handleGM(message MessageData, tokens []string) {
 			g.sendMessageDefault(message, "# Available Commands:\n - /gm rollinit COUNT INIT")
 		case "rollinit":
 			rollCount, err := strconv.Atoi(tokens[2])
+			if err != nil {
+				g.sendMessageDefault(message, "There was an error in your command!")
+			}
 			rollInit, err := strconv.Atoi(tokens[3])
 			if err != nil {
 				g.sendMessageDefault(message, "There was an error in your command!")

@@ -72,6 +72,7 @@ type QuoteDBHandler struct {
 func (g Bot) HandleAll(message MessageData) {
 	if !message.IsCommand {
 		go g.handleNonCommandMessage(message)
+		return
 	}
 
 	tokens := strings.Split(message.Content, " ")
@@ -134,6 +135,7 @@ func (g Bot) handleNonCommandMessage(message MessageData) {
 	context, err := g.GetContext(message.AuthorID, message.ChannelID, "ctx")
 	if err != nil {
 		g.Logger.Error("could not get context for %v in Channel %v: %v", message.AuthorID, message.ChannelID, err)
+		g.handleGenericError(message)
 		return
 	}
 	switch context {
@@ -149,7 +151,7 @@ func (g Bot) handleNonCommandMessage(message MessageData) {
 		g.handleAddQuoteFinished(message)
 	default:
 		g.SetContext(message.AuthorID, message.ChannelID, "ctx", "", time.Second)
-		g.handleGenericError(message)
+		g.handleInvalidCommand(message)
 	}
 }
 

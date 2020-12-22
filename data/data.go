@@ -80,6 +80,10 @@ func DBInit() {
 	if err != nil {
 		dataLog.Fatal("Error creating table quotes: ", err)
 	}
+	_, err = db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text)`)
+	if err != nil {
+		dataLog.Fatal("Error creating table quotes: ", err)
+	}
 }
 
 // startCacheCleaner cleans the cache and then waits the specified time until it cleans the cache again

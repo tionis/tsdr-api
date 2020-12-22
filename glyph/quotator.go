@@ -15,18 +15,38 @@ type quoteSelector struct {
 	universe string
 }
 
+// ErrNoQuotesFound is thrown if now quotes could be found
+var ErrNoQuotesFound = errors.New("no quote found")
+
+// ErrInvalidQuoteSelector is thrown if the given string could not be parsed into
+// an quote selector due to errors in the string itself
+var ErrInvalidQuoteSelector = errors.New("invalid quote selector")
+
 var addQuoteContextDelay = time.Minute * 15
 
 func (g Bot) handleGetQuote(message MessageData) {
-	quoteSel, err := parseGetQuote(message.Content)
+	quoteSel, err := g.parseGetQuote(message.Content)
 	if err != nil {
+		if err == ErrInvalidQuoteSelector {
+			g.sendMessageDefault(message, "There was an error in your command. Please double check it!")
+			return
+		}
+		g.Logger.Warningf("could not parse getQuote: %v", err)
 		g.handleGenericError(message)
+		return
 	}
 	quote, err := g.QuoteDBHandler.GetRandomQuote(quoteSel.author, quoteSel.language, quoteSel.universe)
 	if err != nil {
+		if err == ErrNoQuotesFound {
+			g.sendMessageDefault(message, "Sorry, no quote could be found.")
+			return
+		}
+		g.Logger.Warningf("could not get random quote: %v", err)
 		g.handleGenericError(message)
+		return
 	}
-	g.sendMessageDefault(message, quote.Content)
+	textToSend := quote.Content + "\n- " + quote.Author + " (" + quote.Universe + ")"
+	g.sendMessageDefault(message, textToSend)
 }
 
 func (g Bot) handleAddQuoteInit(message MessageData) {
@@ -95,7 +115,7 @@ func (g Bot) handleNewQuoteOfTheDay(message MessageData) {
 	year, month, day := now.Date()
 	midnight := time.Date(year, month, day+1, 0, 0, 0, 0, now.Location())
 	qotd := stringWithTTL{
-		Content:    quote.Content,
+		Content:    quote.Content + "\n- " + quote.Author + " (" + quote.Universe + ")",
 		ValidUntil: midnight,
 	}
 	g.SetUserData(message.AuthorID, "QuoteOfTheDay", qotd)
@@ -193,11 +213,15 @@ func parseCommandString(command string) ([]string, error) {
 	return args, nil
 }
 
-func parseGetQuote(message string) (quoteSelector, error) {
+func (g Bot) parseGetQuote(message string) (quoteSelector, error) {
 	// Do not run code if no additional parameters were given
-	if message == "getquote" {
+
+	if strings.ToLower(message) == "getquote" {
 		return quoteSelector{}, nil
 	}
+	message = strings.TrimPrefix(message, "getQuote")
+	message = strings.TrimPrefix(message, "getquote")
+	message = strings.TrimLeft(message, "\t \r \n \v \f ")
 	args, err := parseCommandString(message)
 	if err != nil {
 		return quoteSelector{}, err
@@ -214,7 +238,8 @@ func parseGetQuote(message string) (quoteSelector, error) {
 			case "universe":
 				variableToSet = 3
 			default:
-				return quoteSelector{}, errors.New("invalid quote selector")
+				g.Logger.Debugf("|%v|", strings.ToLower(current))
+				return quoteSelector{}, ErrInvalidQuoteSelector
 			}
 		} else {
 			switch variableToSet {
