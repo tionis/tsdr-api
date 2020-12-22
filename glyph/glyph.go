@@ -120,7 +120,7 @@ func (g Bot) HandleAll(message MessageData) {
 		case "dice":
 			g.diceDiagnosticHelper(message)
 		default:
-			g.SendMessageToChannel(message.ChannelID, "Unknown Command!")
+			g.sendMessageDefault(message, "Unknown Command!")
 		}
 	// Help commands
 	case "gm":
@@ -155,34 +155,41 @@ func (g Bot) handleNonCommandMessage(message MessageData) {
 
 func (g Bot) handleHelp(message MessageData) {
 	if message.SupportsMarkdown {
-		g.SendMessageToChannel(message.ChannelID, "# Available Command Categories:\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
+		g.sendMessageDefault(message, "# Available Command Categories:\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	} else {
-		g.SendMessageToChannel(message.ChannelID, "Available Command Categories:\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
+		g.sendMessageDefault(message, "Available Command Categories:\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	}
+
 }
 
 func (g Bot) handleUnip(message MessageData) {
-	g.SendMessageToChannel(message.ChannelID, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
+	g.sendMessageDefault(message, "Available Commands:\n/food - Food for today\n/food tomorrow - Food for tomorrow")
+
 }
 
 func (g Bot) handlePnPHelp(message MessageData) {
-	g.SendMessageToChannel(message.ChannelID, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /config initmod - Save your init modifier\n - /gm help - Get help for using the gm tools")
+	g.sendMessageDefault(message, "Available Commands:\n - /roll - Roll Dice after construct rules\n - /config initmod - Save your init modifier\n - /gm help - Get help for using the gm tools")
+
 }
 
 func (g Bot) handleFoodToday(message MessageData) {
-	g.SendMessageToChannel(message.ChannelID, UniPassauBot.FoodToday())
+	g.sendMessageDefault(message, UniPassauBot.FoodToday())
+
 }
 
 func (g Bot) handleFoodTomorrow(message MessageData) {
-	g.SendMessageToChannel(message.ChannelID, UniPassauBot.FoodTomorrow())
+	g.sendMessageDefault(message, UniPassauBot.FoodTomorrow())
+
 }
 
 func (g Bot) handlePing(message MessageData) {
-	g.SendMessageToChannel(message.ChannelID, "Pong!")
+	g.sendMessageDefault(message, "Pong!")
+
 }
 
 func (g Bot) handleID(message MessageData) {
-	g.SendMessageToChannel(message.ChannelID, "Your user-id is: "+message.AuthorID)
+	g.sendMessageDefault(message, "Your user-id is: "+message.AuthorID)
+
 }
 
 func (g Bot) handleIsDM(message MessageData) {
@@ -192,26 +199,29 @@ func (g Bot) handleIsDM(message MessageData) {
 	} else {
 		output = "This is **not** a DM!"
 	}
-	g.SendMessageToChannel(message.ChannelID, output)
+	g.sendMessageDefault(message, output)
+
 }
 
 func (g Bot) handleConfig(message MessageData) {
 	tokens := strings.Split(message.Content, " ")
 	if len(tokens) < 2 {
-		g.SendMessageToChannel(message.ChannelID, "Save Data to the Bot. Currently available:\n - /save initmod x - Save you Init Modifier")
+		g.sendMessageDefault(message, "Save Data to the Bot. Currently available:\n - /save initmod x - Save you Init Modifier")
+
 	} else {
 		switch tokens[1] {
 		case "initmod":
 			if len(tokens) < 3 {
 				g.SetUserData(message.AuthorID, "initmod", "")
-				g.SendMessageToChannel(message.ChannelID, "Your init modifier was reset.")
+				g.sendMessageDefault(message, "Your init modifier was reset.")
+
 			} else if len(tokens) == 3 {
 				initMod, err := strconv.Atoi(tokens[2])
 				if err != nil {
-					g.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
+					g.sendMessageDefault(message, "There was an error in your command!")
 				} else {
 					g.SetUserData(message.AuthorID, "initmod", strconv.Itoa(initMod))
-					g.SendMessageToChannel(message.ChannelID, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
+					g.sendMessageDefault(message, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
 				}
 			} else {
 				var output strings.Builder
@@ -219,7 +229,7 @@ func (g Bot) handleConfig(message MessageData) {
 				for i := 2; i < limit; i++ {
 					_, err := strconv.Atoi(tokens[i])
 					if err != nil {
-						g.SendMessageToChannel(message.ChannelID, "There was an error while parsing your command")
+						g.sendMessageDefault(message, "There was an error while parsing your command")
 						return
 					}
 					if i == limit-1 {
@@ -232,25 +242,28 @@ func (g Bot) handleConfig(message MessageData) {
 				g.SetUserData(message.AuthorID, "initmod", initModString)
 				//inputString = inputString[:2]
 				//Save("glyph/discord:"+m.Author.ID+"/initmod", inputString)
-				g.SendMessageToChannel(message.ChannelID, "Your init modifier was set to following values: "+initModString+".")
+				g.sendMessageDefault(message, "Your init modifier was set to following values: "+initModString+".")
 			}
 		default:
-			g.SendMessageToChannel(message.ChannelID, "Sorry, I don't know what to save here!")
+			g.sendMessageDefault(message, "Sorry, I don't know what to save here!")
 		}
 	}
 }
 
 func (g Bot) handleGenericError(message MessageData) {
-	g.SendMessageToChannel(message.ChannelID, "Sorry, an internal error occurred. Please try again or contact the bot administrator.")
+	g.sendMessageDefault(message, "Sorry, an internal error occurred. Please try again or contact the bot administrator.")
+
 }
 
 func (g Bot) handleInvalidCommand(message MessageData) {
-	g.SendMessageToChannel(message.ChannelID, "Unknown Command, to get a list of available command use the "+g.Prefix+"help command")
+	g.sendMessageDefault(message, "Unknown Command, to get a list of available command use the "+g.Prefix+"help command")
+
 }
 
 func (g Bot) handleCancelContext(message MessageData) {
 	g.SetContext(message.AuthorID, message.ChannelID, "ctx", "", 1*time.Second)
-	g.SendMessageToChannel(message.ChannelID, "I canceled the process!")
+	g.sendMessageDefault(message, "I canceled the process!")
+
 }
 
 func (s stringWithTTL) isValid() bool {
@@ -259,12 +272,20 @@ func (s stringWithTTL) isValid() bool {
 
 func (g Bot) sendMessageDefault(messageToParse MessageData, messageToSend string) {
 	if messageToParse.IsDM {
-		g.SendMessageToChannel(messageToParse.ChannelID, messageToSend)
+		err := g.SendMessageToChannel(messageToParse.ChannelID, messageToSend)
+		if err != nil {
+			g.Logger.Warningf("error sending message in Channel %v: %v", messageToParse.ChannelID, err)
+			return
+		}
 	} else {
 		mention, err := g.GetMention(messageToParse.AuthorID)
 		if err != nil {
 			g.Logger.Warningf("Could not get mention for %v: %v", messageToParse.AuthorID, err)
 		}
-		g.SendMessageToChannel(messageToParse.ChannelID, mention+"\n"+messageToSend)
+		err = g.SendMessageToChannel(messageToParse.ChannelID, mention+"\n"+messageToSend)
+		if err != nil {
+			g.Logger.Warningf("error sending message in Channel %v: %v", messageToParse.ChannelID, err)
+			return
+		}
 	}
 }

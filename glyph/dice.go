@@ -17,7 +17,7 @@ var randomSeedOnce sync.Once
 // handleRoll handles the roll command, taking a message struct and the input tokens
 func (g Bot) handleRoll(message MessageData, tokens []string) {
 	if len(tokens) < 2 {
-		g.SendMessageToChannel(message.ChannelID, "To roll dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
+		g.sendMessageDefault(message, "To roll dice just tell me how many I should roll and what Modifiers I shall apply.\nI can also roll custom dice like this: /roll 3d12")
 	} else {
 		g.rollHelper(message)
 	}
@@ -26,16 +26,16 @@ func (g Bot) handleRoll(message MessageData, tokens []string) {
 // handleGM handles GM subcommands
 func (g Bot) handleGM(message MessageData, tokens []string) {
 	if len(tokens) == 1 {
-		g.SendMessageToChannel(message.ChannelID, "# Available Commands:\n - /gm rollinit COUNT INIT")
+		g.sendMessageDefault(message, "# Available Commands:\n - /gm rollinit COUNT INIT")
 	} else {
 		switch tokens[1] {
 		case "help":
-			g.SendMessageToChannel(message.ChannelID, "# Available Commands:\n - /gm rollinit COUNT INIT")
+			g.sendMessageDefault(message, "# Available Commands:\n - /gm rollinit COUNT INIT")
 		case "rollinit":
 			rollCount, err := strconv.Atoi(tokens[2])
 			rollInit, err := strconv.Atoi(tokens[3])
 			if err != nil {
-				g.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
+				g.sendMessageDefault(message, "There was an error in your command!")
 			}
 			g.SendMessageToChannel(message.ChannelID, g.rollMassInit(rollCount, rollInit))
 		}
@@ -61,12 +61,13 @@ func (g Bot) diceDiagnosticHelper(message MessageData) {
 		var err error
 		count, err = strconv.Atoi(inputString[2])
 		if err != nil {
-			g.SendMessageToChannel(message.ChannelID, "There was an error parsing your command!")
+			g.sendMessageDefault(message, "There was an error parsing your command!")
 			return
 		}
 	}
 	if count > 1000000 {
-		g.SendMessageToChannel(message.ChannelID, "Please choose a valid range!")
+		g.sendMessageDefault(message, "Please choose a valid range!")
+
 		return
 	}
 	sidesCount := make([]int, 10)
@@ -81,7 +82,7 @@ func (g Bot) diceDiagnosticHelper(message MessageData) {
 		percentString := floatToString((float64(sidesCount[i])/countFloat)*100) + "%"
 		output.WriteString("Side " + strconv.Itoa(i+1) + ": " + percentString + "\n")
 	}
-	g.SendMessageToChannel(message.ChannelID, output.String())
+	g.sendMessageDefault(message, output.String())
 }
 
 // convert a Float64 into a string
@@ -95,31 +96,32 @@ func (g Bot) rollHelper(message MessageData) {
 	// Catch errors in command
 	inputString := strings.Split(message.Content, " ")
 	if len(inputString) < 2 {
-		g.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
+		g.sendMessageDefault(message, "There was an error in your command!")
 		return
 	}
 
 	// Catch simple commands
 	switch inputString[1] {
 	case "one":
-		g.SendMessageToChannel(message.ChannelID, "Simple 1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
+		g.sendMessageDefault(message, "Simple 1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
+
 		return
 	case "chance":
 		diceRollResult := rollXSidedDie(1, 10)[0]
 		switch diceRollResult {
 		case 10:
-			g.SendMessageToChannel(message.ChannelID, "**Success!** Your Chance Die showed a 10!")
+			g.sendMessageDefault(message, "**Success!** Your Chance Die showed a 10!")
 		case 1:
-			g.SendMessageToChannel(message.ChannelID, "**Epic Fail!** Your Chance Die failed spectacularly!")
+			g.sendMessageDefault(message, "**Epic Fail!** Your Chance Die failed spectacularly!")
 		default:
-			g.SendMessageToChannel(message.ChannelID, "**Fail!** You rolled a **"+strconv.Itoa(diceRollResult)+"** on your Chance die!")
+			g.sendMessageDefault(message, "**Fail!** You rolled a **"+strconv.Itoa(diceRollResult)+"** on your Chance die!")
 		}
 		return
 	case "init":
 		/*var initModSliceObject interface{}
 		  err := Load("glyph/discord:"+m.Author.ID+"/initmod", &initModSliceObject)
 		  if err != nil || reflect.TypeOf(initModSliceObject) != reflect.TypeOf("") {
-		      g.SendMessageToChannel(message.ChannelID, "There was an internal error, please try again!")
+		      g.sendMessageDefault(message, "There was an internal error, please try again!")
 		      del("glyph/discord:" + m.Author.ID + "/initmod")
 		      glyphDiscordLog.Warning("Error while getting init from data with type of "+reflect.TypeOf(initModSliceObject).String()+" and error: ", err.Error())
 		      return
@@ -134,7 +136,7 @@ func (g Bot) rollHelper(message MessageData) {
 		switch initMod.(type) {
 		case []int:
 		default:
-			g.SendMessageToChannel(message.ChannelID, "There was an error loading your init modifier")
+			g.sendMessageDefault(message, "There was an error loading your init modifier")
 			return
 		}
 		initModSlice := initMod.([]int)
@@ -143,20 +145,20 @@ func (g Bot) rollHelper(message MessageData) {
 			var err error
 			number, err = strconv.Atoi(inputString[2])
 			if err != nil {
-				g.SendMessageToChannel(message.ChannelID, "There was an error parsing your command!")
+				g.sendMessageDefault(message, "There was an error parsing your command!")
 				return
 			}
 		}
 		if number < 1 || number > len(initModSlice) {
-			g.SendMessageToChannel(message.ChannelID, "Please specify a valid number!")
+			g.sendMessageDefault(message, "Please specify a valid number!")
 			return
 		}
 		if len(initModSlice) == 0 {
-			g.SendMessageToChannel(message.ChannelID, "No init modifier saved, here's a simple D10 throw:\n1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
+			g.sendMessageDefault(message, "No init modifier saved, here's a simple D10 throw:\n1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
 		} else {
 			diceResult := rollXSidedDie(1, 10)[0]
 			endResult := diceResult + initModSlice[number-1]
-			g.SendMessageToChannel(message.ChannelID, "Your Initiative is: **"+strconv.Itoa(endResult)+"**\n"+strconv.Itoa(diceResult)+" + "+strconv.Itoa(initModSlice[number-1])+" = "+strconv.Itoa(endResult))
+			g.sendMessageDefault(message, "Your Initiative is: **"+strconv.Itoa(endResult)+"**\n"+strconv.Itoa(diceResult)+" + "+strconv.Itoa(initModSlice[number-1])+" = "+strconv.Itoa(endResult))
 		}
 		return
 	}
@@ -166,35 +168,35 @@ func (g Bot) rollHelper(message MessageData) {
 		// Catch error in dice designation [/roll 1*s*10 ]
 		diceIndex := strings.Split(inputString[1], "d")
 		if len(diceIndex) < 2 {
-			g.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
+			g.sendMessageDefault(message, "There was an error in your command!")
 			return
 		}
 		sides, err := strconv.Atoi(diceIndex[1])
 		if err != nil {
-			g.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
+			g.sendMessageDefault(message, "There was an error in your command!")
 			return
 		}
 		amount, err := strconv.Atoi(diceIndex[0])
 		if err != nil {
-			g.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
+			g.sendMessageDefault(message, "There was an error in your command!")
 			return
 		}
 
 		// Catch d-notation and read modifiers
 		if amount < 1 {
-			g.SendMessageToChannel(message.ChannelID, "Nice try!")
+			g.sendMessageDefault(message, "Nice try!")
 			return
 		}
 		switch {
 		case sides < 1:
-			g.SendMessageToChannel(message.ChannelID, "Nice try!")
+			g.sendMessageDefault(message, "Nice try!")
 			return
 		case sides == 1:
-			g.SendMessageToChannel(message.ChannelID, "Really? That's one times "+diceIndex[0]+". I think you can do the math yourself!")
+			g.sendMessageDefault(message, "Really? That's one times "+diceIndex[0]+". I think you can do the math yourself!")
 			return
 		default:
 			if amount > 1000 {
-				g.SendMessageToChannel(message.ChannelID, "Maybe try a few less dice. We're not playing Warhammer Ultimate here.")
+				g.sendMessageDefault(message, "Maybe try a few less dice. We're not playing Warhammer Ultimate here.")
 				return
 			}
 			retSlice := rollXSidedDie(amount, sides)
@@ -209,7 +211,7 @@ func (g Bot) rollHelper(message MessageData) {
 					retString.Write([]byte(strconv.Itoa(retSlice[i]) + " = " + strconv.Itoa(endResult)))
 				}
 			}
-			g.SendMessageToChannel(message.ChannelID, retString.String())
+			g.sendMessageDefault(message, retString.String())
 			return
 		}
 	} else if inputString[1] == "chance" {
@@ -224,7 +226,7 @@ func (g Bot) rollHelper(message MessageData) {
 		default:
 			retString = "Fail! Your rolled a " + strconv.Itoa(result) + "!"
 		}
-		g.SendMessageToChannel(message.ChannelID, retString)
+		g.sendMessageDefault(message, retString)
 		return
 	} else {
 		// Assume that input was construct notation
@@ -239,11 +241,11 @@ func (g Bot) rollHelper(message MessageData) {
 		// Catch invalid number of dice to throw
 		throwCount, err := strconv.Atoi(inputString[1])
 		if err != nil {
-			g.SendMessageToChannel(message.ChannelID, "There was an error in your command!")
+			g.sendMessageDefault(message, "There was an error in your command!")
 			return
 		}
 		if throwCount > 1000 {
-			g.SendMessageToChannel(message.ChannelID, "Don't you think that are a few to many dice to throw?")
+			g.sendMessageDefault(message, "Don't you think that are a few to many dice to throw?")
 			return
 		}
 		var retSlice [][]int
@@ -275,7 +277,7 @@ func (g Bot) rollHelper(message MessageData) {
 				if noReroll {
 					retSlice = constructRolln(throwCount)
 				} else {
-					g.SendMessageToChannel(message.ChannelID, "There was an error while parsing your input!")
+					g.sendMessageDefault(message, "There was an error while parsing your input!")
 					return
 				}
 			}
@@ -324,7 +326,7 @@ func (g Bot) rollHelper(message MessageData) {
 				output.WriteString("\nNo Success for you! That's bad, isn`t it?")
 			}
 		}
-		g.SendMessageToChannel(message.ChannelID, output.String())
+		g.sendMessageDefault(message, output.String())
 	}
 }
 
