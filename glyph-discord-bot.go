@@ -14,6 +14,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/keybase/go-logging"
+	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
 
 // Discord ID of admin
@@ -45,10 +46,10 @@ func glyphDiscordBot() {
 
 	// Set some StartUp Stuff
 	/*dgStatus, err := getError("dgStatus")
-	if err != nil {
-		glyphDiscordLog.Warning("Error getting dgStatus from redis: ", err)
-		dgStatus = "/help for help"
-	}*/
+	  if err != nil {
+	      glyphDiscordLog.Warning("Error getting dgStatus from redis: ", err)
+	      dgStatus = "/help for help"
+	  }*/
 	_ = dg.UpdateStatus(0, "/help for help")
 
 	// Wait here until CTRL-C or other term signal is received.
@@ -85,14 +86,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Handle Server Messages
 	// Check if glyph is currently in a conversation with user
 	/*messageContext := get("glyph|discord:" + m.Author.ID + "|messageContext")
-	if messageContext != "" {
-		switch messageContext {
-		default:
-			glyphDiscordLog.Info("New Command by " + m.Author.Username + ": " + m.Content)
-			_, _ = s.ChannelMessageSend(m.ChannelID, "I encountered an internal error, please contact the administrator.")
-			return
-		}
-	}*/
+	  if messageContext != "" {
+	      switch messageContext {
+	      default:
+	          glyphDiscordLog.Info("New Command by " + m.Author.Username + ": " + m.Content)
+	          _, _ = s.ChannelMessageSend(m.ChannelID, "I encountered an internal error, please contact the administrator.")
+	          return
+	      }
+	  }*/
 
 	// Check if a known command was written
 	inputString := strings.Split(m.Content, " ")
@@ -137,9 +138,9 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 	// Food commands
 	case "/food":
-		_, _ = s.ChannelMessageSend(m.ChannelID, foodtoday())
+		_, _ = s.ChannelMessageSend(m.ChannelID, UniPassauBot.FoodToday())
 	case "/food tomorrow":
-		_, _ = s.ChannelMessageSend(m.ChannelID, foodtomorrow())
+		_, _ = s.ChannelMessageSend(m.ChannelID, UniPassauBot.FoodTomorrow())
 
 	// Config commands
 	case "/save":
@@ -155,18 +156,18 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case "/id":
 		_, _ = s.ChannelMessageSend(m.ChannelID, "Your ID is:\n"+m.Author.ID)
 	/*case "/updateStatus":
-	if m.Author.ID == discordAdminID {
-		newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
-		err := set("dgStatus", newStatus)
-		if err != nil {
-			glyphDiscordLog.Warning("Error setting dgStatus on Redis: ", err)
-			_, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
-		}
-		_ = s.UpdateStatus(0, newStatus)
-		_, _ = s.ChannelMessageSend(m.ChannelID, "New Status set!")
-	} else {
-		_, _ = s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
-	}*/
+	  if m.Author.ID == discordAdminID {
+	      newStatus := strings.TrimPrefix(m.Content, "/updateStatus ")
+	      err := set("dgStatus", newStatus)
+	      if err != nil {
+	          glyphDiscordLog.Warning("Error setting dgStatus on Redis: ", err)
+	          _, _ = s.ChannelMessageSend(m.ChannelID, "Error sending Status to Safe!")
+	      }
+	      _ = s.UpdateStatus(0, newStatus)
+	      _, _ = s.ChannelMessageSend(m.ChannelID, "New Status set!")
+	  } else {
+	      _, _ = s.ChannelMessageSend(m.ChannelID, "You are not authorized to execute this command!\nThis incident will be reported.\nhttps://imgs.xkcd.com/comics/incident.png")
+	  }*/
 	case "/whoami":
 		_, _ = s.ChannelMessageSend(m.ChannelID, m.Author.String())
 	case "/todo":
@@ -320,14 +321,14 @@ func rollHelper(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	case "init":
 		/*var initModSliceObject interface{}
-		err := Load("glyph/discord:"+m.Author.ID+"/initmod", &initModSliceObject)
-		if err != nil || reflect.TypeOf(initModSliceObject) != reflect.TypeOf("") {
-			_, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error, please try again!")
-			del("glyph/discord:" + m.Author.ID + "/initmod")
-			glyphDiscordLog.Warning("Error while getting init from data with type of "+reflect.TypeOf(initModSliceObject).String()+" and error: ", err.Error())
-			return
-		}
-		initModSlice := initModSliceObject.([]string)*/
+		  err := Load("glyph/discord:"+m.Author.ID+"/initmod", &initModSliceObject)
+		  if err != nil || reflect.TypeOf(initModSliceObject) != reflect.TypeOf("") {
+		      _, _ = s.ChannelMessageSend(m.ChannelID, "There was an internal error, please try again!")
+		      del("glyph/discord:" + m.Author.ID + "/initmod")
+		      glyphDiscordLog.Warning("Error while getting init from data with type of "+reflect.TypeOf(initModSliceObject).String()+" and error: ", err.Error())
+		      return
+		  }
+		  initModSlice := initModSliceObject.([]string)*/
 		initModSlice := strings.Split(getTmp("glyph", "dg:"+m.Author.ID+"|initmod"), "|")
 		number := 1
 		if len(inputString) > 2 {

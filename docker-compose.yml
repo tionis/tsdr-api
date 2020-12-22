@@ -6,30 +6,21 @@ services:
       - "8080:8080"
     environment:
         - PORT=8080
-        - DATABASE_URL=postgres://API_USER:API_PASSWORD@POSTGRES_HOST:5432/POSTGRES_DB
+        # Append ?sslmode=disable to DATABASE_URL if not using ssl
+        - DATABASE_URL=postgres://USER:PASSWORD@ADDRESS:PORT/DB_NAME
         - TELEGRAM_TOKEN=
+        - UNIPASSAUBOT_TOKEN=
         - DISCORD_TOKEN=
-        - MODE=DEBUG or PRODUCTION
-    depends_on:
-      - postgres
+        - MODE=DEBUG
     networks:
       - tasadar
-  postgres:
-    image: postgres:12.3-alpine
-    restart: always
-    networks:
-      - tasadar
-    environment:
-      POSTGRES_USER: api
-      POSTGRES_PASSWORD: api_password
-      POSTGRES_DB: api
     volumes:
-    - api-postgres:/var/lib/postgresql/data
+    - api-data:/data
 
 volumes:
-  api-postgres:
+  api-data:
     external: false
 
 networks:
-  api-test:
+  tasadar:
     driver: bridge

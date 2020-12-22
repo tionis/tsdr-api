@@ -5,17 +5,18 @@
 #RUN yarn install
 #RUN yarn build
 
-FROM golang:1.14.6-alpine as backend
+FROM golang:1.15.5-alpine as backend
 WORKDIR /usr/src/app
 COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go mod download
 COPY . .
 #COPY --from=frontend /usr/src/app/build ./frontend/build
-RUN go run cmd/mage/main.go backend:build
+RUN go build -o api
 
 FROM alpine:latest
 WORKDIR /root/
-COPY --from=backend /usr/src/app/dist/api .
+COPY --from=backend /usr/src/app/api .
+RUN apk --no-cache add tzdata
 #COPY --from=backend /usr/src/app/conf/app.example.toml conf/app.toml
 CMD ["./api", "web"]

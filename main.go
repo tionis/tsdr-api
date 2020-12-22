@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload"
 	"github.com/keybase/go-logging"
+	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
 
 const defaultPort = "8081"
@@ -48,7 +49,7 @@ func main() {
 	}
 
 	// Start Uni-Passau-Bot
-	go uniPassauBot()
+	go UniPassauBot.UniPassauBot(os.Getenv("UNIPASSAUBOT_TOKEN"))
 
 	// Start Glyph Discord Bot
 	go glyphDiscordBot()
