@@ -29,3 +29,4 @@ tsdr-api
 *.csv
 scripts/run.sh
 docker-compose.dev.yml
+*.ignored

@@ -56,7 +56,8 @@ func main() {
 	go glyphDiscordBot()
 
 	// Start Glyph Telegram Bot
-	go glyphTelegramBot(!isProduction)
+	//go glyphTelegramBot(!isProduction)
+	go glyphTelegramBot(false)
 
 	// Cronjob Definitions
 	// MC Cronjobs

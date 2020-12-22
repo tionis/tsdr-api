@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"os"
+	"sync"
 	"time"
 
 	_ "github.com/go-kivik/couchdb/v4" // The CouchDB driver
@@ -21,6 +22,7 @@ var couch *kivik.Client
 
 var dataLog = logging.MustGetLogger("data")
 
+var tmpDataLock sync.RWMutex
 var tmpData map[string]map[string]tmpDataObject
 
 type tmpDataObject struct {
@@ -64,6 +66,9 @@ func DBInit() {
 		panic(err)
 	}
 
+	// start go routine that cleans cache hourly
+	go startCacheCleaner(time.Hour)
+
 	// Init the Database
 	// Quotator Database
 	_, err = db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text)`)
@@ -72,25 +77,54 @@ func DBInit() {
 	}
 }
 
+// startCacheCleaner cleans the cache and then waits the specified time until it cleans the cache again
+func startCacheCleaner(waitingTime time.Duration) {
+	for {
+		cleanCache()
+		time.Sleep(waitingTime)
+	}
+}
+
+// cleanCache cleans the whole cache by iterating over it and deleting stale values
+func cleanCache() {
+	tmpDataLock.Lock()
+	defer tmpDataLock.Unlock()
+	for _, bucket := range tmpData {
+		for key, data := range bucket {
+			if !data.isValid() {
+				delete(bucket, key)
+			}
+		}
+	}
+}
+
+// isValid returns true if the tmpDataObject is still within its validity time range
+func (t tmpDataObject) isValid() bool {
+	return t.validUntil.After(time.Now())
+}
+
 // SetTmp Sets an temporary in memory key value store value
 func SetTmp(bucket string, key string, value string, duration time.Duration) {
 	var dataToSave tmpDataObject
 	dataToSave.data = value
 	dataToSave.validUntil = time.Now().Add(duration)
+	tmpDataLock.Lock()
+	defer tmpDataLock.Unlock()
 	if tmpData[bucket] == nil {
 		tmpData[bucket] = make(map[string]tmpDataObject)
 	}
 	tmpData[bucket][key] = dataToSave
-	// TODO init job to delete old values
 }
 
 // GetTmp gets an temporary in memory key value store value
 func GetTmp(bucket string, key string) string {
+	tmpDataLock.Lock()
+	defer tmpDataLock.Unlock()
 	if tmpData[bucket] == nil {
 		return ""
 	}
 	dataToLoad := tmpData[bucket][key]
-	if dataToLoad.validUntil.Before(time.Now()) {
+	if !dataToLoad.isValid() {
 		delete(tmpData[bucket], key)
 		return ""
 	}
@@ -99,6 +133,8 @@ func GetTmp(bucket string, key string) string {
 
 // DelTmp deletes an temporary in memory key value store value
 func DelTmp(bucket string, key string) {
+	tmpDataLock.Lock()
+	defer tmpDataLock.Unlock()
 	if tmpData[bucket] == nil {
 		return
 	}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -20,7 +21,7 @@ var msgGlyph chan string
 
 // GlyphTelegramBot handles all the glyph bot interfacing between the glyph logic and telegram
 func glyphTelegramBot(debug bool) {
-	bot, err := tgbotapi.NewBotAPI("MyAwesomeBotToken")
+	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
 		glyphTelegramLog.Fatal(err)
 	}
@@ -41,6 +42,7 @@ func glyphTelegramBot(debug bool) {
 			glyphDiscordLog.Errorf("Error parsing channelID %v: %v", channelID, err)
 		}
 		msg := tgbotapi.NewMessage(id, message)
+		msg.ParseMode = "Markdown"
 		_, err = bot.Send(msg)
 		if err != nil {
 			glyphDiscordLog.Errorf("Error sending message to %v: %v", channelID, err)
@@ -78,6 +80,7 @@ func glyphTelegramBot(debug bool) {
 		return data.GetTmp("glyph:tg:"+channelID+":"+userID, key)
 	}
 	var telegramGetMention = func(userID string) string {
+		// TODO get name of user from userID --> caching???
 		return "[inline mention of a user](tg://user?id=" + userID + ")"
 	}
 
@@ -97,6 +100,8 @@ func glyphTelegramBot(debug bool) {
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
 		}
+
+		glyphTelegramLog.Debug(update.Message.Text)
 
 		// Trim prefix
 		content := strings.TrimPrefix(update.Message.Text, telegramGlyphBot.Prefix)
