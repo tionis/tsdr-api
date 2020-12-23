@@ -37,14 +37,22 @@ func glyphTelegramBot(debug bool) {
 	updates, err := bot.GetUpdatesChan(u)
 
 	telegramGlyphBot := &glyph.Bot{
-		QuoteDBHandler: &glyph.QuoteDBHandler{
-			AddQuote:       data.AddQuote,
-			GetRandomQuote: data.GetRandomQuote,
+		QuoteDBHandler: &glyph.QuoteDB{
+			AddQuote:         data.AddQuote,
+			GetRandomQuote:   data.GetRandomQuote,
+			GetQuoteOfTheDay: getTelegramGetQuoteOfTheDay(),
+			SetQuoteOfTheDay: getTelegramSetQuoteOfTheDay(),
+		},
+		UserDBHandler: &glyph.UserDB{
+			GetUserData:           getTelegramGetUserData(),
+			SetUserData:           getTelegramSetUserData(),
+			DeleteUserData:        getTelegramDeleteUserData(),
+			MigrateUserToNewID:    data.MigrateUserToNewID,
+			GetMatrixUserID:       getTelegramGetMatrixUserID(),
+			DoesMatrixUserIDExist: data.DoesUserIDExist,
 		},
 		SetContext:           getTelegramSetContext(),
 		GetContext:           getTelegramGetContext(),
-		GetUserData:          getTelegramGetUserData(),
-		SetUserData:          getTelegramSetUserData(),
 		SendMessageToChannel: getTelegramSendMessage(bot),
 		GetMention:           getTelegramGetMention(),
 		Logger:               glyphTelegramLog,
@@ -93,9 +101,9 @@ func getTelegramSendMessage(bot *tgbotapi.BotAPI) func(channelID, message string
 	}
 }
 
-func getTelegramSetUserData() func(discordUserID, key string, value interface{}) error {
-	return func(discordUserID, key string, value interface{}) error {
-		userID, err := data.GetUserIDFromTelegramID(discordUserID)
+func getTelegramSetUserData() func(telegramUserID, key string, value string) error {
+	return func(telegramUserID, key string, value string) error {
+		userID, err := data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return err
 		}
@@ -107,15 +115,15 @@ func getTelegramSetUserData() func(discordUserID, key string, value interface{})
 	}
 }
 
-func getTelegramGetUserData() func(discordUserID, key string) (interface{}, error) {
-	return func(discordUserID, key string) (interface{}, error) {
-		userID, err := data.GetUserIDFromTelegramID(discordUserID)
+func getTelegramGetUserData() func(telegramUserID, key string) (string, error) {
+	return func(telegramUserID, key string) (string, error) {
+		userID, err := data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		value, err := data.GetUserData(userID, "glyph", key)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		return value, nil
 	}
@@ -140,5 +148,45 @@ func getTelegramGetMention() func(userID string) (string, error) {
 			friendlyName = userID
 		}
 		return "[" + friendlyName + "](tg://user?id=" + userID + ")", nil
+	}
+}
+
+func getTelegramGetQuoteOfTheDay() func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
+	return func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
+		userID, err := data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		if err != nil {
+			return glyph.QuoteOfTheDay{}, err
+		}
+		qotd, err := data.GetQuoteOfTheDayOfUser(userID)
+		if err != nil {
+			return glyph.QuoteOfTheDay{}, err
+		}
+		return qotd, nil
+	}
+}
+
+func getTelegramSetQuoteOfTheDay() func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
+	return func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
+		userID, err := data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		if err != nil {
+			return err
+		}
+		return data.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
+	}
+}
+
+func getTelegramGetMatrixUserID() func(telegramUserID string) (string, error) {
+	return func(telegramUserID string) (string, error) {
+		return data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+	}
+}
+
+func getTelegramDeleteUserData() func(telegramUserID, key string) error {
+	return func(telegramUserID, key string) error {
+		userID, err := data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		if err != nil {
+			return err
+		}
+		return data.DeleteUserData(userID, key)
 	}
 }

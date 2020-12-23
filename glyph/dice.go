@@ -1,6 +1,7 @@
 package glyph
 
 import (
+	"encoding/json"
 	"math"
 	"math/rand"
 	"strconv"
@@ -130,19 +131,19 @@ func (g Bot) rollHelper(message MessageData) {
 		      return
 		  }
 		  initModSlice := initModSliceObject.([]string)*/
-		initMod, err := g.GetUserData(message.AuthorID, "initmod")
+		initMod, err := g.UserDBHandler.GetUserData(message.AuthorID, "initmod")
 		if err != nil {
 			g.Logger.Error("could not get user data for %v: %v", message.AuthorID, err)
 			g.handleGenericError(message)
 			return
 		}
-		switch initMod.(type) {
-		case []int:
-		default:
-			g.sendMessageDefault(message, "There was an error loading your init modifier")
+		var initModSlice []int
+		err = json.Unmarshal([]byte(initMod), &initModSlice)
+		if err != nil {
+			g.Logger.Warning("could not unmarshall initmod: %v", err)
+			g.handleGenericError(message)
 			return
 		}
-		initModSlice := initMod.([]int)
 		number := 1
 		if len(inputString) > 2 {
 			var err error

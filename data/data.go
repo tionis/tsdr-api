@@ -7,18 +7,14 @@ import (
 	"sync"
 	"time"
 
-	_ "github.com/go-kivik/couchdb/v4" // The CouchDB driver
-	kivik "github.com/go-kivik/kivik/v4"
 	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"
 	_ "github.com/lib/pq" // The PostgreSQL Driver
+	"github.com/tionis/tsdr-api/glyph"
 )
 
-// DB represents an postgres DB object
-// TODO: to be removed
+// DB represents an postgres database
 var db *sql.DB
-
-var couch *kivik.Client
 
 var dataLog = logging.MustGetLogger("data")
 
@@ -61,28 +57,30 @@ func DBInit() {
 		return
 	}
 
-	// Init Couchdb
-	if os.Getenv("COUCHDB_URL") == "" {
-		dataLog.Info("Database: " + os.Getenv("COUCHDB_URL"))
-		dataLog.Fatal("Fatal Error getting CouchDB Database Information!")
-	}
-	couch, err = kivik.New("couch", "https://localhost:5984/")
-	if err != nil {
-		panic(err)
-	}
-
 	// start go routine that cleans cache hourly
 	go startCacheCleaner(time.Hour)
 
 	// Init the Database
-	// Quotator Database
-	_, err = db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text)`)
+	// Quotator Table
+	_, err = db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text, byUser text)`)
 	if err != nil {
 		dataLog.Fatal("Error creating table quotes: ", err)
 	}
-	_, err = db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text)`)
+
+	// User Tables
+	_, err = db.Query(`CREATE TABLE IF NOT EXISTS users(id text PRIMARY KEY, email text, isAdmin boolean)`)
 	if err != nil {
-		dataLog.Fatal("Error creating table quotes: ", err)
+		dataLog.Fatal("Error creating table users: ", err)
+	}
+
+	_, err = db.Query(`CREATE TABLE IF NOT EXISTS qotd(userID text PRIMARY KEY, quoteID SERIAL, validUntil timestamptz)`)
+	if err != nil {
+		dataLog.Fatal("Error creating table qotd: ", err)
+	}
+
+	_, err = db.Query(`CREATE TABLE IF NOT EXISTS userdata(userID text PRIMARY KEY, key text, value text)`)
+	if err != nil {
+		dataLog.Fatal("Error creating table userdata: ", err)
 	}
 }
 
@@ -150,88 +148,62 @@ func DelTmp(bucket string, key string) {
 	delete(tmpData[bucket], key)
 }
 
-// GetUserIDFromDiscordID returns a userID assigned to a given discord ID
-func GetUserIDFromDiscordID(discordUserID string) (string, error) {
+// GetUserIDFromValueOfKey returns the userID where key and value are matched,
+// this is mostly used to map chat platform ids to the main id
+func GetUserIDFromValueOfKey(key, value string) (string, error) {
 	// TODO
-	return "@tionis:tasadar.net", nil
-}
-
-// GetUserIDFromTelegramID returns a userID assigned to a given telegram ID
-func GetUserIDFromTelegramID(telegramUserID string) (string, error) {
-	// TODO
+	// if no mapping found return glyph.ErrNoMappingFound
 	return "@tionis:tasadar.net", nil
 }
 
 // SetUserData sets the key in the bucket in the data of a user to the data from value
-func SetUserData(userID, bucket, key string, value interface{}) error {
-	// TODO
-	return errors.New("not implemented")
+func SetUserData(userID, bucket, key string, value string) error {
+	stmt, err := db.Prepare(`INSERT INTO userdata (userID, key, value) VALUES ($1, $2, $3) ON CONFLICT (userID) DO UPDATE SET value = $3;`)
+	if err != nil {
+		return err
+	}
+	row := stmt.QueryRow(userID, key, value)
+	err = row.Err()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // GetUserData gets the key in the bucket in the data of a user
-func GetUserData(userID, bucket, key string) (interface{}, error) {
+func GetUserData(userID, bucket, key string) (string, error) {
+	stmt, err := db.Prepare(`SELECT value FROM userdata WHERE userID = $1 AND key = $2`)
+	if err != nil {
+		return "", err
+	}
+	row := stmt.QueryRow(userID, key)
+
+	var value string
+	err = row.Scan(&value)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", glyph.ErrNoUserDataFound
+		}
+		return "", err
+	}
+
+	return value, nil
+}
+
+// DeleteUserData deletes user data for a given key
+func DeleteUserData(userID, key string) error {
 	// TODO
-	return nil, errors.New("not implemented")
+	return errors.New("not implemented yet")
 }
 
-/*
-package persist
-
-import (
-	"bytes"
-	"encoding/json"
-	"io"
-	"os"
-	"sync"
-)
-
-var lock sync.Mutex
-
-// Marshal is a function that marshals the object into an
-// io.Reader.
-// By default, it uses the JSON marshaller.
-var Marshal = func(v interface{}) (io.Reader, error) {
-	b, err := json.MarshalIndent(v, "", "\t")
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewReader(b), nil
+// DoesUserIDExist checks if an user with the given (matrix) user id exists
+func DoesUserIDExist(matrixUserID string) (bool, error) {
+	// TODO
+	return false, errors.New("not implmented yet")
 }
 
-// Unmarshal is a function that unmarshals the data from the
-// reader into the specified value.
-// By default, it uses the JSON unmarshaller.
-var Unmarshal = func(r io.Reader, v interface{}) error {
-	return json.NewDecoder(r).Decode(v)
+// MigrateUserToNewID migrates all data of an user to a new ID (while checking if the new one is a valid matrix address)
+func MigrateUserToNewID(oldMatrixUserID, newMatrixUserID string) error {
+	// TODO
+	return errors.New("not implmented yet")
 }
-
-// Save saves a representation of v to the file at path.
-func Save(path string, v interface{}) error {
-	lock.Lock()
-	defer lock.Unlock()
-	f, err := os.Create(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	r, err := Marshal(v)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(f, r)
-	return err
-}
-
-// Load loads the file at path into v.
-// Use os.IsNotExist() to see if the returned error is due
-// to the file being missing.
-func Load(path string, v interface{}) error {
-	lock.Lock()
-	defer lock.Unlock()
-	f, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return Unmarshal(f, v)
-}*/

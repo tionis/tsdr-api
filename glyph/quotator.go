@@ -88,21 +88,19 @@ func (g Bot) handleAddQuoteFinished(message MessageData) {
 }
 
 func (g Bot) handleQuoteOfTheDay(message MessageData) {
-	if qotd, error := g.GetUserData(message.AuthorID, "QuoteOfTheDay"); error != nil && qotd != nil {
-		switch qotd.(type) {
-		case stringWithTTL:
-			if qotd.(stringWithTTL).isValid() {
-				g.sendMessageDefault(message, qotd.(stringWithTTL).Content)
-			} else {
-				g.handleNewQuoteOfTheDay(message)
-			}
-		case string: // Handle the case in which no quote was saved ("")
+	if qotd, err := g.QuoteDBHandler.GetQuoteOfTheDay(message.AuthorID); err == nil {
+		if qotd.isValid() {
+			quote := qotd.Quote
+			g.sendMessageDefault(message, quote.Content+"\n- "+quote.Author+" ("+quote.Universe+")")
+		} else {
 			g.handleNewQuoteOfTheDay(message)
-		default:
-			g.handleGenericError(message)
 		}
 	} else {
-		g.handleGenericError(message)
+		if err == ErrNoUserDataFound {
+			g.handleNewQuoteOfTheDay(message)
+		} else {
+			g.handleGenericError(message)
+		}
 	}
 }
 
@@ -114,12 +112,12 @@ func (g Bot) handleNewQuoteOfTheDay(message MessageData) {
 	now := time.Now()
 	year, month, day := now.Date()
 	midnight := time.Date(year, month, day+1, 0, 0, 0, 0, now.Location())
-	qotd := stringWithTTL{
-		Content:    quote.Content + "\n- " + quote.Author + " (" + quote.Universe + ")",
+	qotd := QuoteOfTheDay{
+		Quote:      quote,
 		ValidUntil: midnight,
 	}
-	g.SetUserData(message.AuthorID, "QuoteOfTheDay", qotd)
-	g.sendMessageDefault(message, qotd.Content)
+	g.QuoteDBHandler.SetQuoteOfTheDay(message.AuthorID, qotd)
+	g.sendMessageDefault(message, quote.Content+"\n- "+quote.Author+" ("+quote.Universe+")")
 }
 
 func (g Bot) addQuoteToDB(message MessageData) error {

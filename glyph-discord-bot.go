@@ -66,14 +66,22 @@ func glyphDiscordBot() {
 	discordBotMention = "<@!" + dg.State.User.ID + ">"
 
 	discordGlyphBot = &glyph.Bot{
-		QuoteDBHandler: &glyph.QuoteDBHandler{
-			AddQuote:       data.AddQuote,
-			GetRandomQuote: data.GetRandomQuote,
+		QuoteDBHandler: &glyph.QuoteDB{
+			AddQuote:         data.AddQuote,
+			GetRandomQuote:   data.GetRandomQuote,
+			GetQuoteOfTheDay: getDiscordGetQuoteOfTheDay(),
+			SetQuoteOfTheDay: getDiscordSetQuoteOfTheDay(),
+		},
+		UserDBHandler: &glyph.UserDB{
+			GetUserData:           getDiscordGetUserData(),
+			SetUserData:           getDiscordSetUserData(),
+			DeleteUserData:        getDiscordDeleteUserData(),
+			MigrateUserToNewID:    data.MigrateUserToNewID,
+			GetMatrixUserID:       getDiscordGetMatrixUserID(),
+			DoesMatrixUserIDExist: data.DoesUserIDExist,
 		},
 		SetContext:           getDiscordSetContext(),
 		GetContext:           getDiscordGetContext(),
-		GetUserData:          getDiscordGetUserData(),
-		SetUserData:          getDiscordSetUserData(),
 		SendMessageToChannel: getDiscordSendMessage(dg),
 		GetMention:           getDiscordGetMention(),
 		Logger:               glyphDiscordLog,
@@ -198,9 +206,9 @@ func getDiscordGetMention() func(userID string) (string, error) {
 	}
 }
 
-func getDiscordSetUserData() func(discordUserID, key string, value interface{}) error {
-	return func(discordUserID, key string, value interface{}) error {
-		userID, err := data.GetUserIDFromDiscordID(discordUserID)
+func getDiscordSetUserData() func(discordUserID, key string, value string) error {
+	return func(discordUserID, key string, value string) error {
+		userID, err := data.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return err
 		}
@@ -212,17 +220,57 @@ func getDiscordSetUserData() func(discordUserID, key string, value interface{}) 
 	}
 }
 
-func getDiscordGetUserData() func(discordUserID, key string) (interface{}, error) {
-	return func(discordUserID, key string) (interface{}, error) {
-		userID, err := data.GetUserIDFromDiscordID(discordUserID)
+func getDiscordGetUserData() func(discordUserID, key string) (string, error) {
+	return func(discordUserID, key string) (string, error) {
+		userID, err := data.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 		value, err := data.GetUserData(userID, "glyph", key)
 		if err != nil {
 			glyphDiscordLog.Errorf("error setting user data: %v", err)
-			return nil, err
+			return "", err
 		}
 		return value, err
+	}
+}
+
+func getDiscordGetQuoteOfTheDay() func(discordUserID string) (glyph.QuoteOfTheDay, error) {
+	return func(discordUserID string) (glyph.QuoteOfTheDay, error) {
+		userID, err := data.GetUserIDFromValueOfKey("discordID", discordUserID)
+		if err != nil {
+			return glyph.QuoteOfTheDay{}, err
+		}
+		qotd, err := data.GetQuoteOfTheDayOfUser(userID)
+		if err != nil {
+			return glyph.QuoteOfTheDay{}, err
+		}
+		return qotd, nil
+	}
+}
+
+func getDiscordSetQuoteOfTheDay() func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
+	return func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
+		userID, err := data.GetUserIDFromValueOfKey("discordID", discordUserID)
+		if err != nil {
+			return err
+		}
+		return data.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
+	}
+}
+
+func getDiscordGetMatrixUserID() func(discordUserID string) (string, error) {
+	return func(discordUserID string) (string, error) {
+		return data.GetUserIDFromValueOfKey("discordID", discordUserID)
+	}
+}
+
+func getDiscordDeleteUserData() func(discordUserID, key string) error {
+	return func(discordUserID, key string) error {
+		userID, err := data.GetUserIDFromValueOfKey("discordID", discordUserID)
+		if err != nil {
+			return err
+		}
+		return data.DeleteUserData(userID, key)
 	}
 }
