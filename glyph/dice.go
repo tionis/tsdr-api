@@ -105,18 +105,22 @@ func (g Bot) rollHelper(message MessageData) {
 	}
 
 	// Handle simple commands
-	g.simpleRollHelper(message, tokens)
+	if g.simpleRollHelper(message, tokens) {
+		return
+	}
 
-	g.complexRollHelper(message, tokens)
+	// Handle more complex commands
+	if g.complexRollHelper(message, tokens) {
+		return
+	}
 }
 
-// simpleRollHelper handles simple roll commands
-func (g Bot) simpleRollHelper(message MessageData, tokens []string) {
+// simpleRollHelper handles simple roll commands, returns true if it should terminate the request
+func (g Bot) simpleRollHelper(message MessageData, tokens []string) bool {
 	switch tokens[1] {
 	case "one":
 		g.sendMessageDefault(message, "Simple 1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
-
-		return
+		return true
 	case "chance":
 		diceRollResult := rollXSidedDie(1, 10)[0]
 		switch diceRollResult {
@@ -127,20 +131,20 @@ func (g Bot) simpleRollHelper(message MessageData, tokens []string) {
 		default:
 			g.sendMessageDefault(message, "**Fail!** You rolled a **"+strconv.Itoa(diceRollResult)+"** on your Chance die!")
 		}
-		return
+		return true
 	case "init":
 		initMod, err := g.UserDBHandler.GetUserData(message.AuthorID, "initmod")
 		if err != nil {
 			g.Logger.Error("could not get user data for %v: %v", message.AuthorID, err)
 			g.handleGenericError(message)
-			return
+			return true
 		}
 		var initModSlice []int
 		err = json.Unmarshal([]byte(initMod), &initModSlice)
 		if err != nil {
 			g.Logger.Warning("could not unmarshall initmod: %v", err)
 			g.handleGenericError(message)
-			return
+			return true
 		}
 		number := 1
 		if len(tokens) > 2 {
@@ -148,12 +152,12 @@ func (g Bot) simpleRollHelper(message MessageData, tokens []string) {
 			number, err = strconv.Atoi(tokens[2])
 			if err != nil {
 				g.sendMessageDefault(message, "There was an error parsing your command!")
-				return
+				return true
 			}
 		}
 		if number < 1 || number > len(initModSlice) {
 			g.sendMessageDefault(message, "Please specify a valid number!")
-			return
+			return true
 		}
 		if len(initModSlice) == 0 {
 			g.sendMessageDefault(message, "No init modifier saved, here's a simple D10 throw:\n1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
@@ -162,47 +166,48 @@ func (g Bot) simpleRollHelper(message MessageData, tokens []string) {
 			endResult := diceResult + initModSlice[number-1]
 			g.sendMessageDefault(message, "Your Initiative is: **"+strconv.Itoa(endResult)+"**\n"+strconv.Itoa(diceResult)+" + "+strconv.Itoa(initModSlice[number-1])+" = "+strconv.Itoa(endResult))
 		}
-		return
+		return true
 	}
+	return false
 }
 
-// simpleRollHelper handles complex roll commands
-func (g Bot) complexRollHelper(message MessageData, tokens []string) {
+// simpleRollHelper handles complex roll commands, returns true if it should terminate the request
+func (g Bot) complexRollHelper(message MessageData, tokens []string) bool {
 	// Check which dice designation is used
 	if strings.Contains(tokens[1], "d") {
 		// Catch error in dice designation [/roll 1*s*10 ]
 		diceIndex := strings.Split(tokens[1], "d")
 		if len(diceIndex) < 2 {
 			g.sendMessageDefault(message, "There was an error in your command!")
-			return
+			return true
 		}
 		sides, err := strconv.Atoi(diceIndex[1])
 		if err != nil {
 			g.sendMessageDefault(message, "There was an error in your command!")
-			return
+			return true
 		}
 		amount, err := strconv.Atoi(diceIndex[0])
 		if err != nil {
 			g.sendMessageDefault(message, "There was an error in your command!")
-			return
+			return true
 		}
 
 		// Catch d-notation and read modifiers
 		if amount < 1 {
 			g.sendMessageDefault(message, "Nice try!")
-			return
+			return true
 		}
 		switch {
 		case sides < 1:
 			g.sendMessageDefault(message, "Nice try!")
-			return
+			return true
 		case sides == 1:
 			g.sendMessageDefault(message, "Really? That's one times "+diceIndex[0]+". I think you can do the math yourself!")
-			return
+			return true
 		default:
 			if amount > 1000 {
 				g.sendMessageDefault(message, "Maybe try a few less dice. We're not playing Warhammer here. I think...")
-				return
+				return true
 			}
 			retSlice := rollXSidedDie(amount, sides)
 			var retString strings.Builder
@@ -217,7 +222,7 @@ func (g Bot) complexRollHelper(message MessageData, tokens []string) {
 				}
 			}
 			g.sendMessageDefault(message, retString.String())
-			return
+			return true
 		}
 	} else if tokens[1] == "chance" {
 		// Roll a chance die
@@ -232,10 +237,11 @@ func (g Bot) complexRollHelper(message MessageData, tokens []string) {
 			retString = "Fail! Your rolled a " + strconv.Itoa(result) + "!"
 		}
 		g.sendMessageDefault(message, retString)
-		return
+		return true
 	} else {
 		g.handleConstructRoll(message, tokens)
 	}
+	return false
 }
 
 // handleConstructRoll handles construct/toe rolls.

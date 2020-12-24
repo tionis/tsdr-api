@@ -14,6 +14,8 @@ import (
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
 
+// Define Errors needed for consistent interaction with foreign and own functions
+
 // ErrNoCommandMatched represents the state in which no command could be matched
 var ErrNoCommandMatched = errors.New("no command was matched")
 
@@ -34,6 +36,8 @@ var ErrSessionNotOfUser = errors.New("session exists but does not belong to user
 
 // standardContextDelay is the standard ttl of chat contexts
 var standardContextDelay = time.Minute * 5
+
+// Define regex used to check validity of usernames and addresses
 
 // isValidUserName checks if the string is a valid username (after matrix ID and thus tasadar.net specification)
 var isValidUserName = regexp.MustCompile(`(?m)^[a-z\-_]+$`)
@@ -252,11 +256,35 @@ func (g Bot) handleIsDM(message MessageData) {
 }
 
 func (g Bot) handleAuth(message MessageData, tokens []string) {
-	// TODO handle Auth
+	if len(tokens) < 2 {
+		g.sendMessageDefault(message, "Authenticate to the bot. Use this command with an Auth-ID to authorize a login.")
+	} else {
+		authID := tokens[1]
+		matrixID, err := g.UserDBHandler.GetMatrixUserID(message.AuthorID)
+		if err != nil {
+			g.Logger.Warning("error getting matrixID from userID: ", err)
+			g.handleGenericError(message)
+			return
+		}
+		err = g.UserDBHandler.AuthenticateSession(matrixID, authID)
+		switch err {
+		case ErrNoMappingFound: // No auth session found
+			g.sendMessageDefault(message, "Auth ID invalid!")
+		case ErrSessionNotOfUser: // Auth session does not belong to user
+			g.sendMessageDefault(message, "Auth ID invalid!")
+		case nil: // Auth was successfull
+			g.sendMessageDefault(message, "Auth Session "+authID+" was authenticated!")
+		default: // Another error occurred
+			g.Logger.Warningf("error authenticating %v with %v: %v", matrixID, authID, err)
+			g.handleGenericError(message)
+			return
+		}
+	}
 }
 
 func (g Bot) handleConfig(message MessageData, tokens []string) {
 	// TODO handle setting of userID
+	// TODO improve high cyclo
 	// it should support migrating to a new if (/config uid idofuser)
 	// logging into existing id (use /auth authCode to authorize a login to an existing account) TODO add this
 	// checking if userid is available and warning if its not
@@ -265,64 +293,62 @@ func (g Bot) handleConfig(message MessageData, tokens []string) {
 	// i will need to think about that -> login flow where? -> solved by using callback functions
 	if len(tokens) < 2 {
 		g.sendMessageDefault(message, "Save Data to the Bot. Currently available:\n - /config initmod x - Save you Init Modifier")
-
 	} else {
 		switch tokens[1] {
 		case "initmod":
-			if len(tokens) < 3 {
-				g.UserDBHandler.DeleteUserData(message.AuthorID, "initmod")
-				g.sendMessageDefault(message, "Your init modifier was reset.")
-
-			} else if len(tokens) == 3 {
-				initMod, err := strconv.Atoi(tokens[2])
-				if err != nil {
-					g.sendMessageDefault(message, "There was an error in your command!")
-				} else {
-					jsonBytes, err := json.Marshal([]int{initMod})
-					if err != nil {
-						g.Logger.Warning("could not marshall initmod: %v", err)
-						g.handleGenericError(message)
-						return
-					}
-					err = g.UserDBHandler.SetUserData(message.AuthorID, "initmod", string(jsonBytes))
-					if err != nil {
-						if err == ErrNoMappingFound {
-							g.handleNoMappingFound(message)
-							return
-						}
-						g.handleGenericError(message)
-					}
-					g.sendMessageDefault(message, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
-				}
-			} else {
-				var output strings.Builder
-				limit := len(tokens)
-				var initMod []int
-				for i := 2; i < limit; i++ {
-					currentValue, err := strconv.Atoi(tokens[i])
-					if err != nil {
-						g.sendMessageDefault(message, "There was an error while parsing your command")
-						return
-					}
-					if i == limit-1 {
-						output.WriteString(tokens[i])
-					} else {
-						output.WriteString(tokens[i] + "|")
-					}
-					initMod = append(initMod, currentValue)
-				}
-				jsonBytes, err := json.Marshal(initMod)
-				if err != nil {
-					g.Logger.Warning("could not marshall initmod: %v", err)
-					g.handleGenericError(message)
-					return
-				}
-				g.UserDBHandler.SetUserData(message.AuthorID, "initmod", string(jsonBytes))
-				g.sendMessageDefault(message, "Your init modifier was set to following values: "+output.String()+".")
-			}
+			g.configInitmodHandler(message, tokens)
+		case "uid":
+			g.sendMessageDefault(message, "not implemented yet!")
 		default:
 			g.sendMessageDefault(message, "Sorry, I don't know what to save here!")
 		}
+	}
+}
+
+func (g Bot) configInitmodHandler(message MessageData, tokens []string) {
+	if len(tokens) < 3 {
+		g.UserDBHandler.DeleteUserData(message.AuthorID, "initmod")
+		g.sendMessageDefault(message, "Your init modifier was reset.")
+
+	} else if len(tokens) == 3 {
+		initMod, err := strconv.Atoi(tokens[2])
+		if err != nil {
+			g.sendMessageDefault(message, "There was an error in your command!")
+		} else {
+			jsonBytes, err := json.Marshal([]int{initMod})
+			if err != nil {
+				g.Logger.Warning("could not marshall initmod: %v", err)
+				g.handleGenericError(message)
+				return
+			}
+			err = g.UserDBHandler.SetUserData(message.AuthorID, "initmod", string(jsonBytes))
+			if err != nil {
+				if err == ErrNoMappingFound {
+					g.handleNoMappingFound(message)
+					return
+				}
+				g.handleGenericError(message)
+			}
+			g.sendMessageDefault(message, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
+		}
+	} else {
+		var initMod []int
+		for i := 2; i < len(tokens); i++ {
+			currentValue, err := strconv.Atoi(tokens[i])
+			if err != nil {
+				g.sendMessageDefault(message, "There was an error while parsing your command")
+				return
+			}
+			initMod = append(initMod, currentValue)
+		}
+		jsonBytes, err := json.Marshal(initMod)
+		if err != nil {
+			g.Logger.Warning("could not marshall initmod: %v", err)
+			g.handleGenericError(message)
+			return
+		}
+		g.UserDBHandler.SetUserData(message.AuthorID, "initmod", string(jsonBytes))
+		g.sendMessageDefault(message, "Your init modifier was set to following values: ["+string(jsonBytes)+"].")
 	}
 }
 
