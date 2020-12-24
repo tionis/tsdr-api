@@ -98,14 +98,21 @@ func floatToString(inputNum float64) string {
 // Parse roll command
 func (g Bot) rollHelper(message MessageData) {
 	// Catch errors in command
-	inputString := strings.Split(message.Content, " ")
-	if len(inputString) < 2 {
+	tokens := strings.Split(message.Content, " ")
+	if len(tokens) < 2 {
 		g.sendMessageDefault(message, "There was an error in your command!")
 		return
 	}
 
-	// Catch simple commands
-	switch inputString[1] {
+	// Handle simple commands
+	g.simpleRollHelper(message, tokens)
+
+	g.complexRollHelper(message, tokens)
+}
+
+// simpleRollHelper handles simple roll commands
+func (g Bot) simpleRollHelper(message MessageData, tokens []string) {
+	switch tokens[1] {
 	case "one":
 		g.sendMessageDefault(message, "Simple 1D10 = "+strconv.Itoa(rollXSidedDie(1, 10)[0]))
 
@@ -122,15 +129,6 @@ func (g Bot) rollHelper(message MessageData) {
 		}
 		return
 	case "init":
-		/*var initModSliceObject interface{}
-		  err := Load("glyph/discord:"+m.Author.ID+"/initmod", &initModSliceObject)
-		  if err != nil || reflect.TypeOf(initModSliceObject) != reflect.TypeOf("") {
-		      g.sendMessageDefault(message, "There was an internal error, please try again!")
-		      del("glyph/discord:" + m.Author.ID + "/initmod")
-		      glyphDiscordLog.Warning("Error while getting init from data with type of "+reflect.TypeOf(initModSliceObject).String()+" and error: ", err.Error())
-		      return
-		  }
-		  initModSlice := initModSliceObject.([]string)*/
 		initMod, err := g.UserDBHandler.GetUserData(message.AuthorID, "initmod")
 		if err != nil {
 			g.Logger.Error("could not get user data for %v: %v", message.AuthorID, err)
@@ -145,9 +143,9 @@ func (g Bot) rollHelper(message MessageData) {
 			return
 		}
 		number := 1
-		if len(inputString) > 2 {
+		if len(tokens) > 2 {
 			var err error
-			number, err = strconv.Atoi(inputString[2])
+			number, err = strconv.Atoi(tokens[2])
 			if err != nil {
 				g.sendMessageDefault(message, "There was an error parsing your command!")
 				return
@@ -166,11 +164,14 @@ func (g Bot) rollHelper(message MessageData) {
 		}
 		return
 	}
+}
 
+// simpleRollHelper handles complex roll commands
+func (g Bot) complexRollHelper(message MessageData, tokens []string) {
 	// Check which dice designation is used
-	if strings.Contains(inputString[1], "d") {
+	if strings.Contains(tokens[1], "d") {
 		// Catch error in dice designation [/roll 1*s*10 ]
-		diceIndex := strings.Split(inputString[1], "d")
+		diceIndex := strings.Split(tokens[1], "d")
 		if len(diceIndex) < 2 {
 			g.sendMessageDefault(message, "There was an error in your command!")
 			return
@@ -200,7 +201,7 @@ func (g Bot) rollHelper(message MessageData) {
 			return
 		default:
 			if amount > 1000 {
-				g.sendMessageDefault(message, "Maybe try a few less dice. We're not playing Warhammer Ultimate here.")
+				g.sendMessageDefault(message, "Maybe try a few less dice. We're not playing Warhammer here. I think...")
 				return
 			}
 			retSlice := rollXSidedDie(amount, sides)
@@ -218,7 +219,7 @@ func (g Bot) rollHelper(message MessageData) {
 			g.sendMessageDefault(message, retString.String())
 			return
 		}
-	} else if inputString[1] == "chance" {
+	} else if tokens[1] == "chance" {
 		// Roll a chance die
 		result := rollXSidedDie(1, 10)[0]
 		retString := ""
@@ -233,105 +234,110 @@ func (g Bot) rollHelper(message MessageData) {
 		g.sendMessageDefault(message, retString)
 		return
 	} else {
-		// Assume that input was construct notation
-		var roteQuality, noReroll, eightAgain, nineAgain bool
-		if len(inputString) > 2 {
-			roteQuality = strings.Contains(inputString[2], "r")
-			noReroll = strings.Contains(inputString[2], "n")
-			eightAgain = strings.Contains(inputString[2], "8")
-			nineAgain = strings.Contains(inputString[2], "9")
-		}
-
-		// Catch invalid number of dice to throw
-		throwCount, err := strconv.Atoi(inputString[1])
-		if err != nil {
-			g.sendMessageDefault(message, "There was an error in your command!")
-			return
-		}
-		if throwCount > 1000 {
-			g.sendMessageDefault(message, "Don't you think that are a few to many dice to throw?")
-			return
-		}
-		var retSlice [][]int
-		// Use correct Method
-		if len(inputString) < 3 {
-			// Check if special parameters were used
-			retSlice = normalConstructRoll(throwCount)
-		} else {
-			if eightAgain {
-				// Check if 8again -> infers no 9Again -> only check for n and r
-				if roteQuality {
-					retSlice = constructRoll8r(throwCount)
-				} else {
-					retSlice = constructRoll8(throwCount)
-				}
-			} else if nineAgain {
-				if roteQuality {
-					retSlice = constructRoll9r(throwCount)
-				} else {
-					retSlice = constructRoll9(throwCount)
-				}
-			} else if roteQuality {
-				if noReroll {
-					retSlice = constructRollRoteNoReroll(throwCount)
-				} else {
-					retSlice = constructRollRote(throwCount)
-				}
-			} else {
-				if noReroll {
-					retSlice = constructRolln(throwCount)
-				} else {
-					g.sendMessageDefault(message, "There was an error while parsing your input!")
-					return
-				}
-			}
-		}
-		// Count Successes and CritFails while parsing the return String
-		// Parse Slice here
-		var successes, critfails int
-		var output strings.Builder
-		mention, err := g.GetMention(message.AuthorID)
-		if err != nil {
-			g.Logger.Warningf("Could not get mention for %v: %v", message.AuthorID, err)
-		}
-		output.WriteString("Results for " + mention + ": ")
-		for i := range retSlice {
-			output.WriteString("[")
-			for j := range retSlice[i] {
-				output.WriteString(strconv.Itoa(retSlice[i][j]))
-				if j != len(retSlice[i])-1 {
-					output.WriteString(" ❯ ")
-				}
-				switch retSlice[i][j] {
-				case 8, 9, 10:
-					successes++
-				case 1, 2:
-					critfails++
-				}
-			}
-			output.WriteString("] ")
-			output.WriteString(" ")
-		}
-		critfailTreshold := int(math.Round(float64(throwCount) / 2))
-		if critfails >= critfailTreshold && successes == 0 {
-			output.WriteString("\nWell that's a **critical failure!**")
-		} else {
-			if successes > 0 {
-				if successes >= 5 {
-					output.WriteString("\nThat were **" + strconv.Itoa(successes) + "** Successes!\n" + "That was **exceptional**!")
-				} else {
-					if successes == 1 {
-						output.WriteString("\nThat was **1** Success!")
-					} else {
-						output.WriteString("\nThat were **" + strconv.Itoa(successes) + "** Successes!")
-					}
-				}
-			} else {
-				output.WriteString("\nNo Success for you! That's bad, isn`t it?")
-			}
-		}
-		g.sendMessageDefault(message, output.String())
+		g.handleConstructRoll(message, tokens)
 	}
+}
+
+// handleConstructRoll handles construct/toe rolls.
+func (g Bot) handleConstructRoll(message MessageData, tokens []string) {
+	// Assume that input was construct notation
+	var roteQuality, noReroll, eightAgain, nineAgain bool
+	if len(tokens) > 2 {
+		roteQuality = strings.Contains(tokens[2], "r")
+		noReroll = strings.Contains(tokens[2], "n")
+		eightAgain = strings.Contains(tokens[2], "8")
+		nineAgain = strings.Contains(tokens[2], "9")
+	}
+
+	// Catch invalid number of dice to throw
+	throwCount, err := strconv.Atoi(tokens[1])
+	if err != nil {
+		g.sendMessageDefault(message, "There was an error in your command!")
+		return
+	}
+	if throwCount > 1000 {
+		g.sendMessageDefault(message, "Don't you think that are a few to many dice to throw?")
+		return
+	}
+	var retSlice [][]int
+	// Use correct Method
+	if len(tokens) < 3 {
+		// Check if special parameters were used
+		retSlice = normalConstructRoll(throwCount)
+	} else {
+		if eightAgain {
+			// Check if 8again -> infers no 9Again -> only check for n and r
+			if roteQuality {
+				retSlice = constructRoll8r(throwCount)
+			} else {
+				retSlice = constructRoll8(throwCount)
+			}
+		} else if nineAgain {
+			if roteQuality {
+				retSlice = constructRoll9r(throwCount)
+			} else {
+				retSlice = constructRoll9(throwCount)
+			}
+		} else if roteQuality {
+			if noReroll {
+				retSlice = constructRollRoteNoReroll(throwCount)
+			} else {
+				retSlice = constructRollRote(throwCount)
+			}
+		} else {
+			if noReroll {
+				retSlice = constructRolln(throwCount)
+			} else {
+				g.sendMessageDefault(message, "There was an error while parsing your input!")
+				return
+			}
+		}
+	}
+	// Count Successes and CritFails while parsing the return String
+	// Parse Slice here
+	var successes, critfails int
+	var output strings.Builder
+	mention, err := g.GetMention(message.AuthorID)
+	if err != nil {
+		g.Logger.Warningf("Could not get mention for %v: %v", message.AuthorID, err)
+	}
+	output.WriteString("Results for " + mention + ": ")
+	for i := range retSlice {
+		output.WriteString("[")
+		for j := range retSlice[i] {
+			output.WriteString(strconv.Itoa(retSlice[i][j]))
+			if j != len(retSlice[i])-1 {
+				output.WriteString(" ❯ ")
+			}
+			switch retSlice[i][j] {
+			case 8, 9, 10:
+				successes++
+			case 1, 2:
+				critfails++
+			}
+		}
+		output.WriteString("] ")
+		output.WriteString(" ")
+	}
+	critfailTreshold := int(math.Round(float64(throwCount) / 2))
+	if critfails >= critfailTreshold && successes == 0 {
+		output.WriteString("\nWell that's a **critical failure!**")
+	} else {
+		if successes > 0 {
+			if successes >= 5 {
+				output.WriteString("\nThat were **" + strconv.Itoa(successes) + "** Successes!\n" + "That was **exceptional**!")
+			} else {
+				if successes == 1 {
+					output.WriteString("\nThat was **1** Success!")
+				} else {
+					output.WriteString("\nThat were **" + strconv.Itoa(successes) + "** Successes!")
+				}
+			}
+		} else {
+			output.WriteString("\nNo Success for you! That's bad, isn`t it?")
+		}
+	}
+	g.sendMessageDefault(message, output.String())
 }
 
 // Role x dice with given amount of sides
