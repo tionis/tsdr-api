@@ -218,18 +218,22 @@ func AddAuthSession(authWorker func() error, userID string) (string, error) {
 // GetAuthSessionStatus is used to get the status of an auth session with the ID
 func GetAuthSessionStatus(authSessionID string) (string, error) {
 	// TODO
+	// if no session with ID found glyph.ErrNoSuchSession
 	return "", errors.New("not implemented yet")
 }
 
 // AuthenticateSession sets the session with given ID as authenticated
 func AuthenticateSession(matrixUserID, authSessionID string) error {
 	// TODO
+	// if no session with ID found glyph.ErrNoSuchSession
+	// if session does not belong to user glyph.ErrSessionNotOfUser
 	return errors.New("not implemented yet")
 }
 
 // DeleteSession deletes the session with given ID
 func DeleteSession(authSessionID string) error {
 	// TODO
+	// if no session with ID found glyph.ErrNoSuchSession
 	return errors.New("not implemented yet")
 }
 

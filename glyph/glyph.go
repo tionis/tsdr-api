@@ -29,6 +29,10 @@ var ErrNoMappingFound = errors.New("no mapping between 3PID and userID found")
 // ErrNoSuchSession is thrown if no auth session with the given ID could be founc
 var ErrNoSuchSession = errors.New("no session with given ID could be found")
 
+// ErrSessionNotOfUser is thrown if a given session exists but does not belong to a given user
+var ErrSessionNotOfUser = errors.New("session exists but does not belong to user")
+
+// standardContextDelay is the standard ttl of chat contexts
 var standardContextDelay = time.Minute * 5
 
 // isValidUserName checks if the string is a valid username (after matrix ID and thus tasadar.net specification)
