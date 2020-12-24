@@ -26,6 +26,9 @@ var ErrUserNotFound = errors.New("user not found")
 // ErrNoMappingFound is thrown if no valid mapping from a 3PID to an userID could be found
 var ErrNoMappingFound = errors.New("no mapping between 3PID and userID found")
 
+// ErrNoSuchSession is thrown if no auth session with the given ID could be founc
+var ErrNoSuchSession = errors.New("no session with given ID could be found")
+
 var standardContextDelay = time.Minute * 5
 
 // isValidUserName checks if the string is a valid username (after matrix ID and thus tasadar.net specification)
@@ -46,47 +49,53 @@ type MessageData struct {
 
 // QuoteDB contains all functions to interface with an Database containing quotes
 type QuoteDB struct {
-	GetRandomQuote   func(byAuthor, inLanguage, inUniverse string) (Quote, error) // A function that gets a random quote based on parameters
-	AddQuote         func(Quote) error                                            // A function that saves a given Quote
-	GetQuoteOfTheDay func(userID string) (QuoteOfTheDay, error)                   // A function that gets the quote of the day for a given userID
-	SetQuoteOfTheDay func(userID string, quoteOfTheDay QuoteOfTheDay) error       //// A function that sets the quote of the day for a given userID
+	GetRandomQuote   func(byAuthor, inLanguage, inUniverse string) (Quote, error) // GetRandomQuote gets a random quote based on parameters
+	AddQuote         func(Quote) error                                            // AddQuote saves a given Quote
+	GetQuoteOfTheDay func(userID string) (QuoteOfTheDay, error)                   // GetQuoteOfTheDay gets the quote of the day for a given userID
+	SetQuoteOfTheDay func(userID string, quoteOfTheDay QuoteOfTheDay) error       // SetQuoteOfTheDay sets the quote of the day for a given userID
 }
 
 // UserDB contains all function to interface with an Database holding the user data
 type UserDB struct {
-	SetUserData           func(userID, key string, value string) error        // A function that saves data to a specific user by key
-	GetUserData           func(userID, key string) (string, error)            // A function that gets data to a specific user by key
-	DeleteUserData        func(userID, key string) error                      // A function that deletes user data with a given key
-	MigrateUserToNewID    func(oldMatrixUserID, newMatrixUserID string) error // A function that migrates userdata to a new ID
-	GetMatrixUserID       func(userID string) (string, error)
-	DoesMatrixUserIDExist func(matrixUserID string) (bool, error)
+	SetUserData           func(userID, key string, value string) error                 // SetUserData saves data to a specific user by key
+	GetUserData           func(userID, key string) (string, error)                     // GetUserData gets data to a specific user by key
+	DeleteUserData        func(userID, key string) error                               // DeleteUserData deletes user data with a given key
+	MigrateUserToNewID    func(oldMatrixUserID, newMatrixUserID string) error          // MigrateUserToNewID migrates userdata to a new ID
+	GetMatrixUserID       func(userID string) (string, error)                          // GetMatrixUserID gets the MatrixID from the implementation specific userID
+	DoesMatrixUserIDExist func(matrixUserID string) (bool, error)                      // DoesMatrixUserIDExist checks if a user with given matrixID is already registered (this is used with a hardcoded transformation from tasadar user to matrix id)
+	AddAuthSession        func(authWorker func() error, userID string) (string, error) // AddAuthSession adds an auth session with an authWorker that is executed when the session is authenticated. The functions returns an error and the ID of the auth session
+	GetAuthSessionStatus  func(authSessionID string) (string, error)                   // GetAuthSessionStatus is used to get the status of an auth session with the ID
+	AuthenticateSession   func(matrixUserID, authSessionID string) error               // AuthenticateSession sets the session with given ID as authenticated
+	DeleteSession         func(authSessionID string) error                             // DeleteSession deletes the session with given ID
+	GetAuthSessions       func(matrixID string) ([]string, error)                      // GetAuthSessions return the state of all sessions registered to the user
 }
 
 // Quote represents a Quote
 type Quote struct {
-	ID       string
-	Content  string
-	Author   string
-	Language string
-	Universe string
+	ID       string // ID is an implementation specific ID of the Quote used to identify it between the quoteData functions
+	Content  string // Content contains the Quote itself
+	Author   string // Author is the name of the author of the quote
+	Language string // Language is the language the quote is written in
+	Universe string // Universe represent in which (fictional) work/universe the Quote was said in (may be the real world)
+	ByUser   string // ByUser contains the matrixID of the user who added the Quote to the bot database
 }
 
 // QuoteOfTheDay represent an quote of the day with an saved Quote plus expiry time
 type QuoteOfTheDay struct {
-	Quote      Quote
-	ValidUntil time.Time
+	Quote      Quote     // Quote represent the Quote
+	ValidUntil time.Time // ValidUntil represents until when the Quote is the current QuoteOfTheDay
 }
 
 // Bot represents a glyph bot instance with configuration
 type Bot struct {
-	QuoteDBHandler       *QuoteDB
-	UserDBHandler        *UserDB
-	GetMention           func(userID string) (string, error)                                 // A function that when passed an userID returns an string mentioning the user
-	GetContext           func(userID, channelID, key string) (string, error)                 // A function that when passed an channelID and UserID returns the current chat context for the specified key
-	SetContext           func(userID, channelID, key, value string, ttl time.Duration) error // A function that allows setting the current channelID+UserID context with a specific key
-	SendMessageToChannel func(channelID, message string) error                               // A function that sends a simple text message to specified channel
+	QuoteDBHandler       *QuoteDB                                                            // QuoteDBHandler implements functions to interact with the quote database
+	UserDBHandler        *UserDB                                                             // UserDBHandler implements functions to interact with user-specific data
+	GetMention           func(userID string) (string, error)                                 // GetMention when passed an userID returns an string mentioning the user
+	GetContext           func(userID, channelID, key string) (string, error)                 // GetContext when passed an channelID and UserID returns the current chat context for the specified key
+	SetContext           func(userID, channelID, key, value string, ttl time.Duration) error // SetContext allows setting the current channelID+UserID context with a specific key
+	SendMessageToChannel func(channelID, message string) error                               // SendMessageToChannel sends a simple text message to specified channel
 	Prefix               string                                                              // The command prefix used
-	Logger               *logging.Logger
+	Logger               *logging.Logger                                                     // A Logger implementation to send logs to
 }
 
 // HandleAll takes a MessageData object and parses it for the glyph bot, calling callback functions as needed
@@ -105,6 +114,10 @@ func (g Bot) HandleAll(message MessageData) {
 		go g.handleUnip(message)
 	case "pnp":
 		go g.handlePnPHelp(message)
+	case "uid":
+		go g.handleUID(message)
+	case "gm":
+		go g.handleGM(message, tokens)
 
 	// Food commands
 	case "food":
@@ -112,21 +125,19 @@ func (g Bot) HandleAll(message MessageData) {
 	case "food tomorrow":
 		go g.handleFoodTomorrow(message)
 
-	// Config commands
+	// User data commands
 	case "config":
-		go g.handleConfig(message)
+		go g.handleConfig(message, tokens)
+	case "auth":
+		go g.handleAuth(message, tokens)
 
-	// MISC commands
+	// MISC & META commands
 	case "ping":
 		go g.handlePing(message)
 	case "id":
 		go g.handleID(message)
-	case "uid":
-		go g.handleUID(message)
 	case "isDM":
 		go g.handleIsDM(message)
-	case "roll", "r":
-		go g.handleRoll(message, tokens)
 	case "cancel":
 		go g.handleCancelContext(message)
 
@@ -138,7 +149,9 @@ func (g Bot) HandleAll(message MessageData) {
 	case "quoteoftheday":
 		go g.handleQuoteOfTheDay(message)
 
-	// Diagnostic Commands
+		// Dice Commands
+	case "roll", "r":
+		go g.handleRoll(message, tokens)
 	case "diag":
 		switch tokens[1] {
 		case "dice":
@@ -146,9 +159,7 @@ func (g Bot) HandleAll(message MessageData) {
 		default:
 			g.sendMessageDefault(message, "Unknown Command!")
 		}
-	// Help commands
-	case "gm":
-		go g.handleGM(message, tokens)
+
 	default:
 		go g.handleInvalidCommand(message)
 	}
@@ -172,7 +183,7 @@ func (g Bot) handleNonCommandMessage(message MessageData) {
 	case "universeRequired":
 		g.handleAddQuoteUniverse(message)
 		g.handleAddQuoteFinished(message)
-	default:
+	default: // If the context is set to something unknown reset the context and print a message that the command is not known
 		g.SetContext(message.AuthorID, message.ChannelID, "ctx", "", time.Second)
 		g.handleInvalidCommand(message)
 	}
@@ -236,16 +247,18 @@ func (g Bot) handleIsDM(message MessageData) {
 
 }
 
-func (g Bot) handleConfig(message MessageData) {
+func (g Bot) handleAuth(message MessageData, tokens []string) {
+	// TODO handle Auth
+}
+
+func (g Bot) handleConfig(message MessageData, tokens []string) {
 	// TODO handle setting of userID
 	// it should support migrating to a new if (/config uid idofuser)
 	// logging into existing id (use /auth authCode to authorize a login to an existing account) TODO add this
 	// checking if userid is available and warning if its not
 	// also the whole application should handle the error of not having a userID mapping with a warning message
 	// also if a matrix id is given the matrix bot should also allow the /auth directive this will need an matrixBot object in the bot config
-	// and a few new db functions to interface for open authentications (maybe purely in cache? - pretty sure this would be a better idea)
-	// i will need to think about that
-	tokens := strings.Split(message.Content, " ")
+	// i will need to think about that -> login flow where? -> solved by using callback functions
 	if len(tokens) < 2 {
 		g.sendMessageDefault(message, "Save Data to the Bot. Currently available:\n - /config initmod x - Save you Init Modifier")
 

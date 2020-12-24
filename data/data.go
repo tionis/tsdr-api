@@ -199,11 +199,42 @@ func DeleteUserData(userID, key string) error {
 // DoesUserIDExist checks if an user with the given (matrix) user id exists
 func DoesUserIDExist(matrixUserID string) (bool, error) {
 	// TODO
-	return false, errors.New("not implmented yet")
+	return false, errors.New("not implemented yet")
 }
 
 // MigrateUserToNewID migrates all data of an user to a new ID (while checking if the new one is a valid matrix address)
 func MigrateUserToNewID(oldMatrixUserID, newMatrixUserID string) error {
 	// TODO
-	return errors.New("not implmented yet")
+	return errors.New("not implemented yet")
+}
+
+// AddAuthSession adds an auth session with an authWorker that is executed when the session is authenticated.
+// The functions returns an error and the ID of the auth session
+func AddAuthSession(authWorker func() error, userID string) (string, error) {
+	// TODO
+	return "", errors.New("not implemented yet")
+}
+
+// GetAuthSessionStatus is used to get the status of an auth session with the ID
+func GetAuthSessionStatus(authSessionID string) (string, error) {
+	// TODO
+	return "", errors.New("not implemented yet")
+}
+
+// AuthenticateSession sets the session with given ID as authenticated
+func AuthenticateSession(matrixUserID, authSessionID string) error {
+	// TODO
+	return errors.New("not implemented yet")
+}
+
+// DeleteSession deletes the session with given ID
+func DeleteSession(authSessionID string) error {
+	// TODO
+	return errors.New("not implemented yet")
+}
+
+// GetAuthSessions return the state of all sessions registered to the user
+func GetAuthSessions(matrixID string) ([]string, error) {
+	// TODO
+	return []string{}, errors.New("not implemented yet")
 }
