@@ -15,16 +15,16 @@ import (
 	"github.com/tionis/tsdr-api/glyph"
 )
 
-type glyphDiscordMsgObject struct {
+/*type glyphDiscordMsgObject struct {
 	ChannelID string `form:"channelid" json:"channelid" binding:"required"`
 	Message   string `form:"message" json:"message" binding:"required"`
-}
+}*/
 
 // Discord ID of admin
 //var discordAdminID string = "259076782408335360"
 var discordServerID string = "695330213953011733"
 
-var glyphSend chan glyphDiscordMsgObject
+//var glyphSend chan glyphDiscordMsgObject
 
 var discordBotMention string
 
@@ -41,7 +41,7 @@ var dataBackend *data.GlyphData
 // InitBot initializes and starts the bot adapter with the given data backend
 func InitBot(data *data.GlyphData) {
 	dataBackend = data
-	glyphSend = make(chan glyphDiscordMsgObject, 2)
+	//glyphSend = make(chan glyphDiscordMsgObject, 2)
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
 		glyphDiscordLog.Error("Error creating Discord session,", err)
@@ -95,12 +95,12 @@ func InitBot(data *data.GlyphData) {
 		Prefix:               "/",
 	}
 
-	go func(dg *discordgo.Session) {
+	/*go func(dg *discordgo.Session) {
 		for {
 			sig := <-glyphSend
 			dg.ChannelMessageSend(sig.ChannelID, sig.Message)
 		}
-	}(dg)
+	}(dg)*/
 
 	// Wait here until CTRL-C or other term signal is received.
 	glyphDiscordLog.Info("Glyph Discord Bot was started.")

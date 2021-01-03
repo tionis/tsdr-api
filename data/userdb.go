@@ -168,20 +168,21 @@ func (d *GlyphData) DoesUserIDExist(matrixUserID string) (bool, error) {
 // AddAuthSession adds an auth session with an authWorker that is executed when the session is authenticated.
 // The functions returns an error and the ID of the auth session
 func (d *GlyphData) AddAuthSession(authWorker func() error, userID string) (string, error) {
-	// TODO
+	// TODO this will need a new in memory store
+	// this will also add it to the list of sessions of userID
 	return "", errors.New("not implemented yet")
 }
 
 // GetAuthSessionStatus is used to get the status of an auth session with the ID
 func (d *GlyphData) GetAuthSessionStatus(authSessionID string) (string, error) {
-	// TODO
+	// TODO this will interface with the in memory store
 	// if no session with ID found glyph.ErrNoSuchSession
 	return "", errors.New("not implemented yet")
 }
 
 // AuthenticateSession sets the session with given ID as authenticated
 func (d *GlyphData) AuthenticateSession(matrixUserID, authSessionID string) error {
-	// TODO
+	// TODO this will delete the session and execute the function attached to it
 	// if no session with ID found glyph.ErrNoSuchSession
 	// if session does not belong to user glyph.ErrSessionNotOfUser
 	return errors.New("not implemented yet")
@@ -189,13 +190,15 @@ func (d *GlyphData) AuthenticateSession(matrixUserID, authSessionID string) erro
 
 // DeleteSession deletes the session with given ID
 func (d *GlyphData) DeleteSession(authSessionID string) error {
-	// TODO
+	// TODO this will delete the session from the in memory store
 	// if no session with ID found glyph.ErrNoSuchSession
+	// this will also delete it from the list of sessions of userID
 	return errors.New("not implemented yet")
 }
 
 // GetAuthSessions return the state of all sessions registered to the user
 func (d *GlyphData) GetAuthSessions(matrixID string) ([]string, error) {
-	// TODO
+	// TODO this will get all session IDs from the session list by userID and
+	// then aggregates all states of the found sessions
 	return []string{}, errors.New("not implemented yet")
 }
