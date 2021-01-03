@@ -23,7 +23,7 @@ var msgGlyph chan string
 var dataBackend *data.GlyphData
 
 // InitBot initializes and starts the bot adapter with the given data backend
-func InitBot(data *data.GlyphData, debug bool) {
+func InitBot(data *data.GlyphData) {
 	dataBackend = data
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
@@ -32,7 +32,7 @@ func InitBot(data *data.GlyphData, debug bool) {
 
 	glyphTelegramLog.Info("Glyph Telegram Bot was started.")
 
-	bot.Debug = debug
+	bot.Debug = false // Not really needed, not even for development
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60

@@ -44,9 +44,9 @@ func Init(isProduction bool) *Server {
 }
 
 // Start starts the WebServer in a blocking operation
-func (s *Server) Start() {
+func (s *Server) Start(port string) {
 	// Start WebServer
-	s.logger.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), s.hs))
+	s.logger.Fatal(http.ListenAndServe(":"+port, s.hs))
 }
 
 // Hostswitch HTTP Handler that enables the use in a standard lib way

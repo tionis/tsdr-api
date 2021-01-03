@@ -49,6 +49,13 @@ func main() {
 		isProduction = true
 	}
 
+	// Get port to start WebServer on
+	port := os.Getenv("PORT")
+	if port == "" {
+		mainLog.Warning("Failed to detect Port Variable, switching to default :8081")
+		port = defaultPort
+	}
+
 	// Start Uni-Passau-Bot
 	go UniPassauBot.UniPassauBot(os.Getenv("UNIPASSAUBOT_TOKEN"))
 
@@ -56,32 +63,11 @@ func main() {
 	go discord.InitBot(dataBackend)
 
 	// Start Glyph Telegram Bot
-	//go glyphTelegramBot(!isProduction)
-	go telegram.InitBot(dataBackend, false)
+	go telegram.InitBot(dataBackend)
 
 	// Start Glyph Matrix Bot
 	go matrix.InitBot(dataBackend)
 
-	// Cronjob Definitions
-	// MC Cronjobs
-	//loc, err := time.LoadLocation("Europe/Berlin")
-	//if err != nil {
-	//	mainLog.Warning("[Tasadar] Error loading correct time zone!")
-	//}
-	//c := cron.New(cron.WithLocation(loc))
-	//c.AddFunc("@every 5m", func() { pingMC() })
-	//c.AddFunc("@every 5m", func() { updateMC() })
-	//c.AddFunc("@every 1m", func() { remindChecker() })
-	//c.Start()
-	//defer c.Stop()
-
-	// Create Default gin router
-	port := os.Getenv("PORT")
-	if port == "" {
-		mainLog.Warning("Failed to detect Port Variable, switching to default :8081")
-		port = defaultPort
-	}
-
 	// Start WebServer - this is concurrent blocking operation
-	web.Init(isProduction).Start()
+	web.Init(isProduction).Start(port)
 }
