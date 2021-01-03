@@ -76,7 +76,6 @@ func glyphDiscordBot() {
 			GetUserData:           getDiscordGetUserData(),
 			SetUserData:           getDiscordSetUserData(),
 			DeleteUserData:        getDiscordDeleteUserData(),
-			MigrateUserToNewID:    data.MigrateUserToNewID,
 			GetMatrixUserID:       getDiscordGetMatrixUserID(),
 			DoesMatrixUserIDExist: data.DoesUserIDExist,
 			AddAuthSession:        data.AddAuthSession,
@@ -217,7 +216,7 @@ func getDiscordSetUserData() func(discordUserID, key string, value string) error
 		if err != nil {
 			return err
 		}
-		err = data.SetUserData(userID, "glyph", key, value)
+		err = data.SetUserData(userID, key, value)
 		if err != nil {
 			return err
 		}
@@ -231,7 +230,7 @@ func getDiscordGetUserData() func(discordUserID, key string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		value, err := data.GetUserData(userID, "glyph", key)
+		value, err := data.GetUserData(userID, key)
 		if err != nil {
 			glyphDiscordLog.Errorf("error setting user data: %v", err)
 			return "", err

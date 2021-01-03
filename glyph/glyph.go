@@ -34,6 +34,9 @@ var ErrNoSuchSession = errors.New("no session with given ID could be found")
 // ErrSessionNotOfUser is thrown if a given session exists but does not belong to a given user
 var ErrSessionNotOfUser = errors.New("session exists but does not belong to user")
 
+// ErrMatrixIDInvalid is thrown if the given matrix ID does not follow the rules of the matrix convention
+var ErrMatrixIDInvalid = errors.New("matrix id not valid")
+
 // standardContextDelay is the standard ttl of chat contexts
 var standardContextDelay = time.Minute * 5
 
@@ -68,7 +71,6 @@ type UserDB struct {
 	SetUserData           func(userID, key string, value string) error                 // SetUserData saves data to a specific user by key
 	GetUserData           func(userID, key string) (string, error)                     // GetUserData gets data to a specific user by key
 	DeleteUserData        func(userID, key string) error                               // DeleteUserData deletes user data with a given key
-	MigrateUserToNewID    func(oldMatrixUserID, newMatrixUserID string) error          // MigrateUserToNewID migrates userdata to a new ID
 	GetMatrixUserID       func(userID string) (string, error)                          // GetMatrixUserID gets the MatrixID from the implementation specific userID
 	DoesMatrixUserIDExist func(matrixUserID string) (bool, error)                      // DoesMatrixUserIDExist checks if a user with given matrixID is already registered (this is used with a hardcoded transformation from tasadar user to matrix id)
 	AddAuthSession        func(authWorker func() error, userID string) (string, error) // AddAuthSession adds an auth session with an authWorker that is executed when the session is authenticated. The functions returns an error and the ID of the auth session

@@ -47,7 +47,6 @@ func glyphTelegramBot(debug bool) {
 			GetUserData:           getTelegramGetUserData(),
 			SetUserData:           getTelegramSetUserData(),
 			DeleteUserData:        getTelegramDeleteUserData(),
-			MigrateUserToNewID:    data.MigrateUserToNewID,
 			GetMatrixUserID:       getTelegramGetMatrixUserID(),
 			DoesMatrixUserIDExist: data.DoesUserIDExist,
 			AddAuthSession:        data.AddAuthSession,
@@ -112,7 +111,7 @@ func getTelegramSetUserData() func(telegramUserID, key string, value string) err
 		if err != nil {
 			return err
 		}
-		err = data.SetUserData(userID, "glyph", key, value)
+		err = data.SetUserData(userID, key, value)
 		if err != nil {
 			return err
 		}
@@ -126,7 +125,7 @@ func getTelegramGetUserData() func(telegramUserID, key string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		value, err := data.GetUserData(userID, "glyph", key)
+		value, err := data.GetUserData(userID, key)
 		if err != nil {
 			return "", err
 		}

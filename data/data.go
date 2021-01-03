@@ -75,7 +75,7 @@ func initDatabase() {
 	}
 
 	// User Tables
-	_, err = db.Query(`CREATE TABLE IF NOT EXISTS users(id text PRIMARY KEY, email text, isAdmin boolean)`)
+	_, err = db.Query(`CREATE TABLE IF NOT EXISTS users(userID text PRIMARY KEY, email text, isAdmin boolean)`)
 	if err != nil {
 		dataLog.Fatal("Error creating table users: ", err)
 	}
@@ -85,7 +85,8 @@ func initDatabase() {
 		dataLog.Fatal("Error creating table qotd: ", err)
 	}
 
-	_, err = db.Query(`CREATE TABLE IF NOT EXISTS userdata(userID text PRIMARY KEY, key text, value text)`)
+	// This may not be performance ideal, in the future creating an index may be helpful: CREATE UNIQUE INDEX userID ON userdata(userID);
+	_, err = db.Query(`CREATE TABLE IF NOT EXISTS userdata(userID text references users (userID) on delete cascade UNIQUE, key text, value text, primary key(userID, key))`)
 	if err != nil {
 		dataLog.Fatal("Error creating table userdata: ", err)
 	}
