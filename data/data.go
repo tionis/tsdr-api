@@ -12,18 +12,18 @@ import (
 	_ "github.com/lib/pq" // The PostgreSQL Driver
 )
 
-// DB represents an postgres database
-var db *sql.DB
-
-var dataLog = logging.MustGetLogger("data")
-
-// This could be a performance bottleneck in the future.
-// If the bot performs badly the cache logic should be rewritten.
-var tmpDataLock sync.RWMutex
-var tmpData map[string]map[string]tmpDataObject
-
 // Define errors
 var errUserNotFound = errors.New("user could not be found in the database")
+
+// GlyphData represents a configured data backend
+type GlyphData struct {
+	db *sql.DB // DB represents an postgres database
+
+	tmpDataLock *sync.RWMutex // This could be a performance bottleneck in the future. If the bot performs badly the cache logic should be rewritten.
+	tmpData     map[string]map[string]tmpDataObject
+
+	logger *logging.Logger
+}
 
 type tmpDataObject struct {
 	data       string
@@ -31,80 +31,86 @@ type tmpDataObject struct {
 }
 
 // DBInit initializes the DB connection and tests it
-func DBInit() {
+func DBInit() *GlyphData {
+	var out GlyphData
+
 	// Init RAM Store
-	tmpData = make(map[string]map[string]tmpDataObject)
+	out.tmpData = make(map[string]map[string]tmpDataObject)
+
+	// Init logger
+	out.logger = logging.MustGetLogger("data")
 
 	// Init postgres
-	initPostgres()
+	out.initPostgres()
 
 	// start go routine that cleans cache hourly
-	go startCacheCleaner(time.Hour)
+	go out.startCacheCleaner(time.Hour)
 
 	// Init the Database
-	initDatabase()
+	out.initDatabase()
+	return &out
 }
 
-func initPostgres() {
+func (d GlyphData) initPostgres() {
 	if os.Getenv("DATABASE_URL") == "" {
-		dataLog.Info("Database: " + os.Getenv("DATABASE_URL"))
-		dataLog.Fatal("Fatal Error getting Database Information!")
+		d.logger.Info("Database: " + os.Getenv("DATABASE_URL"))
+		d.logger.Fatal("Fatal Error getting Database Information!")
 	}
 	var err error
-	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	d.db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
-		dataLog.Fatal("PostgreSQL Server Connection failed: ", err)
+		d.logger.Fatal("PostgreSQL Server Connection failed: ", err)
 	}
-	db.SetMaxOpenConns(19) // Heroku free plan limit - 1 debug connection
-	err = db.Ping()
+	d.db.SetMaxOpenConns(19) // Heroku free plan limit - 1 debug connection
+	err = d.db.Ping()
 	if err != nil {
-		dataLog.Fatal("PostgreSQL Server Ping failed: ", err)
-		err = db.Close()
+		d.logger.Fatal("PostgreSQL Server Ping failed: ", err)
+		err = d.db.Close()
 		if err != nil {
-			dataLog.Warning("PostgreSQL Error closing Postgres Session")
+			d.logger.Warning("PostgreSQL Error closing Postgres Session")
 		}
 		return
 	}
 }
 
-func initDatabase() {
+func (d GlyphData) initDatabase() {
 	// Quotator Table
-	_, err := db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text, byUser text)`)
+	_, err := d.db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text, byUser text)`)
 	if err != nil {
-		dataLog.Fatal("Error creating table quotes: ", err)
+		d.logger.Fatal("Error creating table quotes: ", err)
 	}
 
 	// User Tables
-	_, err = db.Query(`CREATE TABLE IF NOT EXISTS users(userID text PRIMARY KEY, email text, isAdmin boolean)`)
+	_, err = d.db.Query(`CREATE TABLE IF NOT EXISTS users(userID text PRIMARY KEY, email text, isAdmin boolean)`)
 	if err != nil {
-		dataLog.Fatal("Error creating table users: ", err)
+		d.logger.Fatal("Error creating table users: ", err)
 	}
 
-	_, err = db.Query(`CREATE TABLE IF NOT EXISTS qotd(userID text PRIMARY KEY, quoteID SERIAL, validUntil timestamptz)`)
+	_, err = d.db.Query(`CREATE TABLE IF NOT EXISTS qotd(userID text PRIMARY KEY, quoteID SERIAL, validUntil timestamptz)`)
 	if err != nil {
-		dataLog.Fatal("Error creating table qotd: ", err)
+		d.logger.Fatal("Error creating table qotd: ", err)
 	}
 
 	// This may not be performance ideal, in the future creating an index may be helpful: CREATE UNIQUE INDEX userID ON userdata(userID);
-	_, err = db.Query(`CREATE TABLE IF NOT EXISTS userdata(userID text references users (userID) on delete cascade UNIQUE, key text, value text, primary key(userID, key))`)
+	_, err = d.db.Query(`CREATE TABLE IF NOT EXISTS userdata(userID text references users (userID) on delete cascade UNIQUE, key text, value text, primary key(userID, key))`)
 	if err != nil {
-		dataLog.Fatal("Error creating table userdata: ", err)
+		d.logger.Fatal("Error creating table userdata: ", err)
 	}
 }
 
 // startCacheCleaner cleans the cache and then waits the specified time until it cleans the cache again
-func startCacheCleaner(waitingTime time.Duration) {
+func (d GlyphData) startCacheCleaner(waitingTime time.Duration) {
 	for {
-		cleanCache()
+		d.cleanCache()
 		time.Sleep(waitingTime)
 	}
 }
 
 // cleanCache cleans the whole cache by iterating over it and deleting stale values
-func cleanCache() {
-	tmpDataLock.Lock()
-	defer tmpDataLock.Unlock()
-	for _, bucket := range tmpData {
+func (d GlyphData) cleanCache() {
+	d.tmpDataLock.Lock()
+	defer d.tmpDataLock.Unlock()
+	for _, bucket := range d.tmpData {
 		for key, data := range bucket {
 			if !data.isValid() {
 				delete(bucket, key)
@@ -119,39 +125,39 @@ func (t tmpDataObject) isValid() bool {
 }
 
 // SetTmp Sets an temporary in memory key value store value
-func SetTmp(bucket string, key string, value string, duration time.Duration) {
+func (d GlyphData) SetTmp(bucket string, key string, value string, duration time.Duration) {
 	var dataToSave tmpDataObject
 	dataToSave.data = value
 	dataToSave.validUntil = time.Now().Add(duration)
-	tmpDataLock.Lock()
-	defer tmpDataLock.Unlock()
-	if tmpData[bucket] == nil {
-		tmpData[bucket] = make(map[string]tmpDataObject)
+	d.tmpDataLock.Lock()
+	defer d.tmpDataLock.Unlock()
+	if d.tmpData[bucket] == nil {
+		d.tmpData[bucket] = make(map[string]tmpDataObject)
 	}
-	tmpData[bucket][key] = dataToSave
+	d.tmpData[bucket][key] = dataToSave
 }
 
 // GetTmp gets an temporary in memory key value store value
-func GetTmp(bucket string, key string) string {
-	tmpDataLock.Lock()
-	defer tmpDataLock.Unlock()
-	if tmpData[bucket] == nil {
+func (d GlyphData) GetTmp(bucket string, key string) string {
+	d.tmpDataLock.Lock()
+	defer d.tmpDataLock.Unlock()
+	if d.tmpData[bucket] == nil {
 		return ""
 	}
-	dataToLoad := tmpData[bucket][key]
+	dataToLoad := d.tmpData[bucket][key]
 	if !dataToLoad.isValid() {
-		delete(tmpData[bucket], key)
+		delete(d.tmpData[bucket], key)
 		return ""
 	}
 	return dataToLoad.data
 }
 
 // DelTmp deletes an temporary in memory key value store value
-func DelTmp(bucket string, key string) {
-	tmpDataLock.Lock()
-	defer tmpDataLock.Unlock()
-	if tmpData[bucket] == nil {
+func (d GlyphData) DelTmp(bucket string, key string) {
+	d.tmpDataLock.Lock()
+	defer d.tmpDataLock.Unlock()
+	if d.tmpData[bucket] == nil {
 		return
 	}
-	delete(tmpData[bucket], key)
+	delete(d.tmpData[bucket], key)
 }

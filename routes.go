@@ -49,12 +49,10 @@ func apiRoutes(router *gin.Engine) {
 	router.GET("/mensa/week", retFoodWeek)
 
 	// Glyph Communication API
-	router.POST("/glyph/discord/send", glyphDiscordHandler)
-	//router.GET("/glyph/telegram/send", glyphTelegramHandler)
-	//router.GET("/glyph/matrix/send", glyphMatrixHandler)
+	//router.POST("/glyph/message/send", glyphMessageSendHandler)
 }
 
-func glyphDiscordHandler(c *gin.Context) {
+/*func glyphMessageSendHandler(c *gin.Context) {
 	var messageData glyphDiscordMsgAPIObject
 	err := c.Bind(messageData) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
@@ -64,7 +62,7 @@ func glyphDiscordHandler(c *gin.Context) {
 	}
 	glyphSend <- glyphDiscordMsgObject{messageData.ChannelID, messageData.Message}
 	c.String(200, "Ok")
-}
+}*/
 
 // handle test case
 func httpecho(c *gin.Context) {

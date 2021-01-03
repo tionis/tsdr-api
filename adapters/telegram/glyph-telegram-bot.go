@@ -1,4 +1,4 @@
-package main
+package telegram
 
 import (
 	"errors"
@@ -20,8 +20,11 @@ const glyphTelegramContextDelay = time.Hour * 24
 
 var msgGlyph chan string
 
-// GlyphTelegramBot handles all the glyph bot interfacing between the glyph logic and telegram
-func glyphTelegramBot(debug bool) {
+var dataBackend *data.GlyphData
+
+// InitBot initializes and starts the bot adapter with the given data backend
+func InitBot(data *data.GlyphData, debug bool) {
+	dataBackend = data
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
 	if err != nil {
 		glyphTelegramLog.Fatal(err)
@@ -38,8 +41,8 @@ func glyphTelegramBot(debug bool) {
 
 	telegramGlyphBot := &glyph.Bot{
 		QuoteDBHandler: &glyph.QuoteDB{
-			AddQuote:         data.AddQuote,
-			GetRandomQuote:   data.GetRandomQuote,
+			AddQuote:         dataBackend.AddQuote,
+			GetRandomQuote:   dataBackend.GetRandomQuote,
 			GetQuoteOfTheDay: getTelegramGetQuoteOfTheDay(),
 			SetQuoteOfTheDay: getTelegramSetQuoteOfTheDay(),
 		},
@@ -48,12 +51,12 @@ func glyphTelegramBot(debug bool) {
 			SetUserData:           getTelegramSetUserData(),
 			DeleteUserData:        getTelegramDeleteUserData(),
 			GetMatrixUserID:       getTelegramGetMatrixUserID(),
-			DoesMatrixUserIDExist: data.DoesUserIDExist,
-			AddAuthSession:        data.AddAuthSession,
-			GetAuthSessionStatus:  data.GetAuthSessionStatus,
-			AuthenticateSession:   data.AuthenticateSession,
-			DeleteSession:         data.DeleteSession,
-			GetAuthSessions:       data.GetAuthSessions,
+			DoesMatrixUserIDExist: dataBackend.DoesUserIDExist,
+			AddAuthSession:        dataBackend.AddAuthSession,
+			GetAuthSessionStatus:  dataBackend.GetAuthSessionStatus,
+			AuthenticateSession:   dataBackend.AuthenticateSession,
+			DeleteSession:         dataBackend.DeleteSession,
+			GetAuthSessions:       dataBackend.GetAuthSessions,
 		},
 		SetContext:           getTelegramSetContext(),
 		GetContext:           getTelegramGetContext(),
@@ -70,7 +73,7 @@ func glyphTelegramBot(debug bool) {
 
 		// Save Username to cache
 		userID := strconv.Itoa(update.Message.From.ID)
-		go data.SetTmp("glyph:tg:nameCache", userID, update.Message.From.FirstName+" "+update.Message.From.LastName, 30*time.Minute)
+		go dataBackend.SetTmp("glyph:tg:nameCache", userID, update.Message.From.FirstName+" "+update.Message.From.LastName, 30*time.Minute)
 
 		// Trim prefix
 		content := strings.TrimPrefix(update.Message.Text, telegramGlyphBot.Prefix)
@@ -107,11 +110,11 @@ func getTelegramSendMessage(bot *tgbotapi.BotAPI) func(channelID, message string
 
 func getTelegramSetUserData() func(telegramUserID, key string, value string) error {
 	return func(telegramUserID, key string, value string) error {
-		userID, err := data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return err
 		}
-		err = data.SetUserData(userID, key, value)
+		err = dataBackend.SetUserData(userID, key, value)
 		if err != nil {
 			return err
 		}
@@ -121,11 +124,11 @@ func getTelegramSetUserData() func(telegramUserID, key string, value string) err
 
 func getTelegramGetUserData() func(telegramUserID, key string) (string, error) {
 	return func(telegramUserID, key string) (string, error) {
-		userID, err := data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return "", err
 		}
-		value, err := data.GetUserData(userID, key)
+		value, err := dataBackend.GetUserData(userID, key)
 		if err != nil {
 			return "", err
 		}
@@ -134,20 +137,20 @@ func getTelegramGetUserData() func(telegramUserID, key string) (string, error) {
 }
 func getTelegramSetContext() func(userID, channelID, key, value string, ttl time.Duration) error {
 	return func(userID, channelID, key, value string, ttl time.Duration) error {
-		data.SetTmp("glyph:tg:"+channelID+":"+userID, key, value, ttl)
+		dataBackend.SetTmp("glyph:tg:"+channelID+":"+userID, key, value, ttl)
 		return nil
 	}
 }
 
 func getTelegramGetContext() func(userID, channelID, key string) (string, error) {
 	return func(userID, channelID, key string) (string, error) {
-		return data.GetTmp("glyph:tg:"+channelID+":"+userID, key), nil
+		return dataBackend.GetTmp("glyph:tg:"+channelID+":"+userID, key), nil
 	}
 }
 
 func getTelegramGetMention() func(userID string) (string, error) {
 	return func(userID string) (string, error) {
-		friendlyName := data.GetTmp("glyph:tg:nameCache", userID)
+		friendlyName := dataBackend.GetTmp("glyph:tg:nameCache", userID)
 		if friendlyName == "" {
 			friendlyName = userID
 		}
@@ -157,11 +160,11 @@ func getTelegramGetMention() func(userID string) (string, error) {
 
 func getTelegramGetQuoteOfTheDay() func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
 	return func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
-		userID, err := data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return glyph.QuoteOfTheDay{}, err
 		}
-		qotd, err := data.GetQuoteOfTheDayOfUser(userID)
+		qotd, err := dataBackend.GetQuoteOfTheDayOfUser(userID)
 		if err != nil {
 			return glyph.QuoteOfTheDay{}, err
 		}
@@ -171,26 +174,26 @@ func getTelegramGetQuoteOfTheDay() func(telegramUserID string) (glyph.QuoteOfThe
 
 func getTelegramSetQuoteOfTheDay() func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
 	return func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
-		userID, err := data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return err
 		}
-		return data.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
+		return dataBackend.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
 	}
 }
 
 func getTelegramGetMatrixUserID() func(telegramUserID string) (string, error) {
 	return func(telegramUserID string) (string, error) {
-		return data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		return dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 	}
 }
 
 func getTelegramDeleteUserData() func(telegramUserID, key string) error {
 	return func(telegramUserID, key string) error {
-		userID, err := data.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return err
 		}
-		return data.DeleteUserData(userID, key)
+		return dataBackend.DeleteUserData(userID, key)
 	}
 }

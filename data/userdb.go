@@ -12,8 +12,8 @@ var isValidMatrixID = regexp.MustCompile(`(?m)^@[a-z\-_]+:([A-Za-z0-9-]{1,63}\.)
 
 // GetUserIDFromValueOfKey returns the userID where key and value are matched,
 // this is mostly used to map chat platform ids to the main id
-func GetUserIDFromValueOfKey(key, value string) (string, error) {
-	stmt, err := db.Prepare(`SELECT userID FROM userdata WHERE key = $1 AND value = $2`)
+func (d GlyphData) GetUserIDFromValueOfKey(key, value string) (string, error) {
+	stmt, err := d.db.Prepare(`SELECT userID FROM userdata WHERE key = $1 AND value = $2`)
 	if err != nil {
 		return "", err
 	}
@@ -31,11 +31,11 @@ func GetUserIDFromValueOfKey(key, value string) (string, error) {
 }
 
 // UserAdd adds an user with given userID, email and isAdmin parameters
-func UserAdd(userID, email string, isAdmin bool) error {
+func (d GlyphData) UserAdd(userID, email string, isAdmin bool) error {
 	if !isValidMatrixID.MatchString(userID) {
 		return glyph.ErrMatrixIDInvalid
 	}
-	stmt, err := db.Prepare(`INSERT INTO users (userID, email, isAdmin) VALUES ($1, $2, $3)`)
+	stmt, err := d.db.Prepare(`INSERT INTO users (userID, email, isAdmin) VALUES ($1, $2, $3)`)
 	if err != nil {
 		return err
 	}
@@ -47,8 +47,8 @@ func UserAdd(userID, email string, isAdmin bool) error {
 }
 
 // UserIsAdmin return true if the user with given userID is an tasadar admin
-func UserIsAdmin(userID string) (bool, error) {
-	stmt, err := db.Prepare(`SELECT isAdmin FROM users WHERE userID = $1`)
+func (d GlyphData) UserIsAdmin(userID string) (bool, error) {
+	stmt, err := d.db.Prepare(`SELECT isAdmin FROM users WHERE userID = $1`)
 	if err != nil {
 		return false, err
 	}
@@ -62,8 +62,8 @@ func UserIsAdmin(userID string) (bool, error) {
 }
 
 // UserSetMail sets the email address of an user
-func UserSetMail(userID, email string) error {
-	stmt, err := db.Prepare(`UPDATE users SET email = $2 WHERE userID = $1`)
+func (d GlyphData) UserSetMail(userID, email string) error {
+	stmt, err := d.db.Prepare(`UPDATE users SET email = $2 WHERE userID = $1`)
 	if err != nil {
 		return err
 	}
@@ -75,8 +75,8 @@ func UserSetMail(userID, email string) error {
 }
 
 // UserSetAdminStatus makes an User tasdar admin if true and takes away that privilege if false
-func UserSetAdminStatus(userID string, isAdmin bool) error {
-	stmt, err := db.Prepare(`UPDATE users SET isAdmin = $2 WHERE userID = $1`)
+func (d GlyphData) UserSetAdminStatus(userID string, isAdmin bool) error {
+	stmt, err := d.db.Prepare(`UPDATE users SET isAdmin = $2 WHERE userID = $1`)
 	if err != nil {
 		return err
 	}
@@ -88,9 +88,9 @@ func UserSetAdminStatus(userID string, isAdmin bool) error {
 }
 
 // UserDelete deletes the user and all associated data with it (except associated quotes)
-func UserDelete(userID string) error {
+func (d GlyphData) UserDelete(userID string) error {
 	// Delete user from users, the sql server will take care of deleting data from the other tables referencing the user
-	stmt, err := db.Prepare(`DELETE FROM users WHERE userID = $1`)
+	stmt, err := d.db.Prepare(`DELETE FROM users WHERE userID = $1`)
 	if err != nil {
 		return err
 	}
@@ -102,8 +102,8 @@ func UserDelete(userID string) error {
 }
 
 // SetUserData sets the key in the bucket in the data of a user to the data from value
-func SetUserData(userID, key string, value string) error {
-	stmt, err := db.Prepare(`INSERT INTO userdata (userID, key, value) VALUES ($1, $2, $3) ON CONFLICT (userID) DO UPDATE SET value = $3;`)
+func (d GlyphData) SetUserData(userID, key string, value string) error {
+	stmt, err := d.db.Prepare(`INSERT INTO userdata (userID, key, value) VALUES ($1, $2, $3) ON CONFLICT (userID) DO UPDATE SET value = $3;`)
 	if err != nil {
 		return err
 	}
@@ -116,8 +116,8 @@ func SetUserData(userID, key string, value string) error {
 }
 
 // GetUserData gets the key in the bucket in the data of a user
-func GetUserData(userID, key string) (string, error) {
-	stmt, err := db.Prepare(`SELECT value FROM userdata WHERE userID = $1 AND key = $2`)
+func (d GlyphData) GetUserData(userID, key string) (string, error) {
+	stmt, err := d.db.Prepare(`SELECT value FROM userdata WHERE userID = $1 AND key = $2`)
 	if err != nil {
 		return "", err
 	}
@@ -136,8 +136,8 @@ func GetUserData(userID, key string) (string, error) {
 }
 
 // DeleteUserData deletes user data for a given key
-func DeleteUserData(userID, key string) error {
-	stmt, err := db.Prepare(`DELETE FROM userdata WHERE userID = $1 AND key = $2`)
+func (d GlyphData) DeleteUserData(userID, key string) error {
+	stmt, err := d.db.Prepare(`DELETE FROM userdata WHERE userID = $1 AND key = $2`)
 	if err != nil {
 		return err
 	}
@@ -149,8 +149,8 @@ func DeleteUserData(userID, key string) error {
 }
 
 // DoesUserIDExist checks if an user with the given (matrix) user id exists
-func DoesUserIDExist(matrixUserID string) (bool, error) {
-	stmt, err := db.Prepare(`SELECT userID FROM quotes WHERE userID = $1`)
+func (d GlyphData) DoesUserIDExist(matrixUserID string) (bool, error) {
+	stmt, err := d.db.Prepare(`SELECT userID FROM quotes WHERE userID = $1`)
 	if err != nil {
 		return false, err
 	}
@@ -167,20 +167,20 @@ func DoesUserIDExist(matrixUserID string) (bool, error) {
 
 // AddAuthSession adds an auth session with an authWorker that is executed when the session is authenticated.
 // The functions returns an error and the ID of the auth session
-func AddAuthSession(authWorker func() error, userID string) (string, error) {
+func (d GlyphData) AddAuthSession(authWorker func() error, userID string) (string, error) {
 	// TODO
 	return "", errors.New("not implemented yet")
 }
 
 // GetAuthSessionStatus is used to get the status of an auth session with the ID
-func GetAuthSessionStatus(authSessionID string) (string, error) {
+func (d GlyphData) GetAuthSessionStatus(authSessionID string) (string, error) {
 	// TODO
 	// if no session with ID found glyph.ErrNoSuchSession
 	return "", errors.New("not implemented yet")
 }
 
 // AuthenticateSession sets the session with given ID as authenticated
-func AuthenticateSession(matrixUserID, authSessionID string) error {
+func (d GlyphData) AuthenticateSession(matrixUserID, authSessionID string) error {
 	// TODO
 	// if no session with ID found glyph.ErrNoSuchSession
 	// if session does not belong to user glyph.ErrSessionNotOfUser
@@ -188,14 +188,14 @@ func AuthenticateSession(matrixUserID, authSessionID string) error {
 }
 
 // DeleteSession deletes the session with given ID
-func DeleteSession(authSessionID string) error {
+func (d GlyphData) DeleteSession(authSessionID string) error {
 	// TODO
 	// if no session with ID found glyph.ErrNoSuchSession
 	return errors.New("not implemented yet")
 }
 
 // GetAuthSessions return the state of all sessions registered to the user
-func GetAuthSessions(matrixID string) ([]string, error) {
+func (d GlyphData) GetAuthSessions(matrixID string) ([]string, error) {
 	// TODO
 	return []string{}, errors.New("not implemented yet")
 }

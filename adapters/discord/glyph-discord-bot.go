@@ -1,4 +1,4 @@
-package main
+package discord
 
 import (
 	"os"
@@ -36,8 +36,11 @@ var glyphDiscordLog = logging.MustGetLogger("glyphDiscord")
 
 var discordGlyphBot *glyph.Bot
 
-// Main and Init
-func glyphDiscordBot() {
+var dataBackend *data.GlyphData
+
+// InitBot initializes and starts the bot adapter with the given data backend
+func InitBot(data *data.GlyphData) {
+	dataBackend = data
 	glyphSend = make(chan glyphDiscordMsgObject, 2)
 	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
 	if err != nil {
@@ -67,8 +70,8 @@ func glyphDiscordBot() {
 
 	discordGlyphBot = &glyph.Bot{
 		QuoteDBHandler: &glyph.QuoteDB{
-			AddQuote:         data.AddQuote,
-			GetRandomQuote:   data.GetRandomQuote,
+			AddQuote:         dataBackend.AddQuote,
+			GetRandomQuote:   dataBackend.GetRandomQuote,
 			GetQuoteOfTheDay: getDiscordGetQuoteOfTheDay(),
 			SetQuoteOfTheDay: getDiscordSetQuoteOfTheDay(),
 		},
@@ -77,12 +80,12 @@ func glyphDiscordBot() {
 			SetUserData:           getDiscordSetUserData(),
 			DeleteUserData:        getDiscordDeleteUserData(),
 			GetMatrixUserID:       getDiscordGetMatrixUserID(),
-			DoesMatrixUserIDExist: data.DoesUserIDExist,
-			AddAuthSession:        data.AddAuthSession,
-			GetAuthSessionStatus:  data.GetAuthSessionStatus,
-			AuthenticateSession:   data.AuthenticateSession,
-			DeleteSession:         data.DeleteSession,
-			GetAuthSessions:       data.GetAuthSessions,
+			DoesMatrixUserIDExist: dataBackend.DoesUserIDExist,
+			AddAuthSession:        dataBackend.AddAuthSession,
+			GetAuthSessionStatus:  dataBackend.GetAuthSessionStatus,
+			AuthenticateSession:   dataBackend.AuthenticateSession,
+			DeleteSession:         dataBackend.DeleteSession,
+			GetAuthSessions:       dataBackend.GetAuthSessions,
 		},
 		SetContext:           getDiscordSetContext(),
 		GetContext:           getDiscordGetContext(),
@@ -120,14 +123,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// Check if message was sent in an DM
-	AuthorDMChannelID := data.GetTmp("glyph", "dg:"+m.Author.ID+"|DM-Channel")
+	AuthorDMChannelID := dataBackend.GetTmp("glyph", "dg:"+m.Author.ID+"|DM-Channel")
 	if AuthorDMChannelID == "" {
 		AuthorDMChannel, err := s.UserChannelCreate(m.Author.ID)
 		if err != nil {
 			return
 		}
 		AuthorDMChannelID = AuthorDMChannel.ID
-		data.SetTmp("glyph", "dg:"+m.Author.ID+"|DM-Channel", AuthorDMChannelID, time.Hour*24)
+		dataBackend.SetTmp("glyph", "dg:"+m.Author.ID+"|DM-Channel", AuthorDMChannelID, time.Hour*24)
 	}
 
 	// Build message object
@@ -183,13 +186,13 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 func getDiscordGetContext() func(userID, channelID, key string) (string, error) {
 	return func(userID, channelID, key string) (string, error) {
-		return data.GetTmp("glyph:dc:"+channelID+":"+userID, key), nil
+		return dataBackend.GetTmp("glyph:dc:"+channelID+":"+userID, key), nil
 	}
 }
 
 func getDiscordSetContext() func(userID, channelID, key, value string, ttl time.Duration) error {
 	return func(userID, channelID, key, value string, ttl time.Duration) error {
-		data.SetTmp("glyph:dc:"+channelID+":"+userID, key, value, ttl)
+		dataBackend.SetTmp("glyph:dc:"+channelID+":"+userID, key, value, ttl)
 		return nil
 	}
 }
@@ -212,11 +215,11 @@ func getDiscordGetMention() func(userID string) (string, error) {
 
 func getDiscordSetUserData() func(discordUserID, key string, value string) error {
 	return func(discordUserID, key string, value string) error {
-		userID, err := data.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return err
 		}
-		err = data.SetUserData(userID, key, value)
+		err = dataBackend.SetUserData(userID, key, value)
 		if err != nil {
 			return err
 		}
@@ -226,11 +229,11 @@ func getDiscordSetUserData() func(discordUserID, key string, value string) error
 
 func getDiscordGetUserData() func(discordUserID, key string) (string, error) {
 	return func(discordUserID, key string) (string, error) {
-		userID, err := data.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return "", err
 		}
-		value, err := data.GetUserData(userID, key)
+		value, err := dataBackend.GetUserData(userID, key)
 		if err != nil {
 			glyphDiscordLog.Errorf("error setting user data: %v", err)
 			return "", err
@@ -241,11 +244,11 @@ func getDiscordGetUserData() func(discordUserID, key string) (string, error) {
 
 func getDiscordGetQuoteOfTheDay() func(discordUserID string) (glyph.QuoteOfTheDay, error) {
 	return func(discordUserID string) (glyph.QuoteOfTheDay, error) {
-		userID, err := data.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return glyph.QuoteOfTheDay{}, err
 		}
-		qotd, err := data.GetQuoteOfTheDayOfUser(userID)
+		qotd, err := dataBackend.GetQuoteOfTheDayOfUser(userID)
 		if err != nil {
 			return glyph.QuoteOfTheDay{}, err
 		}
@@ -255,26 +258,26 @@ func getDiscordGetQuoteOfTheDay() func(discordUserID string) (glyph.QuoteOfTheDa
 
 func getDiscordSetQuoteOfTheDay() func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
 	return func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
-		userID, err := data.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return err
 		}
-		return data.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
+		return dataBackend.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
 	}
 }
 
 func getDiscordGetMatrixUserID() func(discordUserID string) (string, error) {
 	return func(discordUserID string) (string, error) {
-		return data.GetUserIDFromValueOfKey("discordID", discordUserID)
+		return dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 	}
 }
 
 func getDiscordDeleteUserData() func(discordUserID, key string) error {
 	return func(discordUserID, key string) error {
-		userID, err := data.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return err
 		}
-		return data.DeleteUserData(userID, key)
+		return dataBackend.DeleteUserData(userID, key)
 	}
 }

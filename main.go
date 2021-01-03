@@ -8,6 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"
+	"github.com/tionis/tsdr-api/adapters/discord"
+	"github.com/tionis/tsdr-api/adapters/matrix"
+	"github.com/tionis/tsdr-api/adapters/telegram"
 	"github.com/tionis/tsdr-api/data"
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
@@ -28,7 +31,7 @@ var isProduction bool
 func main() {
 	logging.SetFormatter(logFormat)
 	// Initialize basic requirements
-	data.DBInit()
+	dataBackend := data.DBInit()
 
 	// Detect Development Mode
 	switch strings.ToUpper(os.Getenv("MODE")) {
@@ -53,14 +56,14 @@ func main() {
 	go UniPassauBot.UniPassauBot(os.Getenv("UNIPASSAUBOT_TOKEN"))
 
 	// Start Glyph Discord Bot
-	go glyphDiscordBot()
+	go discord.InitBot(dataBackend)
 
 	// Start Glyph Telegram Bot
 	//go glyphTelegramBot(!isProduction)
-	go glyphTelegramBot(false)
+	go telegram.InitBot(dataBackend, false)
 
 	// Start Glyph Matrix Bot
-	go glyphMatrixBot()
+	go matrix.InitBot(dataBackend)
 
 	// Cronjob Definitions
 	// MC Cronjobs
