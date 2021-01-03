@@ -59,6 +59,9 @@ func main() {
 	//go glyphTelegramBot(!isProduction)
 	go glyphTelegramBot(false)
 
+	// Start Glyph Matrix Bot
+	go glyphMatrixBot()
+
 	// Cronjob Definitions
 	// MC Cronjobs
 	//loc, err := time.LoadLocation("Europe/Berlin")
