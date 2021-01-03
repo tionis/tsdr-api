@@ -2,6 +2,7 @@ package data
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"regexp"
 
@@ -30,16 +31,17 @@ func (d *GlyphData) GetUserIDFromValueOfKey(key, value string) (string, error) {
 	return userID, nil
 }
 
-// UserAdd adds an user with given userID, email and isAdmin parameters
-func (d *GlyphData) UserAdd(userID, email string, isAdmin bool) error {
+// UserAdd adds an user with given userID, email and isAdmin parameters,
+// preferredAdapters is a json string array containing the adapter the user wants to be notified on.
+func (d *GlyphData) UserAdd(userID, email string, isAdmin bool, preferredAdaptersJSON string) error {
 	if !isValidMatrixID.MatchString(userID) {
 		return glyph.ErrMatrixIDInvalid
 	}
-	stmt, err := d.db.Prepare(`INSERT INTO users (userID, email, isAdmin) VALUES ($1, $2, $3)`)
+	stmt, err := d.db.Prepare(`INSERT INTO users (userID, email, isAdmin, preferredAdapters) VALUES ($1, $2, $3, $4)`)
 	if err != nil {
 		return err
 	}
-	row := stmt.QueryRow(userID, email, isAdmin)
+	row := stmt.QueryRow(userID, email, isAdmin, preferredAdaptersJSON)
 	if err := row.Err(); err != nil {
 		return err
 	}
@@ -72,6 +74,42 @@ func (d *GlyphData) UserSetMail(userID, email string) error {
 		return err
 	}
 	return nil
+}
+
+// UserSetPreferredAdapters sets the preferred adapters array of a user to the given string array
+func (d *GlyphData) UserSetPreferredAdapters(userID, preferredAdapters []string) error {
+	data, err := json.Marshal(preferredAdapters)
+	if err != nil {
+		return err
+	}
+	stmt, err := d.db.Prepare(`UPDATE users SET preferredAdapters = $2 WHERE userID = $1`)
+	if err != nil {
+		return err
+	}
+	row := stmt.QueryRow(userID, string(data))
+	if err := row.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// UserGetPreferredAdapters gets the preferred adapters array of a user and returns it as a string array
+func (d *GlyphData) UserGetPreferredAdapters(userID string) ([]string, error) {
+	var out []string
+	var preferredAdaptersJSON string
+	stmt, err := d.db.Prepare(`SELECT preferredAdapters FROM users WHERE userID = $1`)
+	if err != nil {
+		return nil, err
+	}
+	err = stmt.QueryRow(userID).Scan(preferredAdaptersJSON)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal([]byte(preferredAdaptersJSON), &out)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // UserSetAdminStatus makes an User tasdar admin if true and takes away that privilege if false

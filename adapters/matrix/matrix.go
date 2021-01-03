@@ -1,9 +1,55 @@
 package matrix
 
-import "github.com/tionis/tsdr-api/data"
+import (
+	"sync"
 
-//InitBot initializes and starts the bot adapter with the given data backend
-func InitBot(data *data.GlyphData) {
+	"github.com/tionis/tsdr-api/data"
+)
+
+// Bot represents a config of the Bot
+type Bot struct {
+	data       *data.GlyphData
+	homeServer string
+	userName   string
+	password   string
+}
+
+// Init returns a Bot config object that can then be started
+func Init(data *data.GlyphData, homeServer, userName, password string) Bot {
+	return Bot{data, homeServer, userName, password}
+}
+
+// Start starts the bot adapter with the given data backend
+func (b Bot) Start(stop chan bool, syncGroup *sync.WaitGroup) {
 	// TODO boilerplate
 	// TODO encryption with DB backend
+	// TODO message send channel
+	<-stop
+	syncGroup.Done()
+	// TODO extract homerserver and userID from matrixUserID
+	/*client, err := mautrix.NewClient(b.homeServer, "", "")
+	if err != nil {
+		panic(err)
+	}
+	// TODO this is just the copied demo!
+	_, err = client.Login(&mautrix.ReqLogin{
+		Type:             "m.login.password",
+		Identifier:       mautrix.UserIdentifier{Type: mautrix.IdentifierTypeUser, User: b.userName},
+		Password:         b.password,
+		StoreCredentials: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Login successful")
+
+	syncer := client.Syncer.(*mautrix.DefaultSyncer)
+	syncer.OnEventType(event.EventMessage, func(source mautrix.EventSource, evt *event.Event) {
+		fmt.Printf("<%[1]s> %[4]s (%[2]s/%[3]s)\n", evt.Sender, evt.Type.String(), evt.ID, evt.Content.AsMessage().Body)
+	})
+
+	err = client.Sync()
+	if err != nil {
+		panic(err)
+	}*/
 }

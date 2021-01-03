@@ -11,4 +11,5 @@ require (
 	github.com/lib/pq v1.9.0
 	github.com/technoweenie/multipartstreamer v1.0.1 // indirect
 	github.com/tionis/uni-passau-bot v0.1.4
+	maunium.net/go/mautrix v0.8.0
 )

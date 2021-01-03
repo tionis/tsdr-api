@@ -2,9 +2,9 @@ package telegram
 
 import (
 	"errors"
-	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
@@ -14,69 +14,89 @@ import (
 	"github.com/tionis/tsdr-api/glyph"
 )
 
-var glyphTelegramLog = logging.MustGetLogger("glyphTelegram")
-
+const adapterID = "telegram"
 const glyphTelegramContextDelay = time.Hour * 24
 
-var msgGlyph chan string
+// Bot represents a config of the bot
+type Bot struct {
+	logger           *logging.Logger
+	dataBackend      *data.GlyphData
+	updates          tgbotapi.UpdatesChannel
+	telegramGlyphBot *glyph.Bot
+	//var msgGlyph chan string
+}
 
-var dataBackend *data.GlyphData
+// TODO message send channel with transformation from matrixID to telegramID
 
-// InitBot initializes and starts the bot adapter with the given data backend
-func InitBot(data *data.GlyphData) {
-	dataBackend = data
-	bot, err := tgbotapi.NewBotAPI(os.Getenv("TELEGRAM_TOKEN"))
+// Init initializes the bot adapter with the given data backend and token and returns a bot config
+func Init(data *data.GlyphData, telegramToken string) Bot {
+	out := Bot{logging.MustGetLogger("glyphTelegram"), data, nil, nil}
+	bot, err := tgbotapi.NewBotAPI(telegramToken)
 	if err != nil {
-		glyphTelegramLog.Fatal(err)
+		out.logger.Fatal(err)
 	}
 
-	glyphTelegramLog.Info("Glyph Telegram Bot was started.")
+	out.logger.Info("Glyph Telegram Bot was started.")
 
 	bot.Debug = false // Not really needed, not even for development
 
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	updates, err := bot.GetUpdatesChan(u)
+	out.updates, err = bot.GetUpdatesChan(u)
 
-	telegramGlyphBot := &glyph.Bot{
+	out.telegramGlyphBot = &glyph.Bot{
 		QuoteDBHandler: &glyph.QuoteDB{
-			AddQuote:         dataBackend.AddQuote,
-			GetRandomQuote:   dataBackend.GetRandomQuote,
-			GetQuoteOfTheDay: getTelegramGetQuoteOfTheDay(),
-			SetQuoteOfTheDay: getTelegramSetQuoteOfTheDay(),
+			AddQuote:         data.AddQuote,
+			GetRandomQuote:   data.GetRandomQuote,
+			GetQuoteOfTheDay: out.getTelegramGetQuoteOfTheDay(),
+			SetQuoteOfTheDay: out.getTelegramSetQuoteOfTheDay(),
 		},
 		UserDBHandler: &glyph.UserDB{
-			GetUserData:           getTelegramGetUserData(),
-			SetUserData:           getTelegramSetUserData(),
-			DeleteUserData:        getTelegramDeleteUserData(),
-			GetMatrixUserID:       getTelegramGetMatrixUserID(),
-			DoesMatrixUserIDExist: dataBackend.DoesUserIDExist,
-			AddAuthSession:        dataBackend.AddAuthSession,
-			GetAuthSessionStatus:  dataBackend.GetAuthSessionStatus,
-			AuthenticateSession:   dataBackend.AuthenticateSession,
-			DeleteSession:         dataBackend.DeleteSession,
-			GetAuthSessions:       dataBackend.GetAuthSessions,
+			GetUserData:           out.getTelegramGetUserData(),
+			SetUserData:           out.getTelegramSetUserData(),
+			DeleteUserData:        out.getTelegramDeleteUserData(),
+			GetMatrixUserID:       out.getTelegramGetMatrixUserID(),
+			DoesMatrixUserIDExist: data.DoesUserIDExist,
+			AddAuthSession:        data.AddAuthSession,
+			GetAuthSessionStatus:  data.GetAuthSessionStatus,
+			AuthenticateSession:   data.AuthenticateSession,
+			DeleteSession:         data.DeleteSession,
+			GetAuthSessions:       data.GetAuthSessions,
 		},
-		SetContext:           getTelegramSetContext(),
-		GetContext:           getTelegramGetContext(),
-		SendMessageToChannel: getTelegramSendMessage(bot),
-		GetMention:           getTelegramGetMention(),
-		Logger:               glyphTelegramLog,
-		Prefix:               "/",
+		SetContext:            out.getTelegramSetContext(),
+		GetContext:            out.getTelegramGetContext(),
+		SendMessageToChannel:  out.getTelegramSendMessage(bot),
+		GetMention:            out.getTelegramGetMention(),
+		SendMessageViaAdapter: out.getSendMessageViaAdapter(),
+		CurrentAdapter:        adapterID,
+		Logger:                out.logger,
+		Prefix:                "/",
 	}
+	return out
+}
 
-	for update := range updates {
+// Start starts the bot and aborts its execution when a value on the stop signal is received
+func (b Bot) Start(stop chan bool, syncGroup *sync.WaitGroup) {
+	// TODO implement graceful shutdown via stop channel
+	//defer not working as above not implemented
+	syncGroup.Done()
+
+	// Start message send Service
+	go b.startMessageSendService()
+
+	// Start listening for updates
+	for update := range b.updates {
 		if update.Message == nil { // ignore any non-Message Updates
 			continue
 		}
 
 		// Save Username to cache
 		userID := strconv.Itoa(update.Message.From.ID)
-		go dataBackend.SetTmp("glyph:tg:nameCache", userID, update.Message.From.FirstName+" "+update.Message.From.LastName, 30*time.Minute)
+		go b.dataBackend.SetTmp("glyph:tg:nameCache", userID, update.Message.From.FirstName+" "+update.Message.From.LastName, 30*time.Minute)
 
 		// Trim prefix
-		content := strings.TrimPrefix(update.Message.Text, telegramGlyphBot.Prefix)
+		content := strings.TrimPrefix(update.Message.Text, b.telegramGlyphBot.Prefix)
 
 		message := glyph.MessageData{
 			Content:          content,
@@ -87,12 +107,19 @@ func InitBot(data *data.GlyphData) {
 			IsCommand:        update.Message.IsCommand(),
 		}
 
-		go telegramGlyphBot.HandleAll(message)
+		go b.telegramGlyphBot.HandleAll(message)
 	}
 }
 
+func (b Bot) startMessageSendService() {
+	// Create channel to receive messages on
+
+	// TODO register channel at data layer
+
+}
+
 // Init callback functions
-func getTelegramSendMessage(bot *tgbotapi.BotAPI) func(channelID, message string) error {
+func (b Bot) getTelegramSendMessage(bot *tgbotapi.BotAPI) func(channelID, message string) error {
 	return func(channelID, message string) error {
 		id, err := strconv.ParseInt(channelID, 10, 64)
 		if err != nil {
@@ -108,13 +135,13 @@ func getTelegramSendMessage(bot *tgbotapi.BotAPI) func(channelID, message string
 	}
 }
 
-func getTelegramSetUserData() func(telegramUserID, key string, value string) error {
+func (b Bot) getTelegramSetUserData() func(telegramUserID, key string, value string) error {
 	return func(telegramUserID, key string, value string) error {
-		userID, err := dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return err
 		}
-		err = dataBackend.SetUserData(userID, key, value)
+		err = b.dataBackend.SetUserData(userID, key, value)
 		if err != nil {
 			return err
 		}
@@ -122,35 +149,35 @@ func getTelegramSetUserData() func(telegramUserID, key string, value string) err
 	}
 }
 
-func getTelegramGetUserData() func(telegramUserID, key string) (string, error) {
+func (b Bot) getTelegramGetUserData() func(telegramUserID, key string) (string, error) {
 	return func(telegramUserID, key string) (string, error) {
-		userID, err := dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return "", err
 		}
-		value, err := dataBackend.GetUserData(userID, key)
+		value, err := b.dataBackend.GetUserData(userID, key)
 		if err != nil {
 			return "", err
 		}
 		return value, nil
 	}
 }
-func getTelegramSetContext() func(userID, channelID, key, value string, ttl time.Duration) error {
+func (b Bot) getTelegramSetContext() func(userID, channelID, key, value string, ttl time.Duration) error {
 	return func(userID, channelID, key, value string, ttl time.Duration) error {
-		dataBackend.SetTmp("glyph:tg:"+channelID+":"+userID, key, value, ttl)
+		b.dataBackend.SetTmp("glyph:tg:"+channelID+":"+userID, key, value, ttl)
 		return nil
 	}
 }
 
-func getTelegramGetContext() func(userID, channelID, key string) (string, error) {
+func (b Bot) getTelegramGetContext() func(userID, channelID, key string) (string, error) {
 	return func(userID, channelID, key string) (string, error) {
-		return dataBackend.GetTmp("glyph:tg:"+channelID+":"+userID, key), nil
+		return b.dataBackend.GetTmp("glyph:tg:"+channelID+":"+userID, key), nil
 	}
 }
 
-func getTelegramGetMention() func(userID string) (string, error) {
+func (b Bot) getTelegramGetMention() func(userID string) (string, error) {
 	return func(userID string) (string, error) {
-		friendlyName := dataBackend.GetTmp("glyph:tg:nameCache", userID)
+		friendlyName := b.dataBackend.GetTmp("glyph:tg:nameCache", userID)
 		if friendlyName == "" {
 			friendlyName = userID
 		}
@@ -158,13 +185,13 @@ func getTelegramGetMention() func(userID string) (string, error) {
 	}
 }
 
-func getTelegramGetQuoteOfTheDay() func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
+func (b Bot) getTelegramGetQuoteOfTheDay() func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
 	return func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
-		userID, err := dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return glyph.QuoteOfTheDay{}, err
 		}
-		qotd, err := dataBackend.GetQuoteOfTheDayOfUser(userID)
+		qotd, err := b.dataBackend.GetQuoteOfTheDayOfUser(userID)
 		if err != nil {
 			return glyph.QuoteOfTheDay{}, err
 		}
@@ -172,28 +199,46 @@ func getTelegramGetQuoteOfTheDay() func(telegramUserID string) (glyph.QuoteOfThe
 	}
 }
 
-func getTelegramSetQuoteOfTheDay() func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
+func (b Bot) getTelegramSetQuoteOfTheDay() func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
 	return func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
-		userID, err := dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return err
 		}
-		return dataBackend.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
+		return b.dataBackend.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
 	}
 }
 
-func getTelegramGetMatrixUserID() func(telegramUserID string) (string, error) {
+func (b Bot) getTelegramGetMatrixUserID() func(telegramUserID string) (string, error) {
 	return func(telegramUserID string) (string, error) {
-		return dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		return b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 	}
 }
 
-func getTelegramDeleteUserData() func(telegramUserID, key string) error {
+func (b Bot) getTelegramDeleteUserData() func(telegramUserID, key string) error {
 	return func(telegramUserID, key string) error {
-		userID, err := dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
 		if err != nil {
 			return err
 		}
-		return dataBackend.DeleteUserData(userID, key)
+		return b.dataBackend.DeleteUserData(userID, key)
+	}
+}
+
+// ToDo this is duplicate code and may be removable in the future
+func (b Bot) getSendMessageViaAdapter() func(matrixUserID, message string) error {
+	return func(matrixUserID, message string) error {
+		adapterIDs, err := b.dataBackend.UserGetPreferredAdapters(matrixUserID)
+		if err != nil {
+			return err
+		}
+		for _, item := range adapterIDs {
+			channel, err := b.dataBackend.GetAdapterChannel(item)
+			if err != nil {
+				return err
+			}
+			channel <- data.AdapterMessage{UserID: matrixUserID, Message: message}
+		}
+		return nil
 	}
 }

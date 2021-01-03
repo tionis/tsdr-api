@@ -3,7 +3,6 @@ package data
 import (
 	"database/sql"
 	"errors"
-	"os"
 	"sync"
 	"time"
 
@@ -31,11 +30,11 @@ type tmpDataObject struct {
 }
 
 // DBInit initializes the DB connection and tests it
-func DBInit() *GlyphData {
+func DBInit(sqlURL string) *GlyphData {
 	out := &GlyphData{nil, &sync.RWMutex{}, make(map[string]map[string]tmpDataObject), logging.MustGetLogger("data")}
 
 	// Init postgres
-	out.initPostgres()
+	out.initPostgres(sqlURL)
 
 	// start go routine that cleans cache hourly
 	go out.startCacheCleaner(time.Hour)
@@ -45,13 +44,9 @@ func DBInit() *GlyphData {
 	return out
 }
 
-func (d *GlyphData) initPostgres() {
-	if os.Getenv("DATABASE_URL") == "" {
-		d.logger.Info("Database: " + os.Getenv("DATABASE_URL"))
-		d.logger.Fatal("Fatal Error getting Database Information!")
-	}
+func (d *GlyphData) initPostgres(sqlURL string) {
 	var err error
-	d.db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	d.db, err = sql.Open("postgres", sqlURL)
 	if err != nil {
 		d.logger.Fatal("PostgreSQL Server Connection failed: ", err)
 	}
@@ -75,7 +70,7 @@ func (d *GlyphData) initDatabase() {
 	}
 
 	// User Tables
-	_, err = d.db.Query(`CREATE TABLE IF NOT EXISTS users(userID text PRIMARY KEY, email text, isAdmin boolean)`)
+	_, err = d.db.Query(`CREATE TABLE IF NOT EXISTS users(userID text PRIMARY KEY NOT NULL, email text, isAdmin boolean, preferredAdapters json)`)
 	if err != nil {
 		d.logger.Fatal("Error creating table users: ", err)
 	}

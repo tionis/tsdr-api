@@ -40,8 +40,6 @@ var ErrMatrixIDInvalid = errors.New("matrix id not valid")
 // standardContextDelay is the standard ttl of chat contexts
 var standardContextDelay = time.Minute * 5
 
-// Define regex used to check validity of usernames and addresses
-
 // isValidUserName checks if the string is a valid username (after matrix ID and thus tasadar.net specification)
 var isValidUserName = regexp.MustCompile(`(?m)^[a-z\-_]+$`)
 
@@ -98,14 +96,16 @@ type QuoteOfTheDay struct {
 
 // Bot represents a glyph bot instance with configuration
 type Bot struct {
-	QuoteDBHandler       *QuoteDB                                                            // QuoteDBHandler implements functions to interact with the quote database
-	UserDBHandler        *UserDB                                                             // UserDBHandler implements functions to interact with user-specific data
-	GetMention           func(userID string) (string, error)                                 // GetMention when passed an userID returns an string mentioning the user
-	GetContext           func(userID, channelID, key string) (string, error)                 // GetContext when passed an channelID and UserID returns the current chat context for the specified key
-	SetContext           func(userID, channelID, key, value string, ttl time.Duration) error // SetContext allows setting the current channelID+UserID context with a specific key
-	SendMessageToChannel func(channelID, message string) error                               // SendMessageToChannel sends a simple text message to specified channel
-	Prefix               string                                                              // The command prefix used
-	Logger               *logging.Logger                                                     // A Logger implementation to send logs to
+	QuoteDBHandler        *QuoteDB                                                            // QuoteDBHandler implements functions to interact with the quote database
+	UserDBHandler         *UserDB                                                             // UserDBHandler implements functions to interact with user-specific data
+	GetMention            func(userID string) (string, error)                                 // GetMention when passed an userID returns an string mentioning the user
+	GetContext            func(userID, channelID, key string) (string, error)                 // GetContext when passed an channelID and UserID returns the current chat context for the specified key
+	SetContext            func(userID, channelID, key, value string, ttl time.Duration) error // SetContext allows setting the current channelID+UserID context with a specific key
+	SendMessageToChannel  func(channelID, message string) error                               // SendMessageToChannel sends a simple text message to specified channel
+	Prefix                string                                                              // The command prefix used
+	SendMessageViaAdapter func(matrixUserID, message string) error                            // Sends a message to a users favored adapter
+	CurrentAdapter        string                                                              // Specifies the id of the currently used adapter
+	Logger                *logging.Logger                                                     // A Logger implementation to send logs to
 }
 
 // HandleAll takes a MessageData object and parses it for the glyph bot, calling callback functions as needed
@@ -138,6 +138,8 @@ func (g Bot) HandleAll(message MessageData) {
 	// User data commands
 	case "config":
 		go g.handleConfig(message, tokens)
+	case "user":
+		go g.handleUser(message, tokens)
 	case "auth":
 		go g.handleAuth(message, tokens)
 
@@ -284,15 +286,16 @@ func (g Bot) handleAuth(message MessageData, tokens []string) {
 	}
 }
 
-func (g Bot) handleConfig(message MessageData, tokens []string) {
-	// TODO handle setting of userID
-	// TODO improve high cyclo
-	// it should support migrating to a new if (/config uid idofuser)
-	// logging into existing id (use /auth authCode to authorize a login to an existing account) TODO add this
-	// checking if userid is available and warning if its not
-	// also the whole application should handle the error of not having a userID mapping with a warning message
-	// also if a matrix id is given the matrix bot should also allow the /auth directive this will need an matrixBot object in the bot config
+func (g Bot) handleUser(message MessageData, tokens []string) {
+	// TODO handle login or registering of "virtual matrix account"
+	// TODO logging into existing id (use /auth authCode to authorize a login to an existing account)
+	// TODO regarding registering: checking if userid is available and warning if its not
+	// if id is taken (only if not virtual matrix account) start auth process
 	// i will need to think about that -> login flow where? -> solved by using callback functions
+	g.sendMessageDefault(message, "not implemented yet")
+}
+
+func (g Bot) handleConfig(message MessageData, tokens []string) {
 	if len(tokens) < 2 {
 		g.sendMessageDefault(message, "Save Data to the Bot. Currently available:\n - /config initmod x - Save you Init Modifier")
 	} else {
@@ -329,6 +332,7 @@ func (g Bot) configInitmodHandler(message MessageData, tokens []string) {
 					g.handleNoMappingFound(message)
 					return
 				}
+				g.Logger.Warningf("error setting userData: %v", err)
 				g.handleGenericError(message)
 			}
 			g.sendMessageDefault(message, "Your init modifier was set to "+strconv.Itoa(initMod)+".")
@@ -377,9 +381,9 @@ func (q QuoteOfTheDay) isValid() bool {
 	return q.ValidUntil.After(time.Now())
 }
 
-func (g Bot) sendMessageDefault(messageToParse MessageData, messageToSend string) {
+func (g Bot) sendMessageDefault(messageToParse MessageData, textToSend string) {
 	if messageToParse.IsDM {
-		err := g.SendMessageToChannel(messageToParse.ChannelID, messageToSend)
+		err := g.SendMessageToChannel(messageToParse.ChannelID, textToSend)
 		if err != nil {
 			g.Logger.Warningf("error sending message in Channel %v: %v", messageToParse.ChannelID, err)
 			return
@@ -389,7 +393,7 @@ func (g Bot) sendMessageDefault(messageToParse MessageData, messageToSend string
 		if err != nil {
 			g.Logger.Warningf("Could not get mention for %v: %v", messageToParse.AuthorID, err)
 		}
-		err = g.SendMessageToChannel(messageToParse.ChannelID, mention+"\n"+messageToSend)
+		err = g.SendMessageToChannel(messageToParse.ChannelID, mention+"\n"+textToSend)
 		if err != nil {
 			g.Logger.Warningf("error sending message in Channel %v: %v", messageToParse.ChannelID, err)
 			return

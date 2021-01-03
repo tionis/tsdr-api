@@ -1,8 +1,9 @@
 package web
 
 import (
+	"context"
 	"net/http"
-	"os"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/keybase/go-logging"
@@ -16,11 +17,12 @@ type Server struct {
 	apiRouter  *gin.Engine
 	corsRouter *gin.Engine
 	hs         hostSwitch
+	port       string
 }
 
 // Init initializes the web server and returns a Server that can be started
-func Init(isProduction bool) *Server {
-	s := Server{logging.MustGetLogger("web"), nil, nil, make(hostSwitch)}
+func Init(isProduction bool, port string) *Server {
+	s := Server{logging.MustGetLogger("web"), nil, nil, make(hostSwitch), port}
 
 	s.apiRouter = gin.Default()
 	s.apiRouter.Use(gin.Recovery())
@@ -34,9 +36,9 @@ func Init(isProduction bool) *Server {
 		s.hs["api.tasadar.net"] = s.apiRouter
 		s.hs["cors.tasadar.net"] = s.corsRouter
 	} else {
-		s.hs["api.localhost:"+os.Getenv("PORT")] = s.apiRouter
+		s.hs["api.localhost:"+s.port] = s.apiRouter
 		s.hs["api.localhost"] = s.apiRouter
-		s.hs["cors.localhost:"+os.Getenv("PORT")] = s.corsRouter
+		s.hs["cors.localhost:"+s.port] = s.corsRouter
 		s.hs["cors.localhost"] = s.corsRouter
 	}
 
@@ -44,9 +46,25 @@ func Init(isProduction bool) *Server {
 }
 
 // Start starts the WebServer in a blocking operation
-func (s *Server) Start(port string) {
-	// Start WebServer
-	s.logger.Fatal(http.ListenAndServe(":"+port, s.hs))
+func (s *Server) Start(stop chan bool, wg *sync.WaitGroup) {
+	srv := &http.Server{Addr: ":" + s.port}
+
+	// Start WebServer in go routine
+	go func() {
+		defer wg.Done() // let main know we are done cleaning up
+
+		// always returns error. ErrServerClosed on graceful close
+		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+			// unexpected error. port in use?
+			s.logger.Fatalf("ListenAndServe(): %v", err)
+		}
+	}()
+
+	<-stop
+	// Shutdown after receiving stop signal
+	if err := srv.Shutdown(context.TODO()); err != nil {
+		s.logger.Fatal(err) // failure/timeout shutting down the server gracefully
+	}
 }
 
 // Hostswitch HTTP Handler that enables the use in a standard lib way

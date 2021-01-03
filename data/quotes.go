@@ -11,7 +11,7 @@ import (
 )
 
 // GetRandomQuote gets a random quote with specified parameters. If they are emtpy strings they are ignored
-func (d GlyphData) GetRandomQuote(byAuthor, inLanguage, inUniverse string) (glyph.Quote, error) {
+func (d *GlyphData) GetRandomQuote(byAuthor, inLanguage, inUniverse string) (glyph.Quote, error) {
 	stmt, err := d.db.Prepare(`SELECT id, quote, author, language, universe FROM quotes WHERE (length($1)=0 OR author=$1) AND (length($2)=0 OR language=$2) AND (length($3)=0 OR universe=$3) ORDER BY RANDOM() LIMIT 1`)
 	if err != nil {
 		return glyph.Quote{}, err
@@ -36,7 +36,7 @@ func (d GlyphData) GetRandomQuote(byAuthor, inLanguage, inUniverse string) (glyp
 }
 
 // AddQuote adds specified quote to database
-func (d GlyphData) AddQuote(quote glyph.Quote) error {
+func (d *GlyphData) AddQuote(quote glyph.Quote) error {
 	stmt, err := d.db.Prepare(`INSERT INTO quotes (quote, author, language, universe) VALUES ($1, $2, $3, $4)`)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (d GlyphData) AddQuote(quote glyph.Quote) error {
 }
 
 // GetQuoteOfTheDayOfUser gets the quote of the day object of the user with the given userID
-func (d GlyphData) GetQuoteOfTheDayOfUser(userID string) (glyph.QuoteOfTheDay, error) {
+func (d *GlyphData) GetQuoteOfTheDayOfUser(userID string) (glyph.QuoteOfTheDay, error) {
 	stmt, err := d.db.Prepare(`SELECT id, quote, author, language, universe, validUntil FROM quotes LEFT JOIN qotd ON quotes.ID = qotd.quoteID WHERE qotd.userID = $1;`)
 	if err != nil {
 		return glyph.QuoteOfTheDay{}, err
@@ -78,7 +78,7 @@ func (d GlyphData) GetQuoteOfTheDayOfUser(userID string) (glyph.QuoteOfTheDay, e
 }
 
 // SetQuoteOfTheDayOfUser sets the quote of the day object of the user with the given userID
-func (d GlyphData) SetQuoteOfTheDayOfUser(userID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
+func (d *GlyphData) SetQuoteOfTheDayOfUser(userID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
 	stmt, err := d.db.Prepare(`INSERT INTO qotd (userID, quoteID, validUntil) VALUES ($1, $2, $3) ON CONFLICT (userID) DO UPDATE SET quoteID = $2, validUntil = $3;`)
 	if err != nil {
 		return err

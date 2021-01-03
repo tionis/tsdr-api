@@ -98,7 +98,10 @@ func (g Bot) handleQuoteOfTheDay(message MessageData) {
 	} else {
 		if err == ErrNoUserDataFound {
 			g.handleNewQuoteOfTheDay(message)
+		} else if err == ErrNoMappingFound {
+			g.sendMessageDefault(message, "You are not logged in, please login via the /user login command.")
 		} else {
+			g.Logger.Warningf("error handling qotd: %v", err)
 			g.handleGenericError(message)
 		}
 	}
@@ -107,6 +110,7 @@ func (g Bot) handleQuoteOfTheDay(message MessageData) {
 func (g Bot) handleNewQuoteOfTheDay(message MessageData) {
 	quote, err := g.QuoteDBHandler.GetRandomQuote("", "", "")
 	if err != nil {
+		g.Logger.Warningf("error handling new qotd: %v", err)
 		g.handleGenericError(message)
 	}
 	now := time.Now()

@@ -1,11 +1,8 @@
 package discord
 
 import (
-	"os"
-	"os/signal"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -20,101 +17,114 @@ import (
 	Message   string `form:"message" json:"message" binding:"required"`
 }*/
 
-// Discord ID of admin
-//var discordAdminID string = "259076782408335360"
-var discordServerID string = "695330213953011733"
+const adapterID = "discord"
 
-//var glyphSend chan glyphDiscordMsgObject
+// Bot represents a configuration of the bot and exposes functions to interact with it
+type Bot struct {
+	dataBackend       *data.GlyphData
+	discordGlyphBot   *glyph.Bot
+	logger            *logging.Logger
+	discordBotMention string
+	dg                *discordgo.Session
+	//var glyphSend chan glyphDiscordMsgObject
+}
 
-var discordBotMention string
-
-// Needed for onlyonce execution of random source
-var onlyOnce sync.Once
-
-// Logger
-var glyphDiscordLog = logging.MustGetLogger("glyphDiscord")
-
-var discordGlyphBot *glyph.Bot
-
-var dataBackend *data.GlyphData
-
-// InitBot initializes and starts the bot adapter with the given data backend
-func InitBot(data *data.GlyphData) {
-	dataBackend = data
+// Init initializes the bot adapter with the given data backend and token
+// and returns a bot config that can then be started
+func Init(data *data.GlyphData, discordToken string) Bot {
+	// Init logging and other required objects
+	logger := logging.MustGetLogger("glyphDiscord")
 	//glyphSend = make(chan glyphDiscordMsgObject, 2)
-	dg, err := discordgo.New("Bot " + os.Getenv("DISCORD_TOKEN"))
-	if err != nil {
-		glyphDiscordLog.Error("Error creating Discord session,", err)
-	}
 
-	// Register the messageCreate func as a callback for MessageCreate events.
-	dg.AddHandler(messageCreate)
+	// Init Sessions
+	dg, err := discordgo.New("Bot " + discordToken)
+	if err != nil {
+		logger.Error("Error creating Discord session,", err)
+		return Bot{}
+	}
 
 	// Open a websocket connection to Discord and begin listening.
 	err = dg.Open()
 	if err != nil {
-		glyphDiscordLog.Error("Error opening connection,", err)
-		return
+		logger.Error("Error opening connection,", err)
+		return Bot{}
 	}
-
-	// Set some StartUp Stuff
-	/*dgStatus, err := getError("dgStatus")
-	  if err != nil {
-	      glyphDiscordLog.Warning("Error getting dgStatus from redis: ", err)
-	      dgStatus = "/help for help"
-	  }*/
 	_ = dg.UpdateStatus(0, "/help for help")
 
-	// Init mention string
-	discordBotMention = "<@!" + dg.State.User.ID + ">"
+	bot := Bot{
+		dataBackend:       data,
+		discordGlyphBot:   nil,
+		discordBotMention: "<@!" + dg.State.User.ID + ">",
+		dg:                dg,
+		logger:            logger,
+	}
 
-	discordGlyphBot = &glyph.Bot{
+	bot.discordGlyphBot = &glyph.Bot{
 		QuoteDBHandler: &glyph.QuoteDB{
-			AddQuote:         dataBackend.AddQuote,
-			GetRandomQuote:   dataBackend.GetRandomQuote,
-			GetQuoteOfTheDay: getDiscordGetQuoteOfTheDay(),
-			SetQuoteOfTheDay: getDiscordSetQuoteOfTheDay(),
+			AddQuote:         data.AddQuote,
+			GetRandomQuote:   data.GetRandomQuote,
+			GetQuoteOfTheDay: bot.getDiscordGetQuoteOfTheDay(),
+			SetQuoteOfTheDay: bot.getDiscordSetQuoteOfTheDay(),
 		},
 		UserDBHandler: &glyph.UserDB{
-			GetUserData:           getDiscordGetUserData(),
-			SetUserData:           getDiscordSetUserData(),
-			DeleteUserData:        getDiscordDeleteUserData(),
-			GetMatrixUserID:       getDiscordGetMatrixUserID(),
-			DoesMatrixUserIDExist: dataBackend.DoesUserIDExist,
-			AddAuthSession:        dataBackend.AddAuthSession,
-			GetAuthSessionStatus:  dataBackend.GetAuthSessionStatus,
-			AuthenticateSession:   dataBackend.AuthenticateSession,
-			DeleteSession:         dataBackend.DeleteSession,
-			GetAuthSessions:       dataBackend.GetAuthSessions,
+			GetUserData:           bot.getDiscordGetUserData(),
+			SetUserData:           bot.getDiscordSetUserData(),
+			DeleteUserData:        bot.getDiscordDeleteUserData(),
+			GetMatrixUserID:       bot.getDiscordGetMatrixUserID(),
+			DoesMatrixUserIDExist: data.DoesUserIDExist,
+			AddAuthSession:        data.AddAuthSession,
+			GetAuthSessionStatus:  data.GetAuthSessionStatus,
+			AuthenticateSession:   data.AuthenticateSession,
+			DeleteSession:         data.DeleteSession,
+			GetAuthSessions:       data.GetAuthSessions,
 		},
-		SetContext:           getDiscordSetContext(),
-		GetContext:           getDiscordGetContext(),
-		SendMessageToChannel: getDiscordSendMessage(dg),
-		GetMention:           getDiscordGetMention(),
-		Logger:               glyphDiscordLog,
+		SetContext:           bot.getDiscordSetContext(),
+		GetContext:           bot.getDiscordGetContext(),
+		SendMessageToChannel: bot.getDiscordSendMessage(dg),
+		GetMention:           bot.getDiscordGetMention(),
+		CurrentAdapter:       adapterID,
+		Logger:               logger,
 		Prefix:               "/",
 	}
+
+	// Register the messageCreate func as a callback for MessageCreate events.
+	dg.AddHandler(bot.messageCreate)
+	return bot
+}
+
+func (b Bot) startMessageSendService() {
+	// Create channel to receive messages on
+
+	// TODO register channel at data layer
 
 	/*go func(dg *discordgo.Session) {
 		for {
 			sig := <-glyphSend
+			// TODO user data backend for this and transform chan input from matrixID to discordID,
+			// then get channelID from DiscordID
 			dg.ChannelMessageSend(sig.ChannelID, sig.Message)
 		}
 	}(dg)*/
+}
 
-	// Wait here until CTRL-C or other term signal is received.
-	glyphDiscordLog.Info("Glyph Discord Bot was started.")
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, syscall.SIGQUIT, syscall.SIGHUP)
-	<-sc
+// Start starts the bot in a blocking operation
+func (b Bot) Start(stop chan bool, syncGroup *sync.WaitGroup) {
+	// Write start message into log
+	b.logger.Info("Glyph Discord Bot was started.")
 
-	// Cleanly close down the Discord session.
-	_ = dg.Close()
+	go b.startMessageSendService()
+
+	<-stop // Wait here until stop signal received
+
+	// Close the Discord session.
+	_ = b.dg.Close()
+	syncGroup.Done()
+	b.logger.Info("Glyph Discord Bot was stopped.")
 }
 
 // This function will be called (due to AddHandler above) every time a new
 // message is created on any channel that the authenticated bot has access to.
-func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
+func (b Bot) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Build callback functions
 
 	// Ignore all messages created by the bot itself
@@ -123,14 +133,14 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	// Check if message was sent in an DM
-	AuthorDMChannelID := dataBackend.GetTmp("glyph", "dg:"+m.Author.ID+"|DM-Channel")
+	AuthorDMChannelID := b.dataBackend.GetTmp("glyph", "dg:"+m.Author.ID+"|DM-Channel")
 	if AuthorDMChannelID == "" {
 		AuthorDMChannel, err := s.UserChannelCreate(m.Author.ID)
 		if err != nil {
 			return
 		}
 		AuthorDMChannelID = AuthorDMChannel.ID
-		dataBackend.SetTmp("glyph", "dg:"+m.Author.ID+"|DM-Channel", AuthorDMChannelID, time.Hour*24)
+		b.dataBackend.SetTmp("glyph", "dg:"+m.Author.ID+"|DM-Channel", AuthorDMChannelID, time.Hour*24)
 	}
 
 	// Build message object
@@ -146,18 +156,18 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	// Split message into chunks
 	tokens := strings.Split(message.Content, " ")
 
-	if strings.HasPrefix(tokens[0], discordGlyphBot.Prefix) {
+	if strings.HasPrefix(tokens[0], b.discordGlyphBot.Prefix) {
 		message.Content = strings.TrimPrefix(message.Content, "/")
 		message.IsCommand = true
-	} else if tokens[0] == discordBotMention {
-		message.Content = strings.TrimPrefix(message.Content, discordBotMention)
+	} else if tokens[0] == b.discordBotMention {
+		message.Content = strings.TrimPrefix(message.Content, b.discordBotMention)
 		message.IsCommand = true
 	}
 
 	message.Content = strings.TrimLeft(message.Content, "\t \r \n \v \f ")
 
 	// Pass message object to glyph bot logic
-	go discordGlyphBot.HandleAll(message)
+	go b.discordGlyphBot.HandleAll(message)
 }
 
 // Check if a user has a given role in a given guild
@@ -184,20 +194,20 @@ func messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	return false, nil
 }*/
 
-func getDiscordGetContext() func(userID, channelID, key string) (string, error) {
+func (b Bot) getDiscordGetContext() func(userID, channelID, key string) (string, error) {
 	return func(userID, channelID, key string) (string, error) {
-		return dataBackend.GetTmp("glyph:dc:"+channelID+":"+userID, key), nil
+		return b.dataBackend.GetTmp("glyph:dc:"+channelID+":"+userID, key), nil
 	}
 }
 
-func getDiscordSetContext() func(userID, channelID, key, value string, ttl time.Duration) error {
+func (b Bot) getDiscordSetContext() func(userID, channelID, key, value string, ttl time.Duration) error {
 	return func(userID, channelID, key, value string, ttl time.Duration) error {
-		dataBackend.SetTmp("glyph:dc:"+channelID+":"+userID, key, value, ttl)
+		b.dataBackend.SetTmp("glyph:dc:"+channelID+":"+userID, key, value, ttl)
 		return nil
 	}
 }
 
-func getDiscordSendMessage(dg *discordgo.Session) func(channelID, message string) error {
+func (b Bot) getDiscordSendMessage(dg *discordgo.Session) func(channelID, message string) error {
 	return func(channelID, message string) error {
 		_, err := dg.ChannelMessageSend(channelID, message)
 		if err != nil {
@@ -207,19 +217,19 @@ func getDiscordSendMessage(dg *discordgo.Session) func(channelID, message string
 	}
 }
 
-func getDiscordGetMention() func(userID string) (string, error) {
+func (b Bot) getDiscordGetMention() func(userID string) (string, error) {
 	return func(userID string) (string, error) {
 		return "<@" + userID + ">", nil
 	}
 }
 
-func getDiscordSetUserData() func(discordUserID, key string, value string) error {
+func (b Bot) getDiscordSetUserData() func(discordUserID, key string, value string) error {
 	return func(discordUserID, key string, value string) error {
-		userID, err := dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return err
 		}
-		err = dataBackend.SetUserData(userID, key, value)
+		err = b.dataBackend.SetUserData(userID, key, value)
 		if err != nil {
 			return err
 		}
@@ -227,28 +237,28 @@ func getDiscordSetUserData() func(discordUserID, key string, value string) error
 	}
 }
 
-func getDiscordGetUserData() func(discordUserID, key string) (string, error) {
+func (b Bot) getDiscordGetUserData() func(discordUserID, key string) (string, error) {
 	return func(discordUserID, key string) (string, error) {
-		userID, err := dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return "", err
 		}
-		value, err := dataBackend.GetUserData(userID, key)
+		value, err := b.dataBackend.GetUserData(userID, key)
 		if err != nil {
-			glyphDiscordLog.Errorf("error setting user data: %v", err)
+			b.logger.Errorf("error setting user data: %v", err)
 			return "", err
 		}
 		return value, err
 	}
 }
 
-func getDiscordGetQuoteOfTheDay() func(discordUserID string) (glyph.QuoteOfTheDay, error) {
+func (b Bot) getDiscordGetQuoteOfTheDay() func(discordUserID string) (glyph.QuoteOfTheDay, error) {
 	return func(discordUserID string) (glyph.QuoteOfTheDay, error) {
-		userID, err := dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return glyph.QuoteOfTheDay{}, err
 		}
-		qotd, err := dataBackend.GetQuoteOfTheDayOfUser(userID)
+		qotd, err := b.dataBackend.GetQuoteOfTheDayOfUser(userID)
 		if err != nil {
 			return glyph.QuoteOfTheDay{}, err
 		}
@@ -256,28 +266,46 @@ func getDiscordGetQuoteOfTheDay() func(discordUserID string) (glyph.QuoteOfTheDa
 	}
 }
 
-func getDiscordSetQuoteOfTheDay() func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
+func (b Bot) getDiscordSetQuoteOfTheDay() func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
 	return func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
-		userID, err := dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return err
 		}
-		return dataBackend.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
+		return b.dataBackend.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
 	}
 }
 
-func getDiscordGetMatrixUserID() func(discordUserID string) (string, error) {
+func (b Bot) getDiscordGetMatrixUserID() func(discordUserID string) (string, error) {
 	return func(discordUserID string) (string, error) {
-		return dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		return b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 	}
 }
 
-func getDiscordDeleteUserData() func(discordUserID, key string) error {
+func (b Bot) getDiscordDeleteUserData() func(discordUserID, key string) error {
 	return func(discordUserID, key string) error {
-		userID, err := dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
 		if err != nil {
 			return err
 		}
-		return dataBackend.DeleteUserData(userID, key)
+		return b.dataBackend.DeleteUserData(userID, key)
+	}
+}
+
+// ToDo this is duplicate code and may be removable in the future
+func (b Bot) getSendMessageViaAdapter() func(matrixUserID, message string) error {
+	return func(matrixUserID, message string) error {
+		adapterIDs, err := b.dataBackend.UserGetPreferredAdapters(matrixUserID)
+		if err != nil {
+			return err
+		}
+		for _, item := range adapterIDs {
+			channel, err := b.dataBackend.GetAdapterChannel(item)
+			if err != nil {
+				return err
+			}
+			channel <- data.AdapterMessage{UserID: matrixUserID, Message: message}
+		}
+		return nil
 	}
 }
