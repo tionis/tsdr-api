@@ -32,13 +32,7 @@ type tmpDataObject struct {
 
 // DBInit initializes the DB connection and tests it
 func DBInit() *GlyphData {
-	var out GlyphData
-
-	// Init RAM Store
-	out.tmpData = make(map[string]map[string]tmpDataObject)
-
-	// Init logger
-	out.logger = logging.MustGetLogger("data")
+	out := &GlyphData{nil, &sync.RWMutex{}, make(map[string]map[string]tmpDataObject), logging.MustGetLogger("data")}
 
 	// Init postgres
 	out.initPostgres()
@@ -48,10 +42,10 @@ func DBInit() *GlyphData {
 
 	// Init the Database
 	out.initDatabase()
-	return &out
+	return out
 }
 
-func (d GlyphData) initPostgres() {
+func (d *GlyphData) initPostgres() {
 	if os.Getenv("DATABASE_URL") == "" {
 		d.logger.Info("Database: " + os.Getenv("DATABASE_URL"))
 		d.logger.Fatal("Fatal Error getting Database Information!")
@@ -73,7 +67,7 @@ func (d GlyphData) initPostgres() {
 	}
 }
 
-func (d GlyphData) initDatabase() {
+func (d *GlyphData) initDatabase() {
 	// Quotator Table
 	_, err := d.db.Query(`CREATE TABLE IF NOT EXISTS quotes(id SERIAL PRIMARY KEY, quote text, author text, language text, universe text, byUser text)`)
 	if err != nil {
@@ -99,7 +93,7 @@ func (d GlyphData) initDatabase() {
 }
 
 // startCacheCleaner cleans the cache and then waits the specified time until it cleans the cache again
-func (d GlyphData) startCacheCleaner(waitingTime time.Duration) {
+func (d *GlyphData) startCacheCleaner(waitingTime time.Duration) {
 	for {
 		d.cleanCache()
 		time.Sleep(waitingTime)
@@ -107,7 +101,7 @@ func (d GlyphData) startCacheCleaner(waitingTime time.Duration) {
 }
 
 // cleanCache cleans the whole cache by iterating over it and deleting stale values
-func (d GlyphData) cleanCache() {
+func (d *GlyphData) cleanCache() {
 	d.tmpDataLock.Lock()
 	defer d.tmpDataLock.Unlock()
 	for _, bucket := range d.tmpData {
@@ -125,7 +119,7 @@ func (t tmpDataObject) isValid() bool {
 }
 
 // SetTmp Sets an temporary in memory key value store value
-func (d GlyphData) SetTmp(bucket string, key string, value string, duration time.Duration) {
+func (d *GlyphData) SetTmp(bucket string, key string, value string, duration time.Duration) {
 	var dataToSave tmpDataObject
 	dataToSave.data = value
 	dataToSave.validUntil = time.Now().Add(duration)
@@ -138,7 +132,7 @@ func (d GlyphData) SetTmp(bucket string, key string, value string, duration time
 }
 
 // GetTmp gets an temporary in memory key value store value
-func (d GlyphData) GetTmp(bucket string, key string) string {
+func (d *GlyphData) GetTmp(bucket string, key string) string {
 	d.tmpDataLock.Lock()
 	defer d.tmpDataLock.Unlock()
 	if d.tmpData[bucket] == nil {
@@ -153,7 +147,7 @@ func (d GlyphData) GetTmp(bucket string, key string) string {
 }
 
 // DelTmp deletes an temporary in memory key value store value
-func (d GlyphData) DelTmp(bucket string, key string) {
+func (d *GlyphData) DelTmp(bucket string, key string) {
 	d.tmpDataLock.Lock()
 	defer d.tmpDataLock.Unlock()
 	if d.tmpData[bucket] == nil {
