@@ -3,7 +3,6 @@ package glyph
 import (
 	"encoding/json"
 	"errors"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -41,19 +40,19 @@ var ErrMatrixIDInvalid = errors.New("matrix id not valid")
 var standardContextDelay = time.Minute * 5
 
 // isValidUserName checks if the string is a valid username (after matrix ID and thus tasadar.net specification)
-var isValidUserName = regexp.MustCompile(`(?m)^[a-z\-_]+$`)
+//var isValidUserName = regexp.MustCompile(`(?m)^[a-z\-_]+$`)
 
 // isValidMatrixID checks if the string is a valid matrix id (but ignores the case in which the domain starts or ends with an dash)
-var isValidMatrixID = regexp.MustCompile(`(?m)^@[a-z\-_]+:([A-Za-z0-9-]{1,63}\.)+[A-Za-z]{2,6}$`)
+//var isValidMatrixID = regexp.MustCompile(`(?m)^@[a-z\-_]+:([A-Za-z0-9-]{1,63}\.)+[A-Za-z]{2,6}$`)
 
 // MessageData represents an message the bot can act on with callback functions
 type MessageData struct {
-	Content          string `json:"content,required"`
-	AuthorID         string `json:"authorID,omitempty"`
-	IsDM             bool   `json:"isDM,omitempty"`
-	SupportsMarkdown bool   `json:"supportsMarkdown,omitempty"`
-	ChannelID        string `json:"channelID,omitempty"`
-	IsCommand        bool   `json:"isCommand,omitempty"`
+	Content          string
+	AuthorID         string
+	IsDM             bool
+	SupportsMarkdown bool
+	ChannelID        string
+	IsCommand        bool
 }
 
 // QuoteDB contains all functions to interface with an Database containing quotes

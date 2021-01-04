@@ -78,13 +78,14 @@ func Init(data *data.GlyphData, discordToken string) Bot {
 			DeleteSession:         data.DeleteSession,
 			GetAuthSessions:       data.GetAuthSessions,
 		},
-		SetContext:           bot.getDiscordSetContext(),
-		GetContext:           bot.getDiscordGetContext(),
-		SendMessageToChannel: bot.getDiscordSendMessage(dg),
-		GetMention:           bot.getDiscordGetMention(),
-		CurrentAdapter:       adapterID,
-		Logger:               logger,
-		Prefix:               "/",
+		SetContext:            bot.getDiscordSetContext(),
+		GetContext:            bot.getDiscordGetContext(),
+		SendMessageToChannel:  bot.getDiscordSendMessage(dg),
+		GetMention:            bot.getDiscordGetMention(),
+		SendMessageViaAdapter: bot.getSendMessageViaAdapter(),
+		CurrentAdapter:        adapterID,
+		Logger:                logger,
+		Prefix:                "/",
 	}
 
 	// Register the messageCreate func as a callback for MessageCreate events.
@@ -149,7 +150,7 @@ func (b Bot) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		message.IsCommand = true
 	}
 
-	message.Content = strings.TrimLeft(message.Content, "\t \r \n \v \f ")
+	message.Content = strings.TrimLeft(message.Content, "\t \r \n \v \f")
 
 	// Pass message object to glyph bot logic
 	go b.discordGlyphBot.HandleAll(message)

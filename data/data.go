@@ -2,7 +2,6 @@ package data
 
 import (
 	"database/sql"
-	"errors"
 	"sync"
 	"time"
 
@@ -12,7 +11,7 @@ import (
 )
 
 // Define errors
-var errUserNotFound = errors.New("user could not be found in the database")
+//var errUserNotFound = errors.New("user could not be found in the database")
 
 // GlyphData represents a configured data backend
 type GlyphData struct {
@@ -123,7 +122,7 @@ func (t tmpDataObject) isValid() bool {
 }
 
 // SetTmp Sets an temporary in memory key value store value
-func (d *GlyphData) SetTmp(bucket string, key string, value string, duration time.Duration) {
+func (d *GlyphData) SetTmp(bucket, key, value string, duration time.Duration) {
 	var dataToSave tmpDataObject
 	dataToSave.data = value
 	dataToSave.validUntil = time.Now().Add(duration)
@@ -136,7 +135,7 @@ func (d *GlyphData) SetTmp(bucket string, key string, value string, duration tim
 }
 
 // GetTmp gets an temporary in memory key value store value
-func (d *GlyphData) GetTmp(bucket string, key string) string {
+func (d *GlyphData) GetTmp(bucket, key string) string {
 	d.tmpDataLock.Lock()
 	defer d.tmpDataLock.Unlock()
 	if d.tmpData[bucket] == nil {
@@ -151,7 +150,7 @@ func (d *GlyphData) GetTmp(bucket string, key string) string {
 }
 
 // DelTmp deletes an temporary in memory key value store value
-func (d *GlyphData) DelTmp(bucket string, key string) {
+func (d *GlyphData) DelTmp(bucket, key string) {
 	d.tmpDataLock.Lock()
 	defer d.tmpDataLock.Unlock()
 	if d.tmpData[bucket] == nil {

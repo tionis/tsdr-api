@@ -41,11 +41,7 @@ func (d *GlyphData) UserAdd(userID, email string, isAdmin bool, preferredAdapter
 	if err != nil {
 		return err
 	}
-	row := stmt.QueryRow(userID, email, isAdmin, preferredAdaptersJSON)
-	if err := row.Err(); err != nil {
-		return err
-	}
-	return nil
+	return stmt.QueryRow(userID, email, isAdmin, preferredAdaptersJSON).Err()
 }
 
 // UserIsAdmin return true if the user with given userID is an tasadar admin
@@ -69,11 +65,7 @@ func (d *GlyphData) UserSetMail(userID, email string) error {
 	if err != nil {
 		return err
 	}
-	row := stmt.QueryRow(userID, email)
-	if err := row.Err(); err != nil {
-		return err
-	}
-	return nil
+	return stmt.QueryRow(userID, email).Err()
 }
 
 // UserSetPreferredAdapters sets the preferred adapters array of a user to the given string array
@@ -86,11 +78,7 @@ func (d *GlyphData) UserSetPreferredAdapters(userID, preferredAdapters []string)
 	if err != nil {
 		return err
 	}
-	row := stmt.QueryRow(userID, string(data))
-	if err := row.Err(); err != nil {
-		return err
-	}
-	return nil
+	return stmt.QueryRow(userID, string(data)).Err()
 }
 
 // UserGetPreferredAdapters gets the preferred adapters array of a user and returns it as a string array
@@ -118,11 +106,7 @@ func (d *GlyphData) UserSetAdminStatus(userID string, isAdmin bool) error {
 	if err != nil {
 		return err
 	}
-	row := stmt.QueryRow(userID, isAdmin)
-	if err := row.Err(); err != nil {
-		return err
-	}
-	return nil
+	return stmt.QueryRow(userID, isAdmin).Err()
 }
 
 // UserDelete deletes the user and all associated data with it (except associated quotes)
@@ -140,7 +124,7 @@ func (d *GlyphData) UserDelete(userID string) error {
 }
 
 // SetUserData sets the key in the bucket in the data of a user to the data from value
-func (d *GlyphData) SetUserData(userID, key string, value string) error {
+func (d *GlyphData) SetUserData(userID, key, value string) error {
 	stmt, err := d.db.Prepare(`INSERT INTO userdata (userID, key, value) VALUES ($1, $2, $3) ON CONFLICT (userID) DO UPDATE SET value = $3;`)
 	if err != nil {
 		return err

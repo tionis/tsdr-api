@@ -16,7 +16,8 @@ import (
 )
 
 const adapterID = "telegram"
-const glyphTelegramContextDelay = time.Hour * 24
+
+//const glyphTelegramContextDelay = time.Hour * 24
 
 // Bot represents a config of the bot
 type Bot struct {
@@ -44,6 +45,9 @@ func Init(data *data.GlyphData, telegramToken string) Bot {
 	u.Timeout = 60
 
 	out.updates, err = out.bot.GetUpdatesChan(u)
+	if err != nil {
+		out.logger.Error("Could not create update channel to listen to telegram updates:", err)
+	}
 
 	out.telegramGlyphBot = &glyph.Bot{
 		QuoteDBHandler: &glyph.QuoteDB{

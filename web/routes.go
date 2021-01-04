@@ -20,11 +20,11 @@ var apiLog = logging.MustGetLogger("API")
     Groups string `json:"groups,omitempty"`
 }*/
 
-type glyphDiscordMsgAPIObject struct {
-	ChannelID string `form:"channelid" json:"channelid" binding:"required"`
+/*type glyphDiscordMsgAPIObject struct {
+	UserID    string `form:"channelid" json:"channelid" binding:"required"`
 	Message   string `form:"message" json:"message" binding:"required"`
 	Token     string `form:"token" json:"token" binding:"required"`
-}
+}*/
 
 func (s *Server) apiRoutes() {
 	// Default Stuff
