@@ -105,19 +105,15 @@ func main() {
 	go UniPassauBot.UniPassauBot(uniPassauBotToken)
 
 	// Start Glyph Discord Bot
-	syncGroup.Add(1)
 	go discord.Init(dataBackend, discordToken).Start(stopSignals[0], syncGroup)
 
 	// Start Glyph Telegram Bot
-	syncGroup.Add(1)
 	go telegram.Init(dataBackend, telegramToken).Start(stopSignals[1], syncGroup)
 
 	// Start Glyph Matrix Bot
-	syncGroup.Add(1)
 	go matrix.Init(dataBackend, matrixHomerServer, matrixUserName, matrixPassword).Start(stopSignals[2], syncGroup)
 
 	// Start WebServer - this is a blocking operation
-	syncGroup.Add(1)
 	web.Init(isProduction, port).Start(stopSignals[3], syncGroup)
 
 	// Wait until all goroutines have stopped

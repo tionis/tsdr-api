@@ -14,6 +14,5 @@ require (
 	github.com/tionis/uni-passau-bot v0.1.4
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	golang.org/x/sys v0.0.0-20201231184435-2d18734c6014 // indirect
-	golang.org/x/tools v0.0.0-20210104081019-d8d6ddbec6ee // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

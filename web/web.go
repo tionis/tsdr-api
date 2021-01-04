@@ -49,11 +49,12 @@ func Init(isProduction bool, port string) *Server {
 
 // Start starts the WebServer in a blocking operation
 func (s *Server) Start(stop chan bool, wg *sync.WaitGroup) {
+	wg.Add(1)
 	srv := &http.Server{Addr: ":" + s.port}
 
 	// Start WebServer in go routine
 	go func() {
-		defer wg.Done() // let main know we are done cleaning up
+		defer wg.Done() // let the app now we are done cleaning up
 
 		// always returns error. ErrServerClosed on graceful close
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
