@@ -5,11 +5,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/bwmarrin/discordgo"         // This provides the connection to the discord bot api
 	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
-	"github.com/keybase/go-logging"
-	"github.com/tionis/tsdr-api/data"
-	"github.com/tionis/tsdr-api/glyph"
+	"github.com/keybase/go-logging"         // This unifies logging across components of the application
+	"github.com/tionis/tsdr-api/data"       // This implements the glyph specific data layer
+	"github.com/tionis/tsdr-api/glyph"      // This implements the glyph bot logic and dictates the adapters design
 )
 
 /*type glyphDiscordMsgObject struct {
@@ -93,8 +93,12 @@ func Init(data *data.GlyphData, discordToken string) Bot {
 	return bot
 }
 
-// Start starts the bot in a blocking operation
+// Start starts the bot in its own goroutine and stops it if it receives an value on the stop channel,
+// when stopped it decrements the counter of the waitgroup. Please note that it increments it on its own
+// on startup.
 func (b Bot) Start(stop chan bool, syncGroup *sync.WaitGroup) {
+	syncGroup.Add(1)
+
 	// Write start message into log
 	b.logger.Info("Glyph Discord Bot was started.")
 

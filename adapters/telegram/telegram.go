@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
-	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
-	"github.com/keybase/go-logging"
-	"github.com/tionis/tsdr-api/data"
-	"github.com/tionis/tsdr-api/glyph"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api" // This provides the telegram bot api abstraction
+	_ "github.com/heroku/x/hmetrics/onload"                    // Heroku advanced go metrics
+	"github.com/keybase/go-logging"                            // This unifies logging across components of the application
+	"github.com/tionis/tsdr-api/data"                          // This implements the glyph specific data layer
+	"github.com/tionis/tsdr-api/glyph"                         // This implements the glyph bot logic and dictates the adapters design
 )
 
 const adapterID = "telegram"
@@ -80,46 +80,51 @@ func Init(data *data.GlyphData, telegramToken string) Bot {
 	return out
 }
 
-// Start starts the bot and aborts its execution when a value on the stop signal is received
+// Start starts the bot in its own goroutine and stops it if it receives an value on the stop channel,
+// when stopped it decrements the counter of the waitgroup. Please note that it increments it on its own
+// on startup.
 func (b Bot) Start(stop chan bool, syncGroup *sync.WaitGroup) {
+	syncGroup.Add(1)
 	b.logger.Info("Glyph Discord Bot was started.")
 
 	// Start message send Service
 	go b.startMessageSendService()
 
 	// Start listening for updates
-	for {
-		select {
-		case update := <-b.updates:
-			if update.Message == nil { // ignore any non-Message Updates
-				continue
+	go func() {
+		for {
+			select {
+			case update := <-b.updates:
+				if update.Message == nil { // ignore any non-Message Updates
+					continue
+				}
+
+				// Save Username to cache
+				userID := strconv.Itoa(update.Message.From.ID)
+				go b.dataBackend.SetTmp("glyph:tg:nameCache", userID, update.Message.From.FirstName+" "+update.Message.From.LastName, 30*time.Minute)
+				b.updateChatIDFromTelegramID(userID, update.Message.Chat.ID)
+
+				// Trim prefix
+				content := strings.TrimPrefix(update.Message.Text, b.telegramGlyphBot.Prefix)
+
+				message := glyph.MessageData{
+					Content:          content,
+					AuthorID:         userID,
+					IsDM:             !update.Message.Chat.IsGroup(),
+					SupportsMarkdown: true,
+					ChannelID:        strconv.FormatInt(update.Message.Chat.ID, 10),
+					IsCommand:        update.Message.IsCommand(),
+				}
+
+				go b.telegramGlyphBot.HandleAll(message)
+
+			case <-stop:
+				b.bot.StopReceivingUpdates()
+				syncGroup.Done()
+				b.logger.Info("Glyph Telegram Bot was stopped.")
 			}
-
-			// Save Username to cache
-			userID := strconv.Itoa(update.Message.From.ID)
-			go b.dataBackend.SetTmp("glyph:tg:nameCache", userID, update.Message.From.FirstName+" "+update.Message.From.LastName, 30*time.Minute)
-			b.updateChatIDFromTelegramID(userID, update.Message.Chat.ID)
-
-			// Trim prefix
-			content := strings.TrimPrefix(update.Message.Text, b.telegramGlyphBot.Prefix)
-
-			message := glyph.MessageData{
-				Content:          content,
-				AuthorID:         userID,
-				IsDM:             !update.Message.Chat.IsGroup(),
-				SupportsMarkdown: true,
-				ChannelID:        strconv.FormatInt(update.Message.Chat.ID, 10),
-				IsCommand:        update.Message.IsCommand(),
-			}
-
-			go b.telegramGlyphBot.HandleAll(message)
-
-		case <-stop:
-			b.bot.StopReceivingUpdates()
-			syncGroup.Done()
-			b.logger.Info("Glyph Telegram Bot was stopped.")
 		}
-	}
+	}()
 }
 
 func (b Bot) startMessageSendService() {

@@ -4,12 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"regexp"
 
-	"github.com/tionis/tsdr-api/glyph"
+	"github.com/tionis/tsdr-api/glyph" // This provides glyph-specific errors
 )
-
-var isValidMatrixID = regexp.MustCompile(`(?m)^@[a-z\-_]+:([A-Za-z0-9-]{1,63}\.)+[A-Za-z]{2,6}$`)
 
 // GetUserIDFromValueOfKey returns the userID where key and value are matched,
 // this is mostly used to map chat platform ids to the main id
@@ -34,7 +31,7 @@ func (d *GlyphData) GetUserIDFromValueOfKey(key, value string) (string, error) {
 // UserAdd adds an user with given userID, email and isAdmin parameters,
 // preferredAdapters is a json string array containing the adapter the user wants to be notified on.
 func (d *GlyphData) UserAdd(userID, email string, isAdmin bool, preferredAdaptersJSON string) error {
-	if !isValidMatrixID.MatchString(userID) {
+	if !glyph.IsValidMatrixID.MatchString(userID) {
 		return glyph.ErrMatrixIDInvalid
 	}
 	stmt, err := d.db.Prepare(`INSERT INTO users (userID, email, isAdmin, preferredAdapters) VALUES ($1, $2, $3, $4)`)

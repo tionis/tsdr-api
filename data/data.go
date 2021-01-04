@@ -6,12 +6,9 @@ import (
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
-	"github.com/keybase/go-logging"
-	_ "github.com/lib/pq" // The PostgreSQL Driver
+	"github.com/keybase/go-logging"         // This unifies logging across components of the application
+	_ "github.com/lib/pq"                   // The PostgreSQL Driver
 )
-
-// Define errors
-//var errUserNotFound = errors.New("user could not be found in the database")
 
 // GlyphData represents a configured data backend
 type GlyphData struct {

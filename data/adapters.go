@@ -1,5 +1,7 @@
 package data
 
+import "github.com/tionis/tsdr-api/glyph" // This provides errors for glyph specific data operation
+
 // AdapterMessage represents a message being sent to an adapter
 type AdapterMessage struct {
 	UserID  string
@@ -18,6 +20,10 @@ func (d *GlyphData) RegisterAdapterChannel(adapterID string, channel chan Adapte
 // GetAdapterChannel gets the channel to send an AdapterMessage through
 func (d *GlyphData) GetAdapterChannel(adapterID string) (chan AdapterMessage, error) {
 	d.adapterMessageChannelsLock.RLock()
-	defer d.adapterMessageChannelsLock.RUnlock()
-	return d.adapterMessageChannels[adapterID], nil
+	val, ok := d.adapterMessageChannels[adapterID]
+	d.adapterMessageChannelsLock.RUnlock()
+	if !ok {
+		return nil, glyph.ErrAdapterNotRegistered
+	}
+	return val, nil
 }

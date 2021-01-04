@@ -5,13 +5,15 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/gin-gonic/gin"
-	"github.com/keybase/go-logging"
+	"github.com/gin-gonic/gin"              // This provides the web framework
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
+	"github.com/keybase/go-logging"         // This unifies logging across the application
 )
 
+// This map contains the data for the switch enabling virtual host integration
 type hostSwitch map[string]http.Handler
 
-// Server represents the web server
+// Server represents a web server configutaion
 type Server struct {
 	logger     *logging.Logger
 	apiRouter  *gin.Engine
@@ -67,7 +69,8 @@ func (s *Server) Start(stop chan bool, wg *sync.WaitGroup) {
 	}
 }
 
-// Hostswitch HTTP Handler that enables the use in a standard lib way
+// Hostswitch HTTP Handler that enables the use in a standard lib way.
+// It is needed to enable redirection of http request to the correct virtual host router/handler
 func (hs hostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if handler := hs[r.Host]; handler != nil {
 		handler.ServeHTTP(w, r)

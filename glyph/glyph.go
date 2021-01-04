@@ -2,7 +2,6 @@ package glyph
 
 import (
 	"encoding/json"
-	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -10,40 +9,8 @@ import (
 	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"
 
-	UniPassauBot "github.com/tionis/uni-passau-bot/api"
+	UniPassauBot "github.com/tionis/uni-passau-bot/api" // This provides the uni passau food functionality
 )
-
-// Define Errors needed for consistent interaction with foreign and own functions
-
-// ErrNoCommandMatched represents the state in which no command could be matched
-var ErrNoCommandMatched = errors.New("no command was matched")
-
-// ErrNoUserDataFound is thrown if now data for the user with the specified key could be found
-var ErrNoUserDataFound = errors.New("no userdata found")
-
-// ErrUserNotFound is thrown when the searched user could not be found
-var ErrUserNotFound = errors.New("user not found")
-
-// ErrNoMappingFound is thrown if no valid mapping from a 3PID to an userID could be found
-var ErrNoMappingFound = errors.New("no mapping between 3PID and userID found")
-
-// ErrNoSuchSession is thrown if no auth session with the given ID could be founc
-var ErrNoSuchSession = errors.New("no session with given ID could be found")
-
-// ErrSessionNotOfUser is thrown if a given session exists but does not belong to a given user
-var ErrSessionNotOfUser = errors.New("session exists but does not belong to user")
-
-// ErrMatrixIDInvalid is thrown if the given matrix ID does not follow the rules of the matrix convention
-var ErrMatrixIDInvalid = errors.New("matrix id not valid")
-
-// standardContextDelay is the standard ttl of chat contexts
-var standardContextDelay = time.Minute * 5
-
-// isValidUserName checks if the string is a valid username (after matrix ID and thus tasadar.net specification)
-//var isValidUserName = regexp.MustCompile(`(?m)^[a-z\-_]+$`)
-
-// isValidMatrixID checks if the string is a valid matrix id (but ignores the case in which the domain starts or ends with an dash)
-//var isValidMatrixID = regexp.MustCompile(`(?m)^@[a-z\-_]+:([A-Za-z0-9-]{1,63}\.)+[A-Za-z]{2,6}$`)
 
 // MessageData represents an message the bot can act on with callback functions
 type MessageData struct {

@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
-	"github.com/keybase/go-logging"
-	UniPassauBot "github.com/tionis/uni-passau-bot/api"
+	"github.com/gin-gonic/gin"                          // This provides the web framework
+	_ "github.com/heroku/x/hmetrics/onload"             // Heroku advanced go metrics
+	"github.com/keybase/go-logging"                     // This unifies logging across components of the application
+	UniPassauBot "github.com/tionis/uni-passau-bot/api" // This provides logic to get the current food of the uni passau
 )
 
 var apiLog = logging.MustGetLogger("API")

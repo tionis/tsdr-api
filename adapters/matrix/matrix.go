@@ -3,7 +3,7 @@ package matrix
 import (
 	"sync"
 
-	"github.com/tionis/tsdr-api/data"
+	"github.com/tionis/tsdr-api/data" // This implements the glyph specific data layer
 )
 
 // Bot represents a config of the Bot
@@ -25,6 +25,7 @@ func (b Bot) Start(stop chan bool, syncGroup *sync.WaitGroup) {
 	// TODO encryption with DB backend
 	// TODO message send channel
 	<-stop
+	syncGroup.Add(1)
 	syncGroup.Done()
 	// TODO extract homerserver and userID from matrixUserID
 	/*client, err := mautrix.NewClient(b.homeServer, "", "")

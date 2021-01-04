@@ -7,7 +7,7 @@ import (
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
-	"github.com/tionis/tsdr-api/glyph"
+	"github.com/tionis/tsdr-api/glyph"      // This provides glyph specific errors
 )
 
 // GetRandomQuote gets a random quote with specified parameters. If they are emtpy strings they are ignored

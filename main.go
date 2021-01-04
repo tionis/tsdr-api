@@ -7,15 +7,15 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/gin-gonic/gin"
-	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
-	"github.com/keybase/go-logging"
-	"github.com/tionis/tsdr-api/adapters/discord"
-	"github.com/tionis/tsdr-api/adapters/matrix"
-	"github.com/tionis/tsdr-api/adapters/telegram"
-	"github.com/tionis/tsdr-api/data"
-	"github.com/tionis/tsdr-api/web"
-	UniPassauBot "github.com/tionis/uni-passau-bot/api"
+	"github.com/gin-gonic/gin"                          // This provides needed directives to interface with the WebServer
+	_ "github.com/heroku/x/hmetrics/onload"             // Heroku advanced go metrics
+	"github.com/keybase/go-logging"                     // This unifies logging across the application
+	"github.com/tionis/tsdr-api/adapters/discord"       // This provides the adapter to discord
+	"github.com/tionis/tsdr-api/adapters/matrix"        // This provides the adapter to matrix
+	"github.com/tionis/tsdr-api/adapters/telegram"      // This provides the adapter to telegram
+	"github.com/tionis/tsdr-api/data"                   // This provides the application data layer
+	"github.com/tionis/tsdr-api/web"                    // This provides the webServer
+	UniPassauBot "github.com/tionis/uni-passau-bot/api" // This provides a simple LEGACY uni passau bot that can be started
 )
 
 const defaultPort = "8081"
