@@ -223,7 +223,7 @@ func (g Bot) parseGetQuote(message string) (quoteSelector, error) {
 	}
 	message = strings.TrimPrefix(message, "getQuote")
 	message = strings.TrimPrefix(message, "getquote")
-	message = strings.TrimLeft(message, "\t \r \n \v \f")
+	message = strings.TrimLeft(message, "\t\r\n\v\f ")
 	args, err := parseCommandString(message)
 	if err != nil {
 		return quoteSelector{}, err

@@ -150,7 +150,7 @@ func (b Bot) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		message.IsCommand = true
 	}
 
-	message.Content = strings.TrimLeft(message.Content, "\t \r \n \v \f")
+	message.Content = strings.TrimLeft(message.Content, "\t\r\n\v\f ")
 
 	// Pass message object to glyph bot logic
 	go b.discordGlyphBot.HandleAll(message)
