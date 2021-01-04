@@ -292,6 +292,7 @@ func (g Bot) handleUser(message MessageData, tokens []string) {
 	// TODO regarding registering: checking if userid is available and warning if its not
 	// if id is taken (only if not virtual matrix account) start auth process
 	// i will need to think about that -> login flow where? -> solved by using callback functions
+	// TODO allow creation and managment of tokens that allow someone to send messages to the user via the API
 	g.sendMessageDefault(message, "not implemented yet")
 }
 

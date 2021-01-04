@@ -1,9 +1,5 @@
 package data
 
-import (
-	"errors"
-)
-
 // AdapterMessage represents a message being sent to an adapter
 type AdapterMessage struct {
 	UserID  string
@@ -12,12 +8,16 @@ type AdapterMessage struct {
 
 // RegisterAdapterChannel registeres the given channel in the channel map with given adapter ID
 func (d *GlyphData) RegisterAdapterChannel(adapterID string, channel chan AdapterMessage) error {
-	// TODO add channel to map
-	return errors.New("not implemented yet")
+	d.adapterMessageChannelsLock.Lock()
+	defer d.adapterMessageChannelsLock.Unlock()
+
+	d.adapterMessageChannels[adapterID] = channel
+	return nil
 }
 
 // GetAdapterChannel gets the channel to send an AdapterMessage through
 func (d *GlyphData) GetAdapterChannel(adapterID string) (chan AdapterMessage, error) {
-	// TODO implement this
-	return nil, errors.New("not implemented yet")
+	d.adapterMessageChannelsLock.RLock()
+	defer d.adapterMessageChannelsLock.RUnlock()
+	return d.adapterMessageChannels[adapterID], nil
 }

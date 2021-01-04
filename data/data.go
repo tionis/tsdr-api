@@ -18,10 +18,13 @@ var errUserNotFound = errors.New("user could not be found in the database")
 type GlyphData struct {
 	db *sql.DB // DB represents an postgres database
 
-	tmpDataLock *sync.RWMutex // This could be a performance bottleneck in the future. If the bot performs badly the cache logic should be rewritten.
-	tmpData     map[string]map[string]tmpDataObject
+	tmpDataLock *sync.RWMutex                       // This could be a performance bottleneck in the future. If the bot performs badly the cache logic should be rewritten.
+	tmpData     map[string]map[string]tmpDataObject // This may not be passed by reference -> bug risk?
 
 	logger *logging.Logger
+
+	adapterMessageChannelsLock *sync.RWMutex
+	adapterMessageChannels     map[string]chan AdapterMessage
 }
 
 type tmpDataObject struct {
@@ -31,7 +34,13 @@ type tmpDataObject struct {
 
 // DBInit initializes the DB connection and tests it
 func DBInit(sqlURL string) *GlyphData {
-	out := &GlyphData{nil, &sync.RWMutex{}, make(map[string]map[string]tmpDataObject), logging.MustGetLogger("data")}
+	out := &GlyphData{
+		db:                         nil,
+		tmpDataLock:                &sync.RWMutex{},
+		tmpData:                    make(map[string]map[string]tmpDataObject),
+		logger:                     logging.MustGetLogger("data"),
+		adapterMessageChannelsLock: &sync.RWMutex{},
+		adapterMessageChannels:     make(map[string]chan AdapterMessage)}
 
 	// Init postgres
 	out.initPostgres(sqlURL)

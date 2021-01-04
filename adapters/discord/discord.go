@@ -92,21 +92,6 @@ func Init(data *data.GlyphData, discordToken string) Bot {
 	return bot
 }
 
-func (b Bot) startMessageSendService() {
-	// Create channel to receive messages on
-
-	// TODO register channel at data layer
-
-	/*go func(dg *discordgo.Session) {
-		for {
-			sig := <-glyphSend
-			// TODO user data backend for this and transform chan input from matrixID to discordID,
-			// then get channelID from DiscordID
-			dg.ChannelMessageSend(sig.ChannelID, sig.Message)
-		}
-	}(dg)*/
-}
-
 // Start starts the bot in a blocking operation
 func (b Bot) Start(stop chan bool, syncGroup *sync.WaitGroup) {
 	// Write start message into log
@@ -168,6 +153,34 @@ func (b Bot) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Pass message object to glyph bot logic
 	go b.discordGlyphBot.HandleAll(message)
+}
+
+func (b Bot) startMessageSendService() {
+	messageChannel := make(chan data.AdapterMessage, 10)
+	b.dataBackend.RegisterAdapterChannel(adapterID, messageChannel)
+
+	for {
+		message := <-messageChannel
+		discordID, err := b.dataBackend.GetUserData(message.UserID, "discordID")
+		if err != nil {
+			b.logger.Warningf("failed to get discordID of user %v: %v", message.UserID, err)
+			continue
+		}
+		AuthorDMChannelID := b.dataBackend.GetTmp("glyph", "dg:"+discordID+"|DM-Channel")
+		if AuthorDMChannelID == "" {
+			AuthorDMChannel, err := b.dg.UserChannelCreate(discordID)
+			if err != nil {
+				return
+			}
+			AuthorDMChannelID = AuthorDMChannel.ID
+			b.dataBackend.SetTmp("glyph", "dg:"+discordID+"|DM-Channel", AuthorDMChannelID, time.Hour*24)
+		}
+		_, err = b.dg.ChannelMessageSend(AuthorDMChannelID, message.Message)
+		if err != nil {
+			b.logger.Warningf("failed to send discord message to %v on channel %v:", message.UserID, AuthorDMChannelID, err)
+			continue
+		}
+	}
 }
 
 // Check if a user has a given role in a given guild
