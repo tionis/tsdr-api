@@ -13,3 +13,6 @@ Listed below you'll find all requisites that are needed.
  - UNIPASSAUBOT_TOKEN - Uni Passau Bot Telegram token
  - MODE = production - Set mode to production
  - DATABASE_URL - URL for Postgres Database
+ - MATRIX_HOMSERVER_URL - URL to reach homeserver at
+ - MATRIX_USERNAME - Username of the bot account (only localpart)
+ - MATRIX_PASSWORD - Password for the bot account
