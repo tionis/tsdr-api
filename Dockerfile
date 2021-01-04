@@ -5,7 +5,7 @@
 #RUN yarn install
 #RUN yarn build
 
-FROM golang:1.15.5-alpine as backend
+FROM golang:1.15.6-alpine as backend
 WORKDIR /usr/src/app
 COPY go.mod go.mod
 COPY go.sum go.sum
@@ -19,4 +19,4 @@ WORKDIR /root/
 COPY --from=backend /usr/src/app/api .
 RUN apk --no-cache add tzdata
 #COPY --from=backend /usr/src/app/conf/app.example.toml conf/app.toml
-CMD ["./api", "web"]
+CMD ["./api"]

@@ -1,19 +1,24 @@
 package main
 
 import (
-	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"sync"
+	"syscall"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/heroku/x/hmetrics/onload"
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"
+	"github.com/tionis/tsdr-api/adapters/discord"
+	"github.com/tionis/tsdr-api/adapters/matrix"
+	"github.com/tionis/tsdr-api/adapters/telegram"
+	"github.com/tionis/tsdr-api/data"
+	"github.com/tionis/tsdr-api/web"
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
 
 const defaultPort = "8081"
-
-type hostSwitch map[string]http.Handler
 
 var mainLog = logging.MustGetLogger("main")
 
@@ -21,15 +26,63 @@ var logFormat = logging.MustStringFormatter(
 	`%{color}%{module} ▶ %{level:.4s}%{color:reset} %{message}`,
 )
 
-var isProduction bool
-
 // Initialize Main Functions
 func main() {
 	logging.SetFormatter(logFormat)
-	// Initialize basic requirements
-	dbInit()
+	syncGroup := &sync.WaitGroup{}
+
+	// Get environment variables
+	port := os.Getenv("PORT")
+	if port == "" {
+		mainLog.Warning("Failed to detect Port Variable, switching to default :8081")
+		port = defaultPort
+	}
+	sqlURL := os.Getenv("DATABASE_URL")
+	if sqlURL == "" {
+		mainLog.Info("Database: " + os.Getenv("DATABASE_URL"))
+		mainLog.Fatal("Fatal Error getting Database Information!")
+	}
+	discordToken := os.Getenv("DISCORD_TOKEN")
+	if discordToken == "" {
+		mainLog.Fatal("No glyph discord token specified")
+	}
+	uniPassauBotToken := os.Getenv("UNIPASSAUBOT_TOKEN")
+	if uniPassauBotToken == "" {
+		mainLog.Fatal("No uni passau telegram token specified")
+	}
+	telegramToken := os.Getenv("TELEGRAM_TOKEN")
+	if telegramToken == "" {
+		mainLog.Fatal("No glyph telegram token specified")
+	}
+	matrixHomerServer := os.Getenv("MATRIX_HOMESERVER_URL")
+	if matrixHomerServer == "" {
+		mainLog.Fatal("No glyph matrix homeserver URL specified")
+	}
+	matrixUserName := os.Getenv("MATRIX_USERNAME")
+	if matrixUserName == "" {
+		mainLog.Fatal("No glyph matrix username specified")
+	}
+	matrixPassword := os.Getenv("MATRIX_PASSWORD")
+	if matrixPassword == "" {
+		mainLog.Fatal("No glyph matrix password specified")
+	}
+
+	// Initialize data layer
+	dataBackend := data.DBInit(sqlURL)
+
+	// Initialize stop channels
+	var stopSignals = []chan bool{
+		make(chan bool),
+		make(chan bool),
+		make(chan bool),
+		make(chan bool),
+	}
+	var systemStopSignal chan bool
+	go stopDetector(systemStopSignal)
+	go stopMultiPlexer(systemStopSignal, stopSignals)
 
 	// Detect Development Mode
+	var isProduction bool
 	switch strings.ToUpper(os.Getenv("MODE")) {
 	case "PRODUCTION":
 		mainLog.Info("Detected Production Mode")
@@ -48,77 +101,43 @@ func main() {
 		isProduction = true
 	}
 
-	// Start Uni-Passau-Bot
-	go UniPassauBot.UniPassauBot(os.Getenv("UNIPASSAUBOT_TOKEN"))
+	// Start Uni-Passau-Bot // LEGACY CODE THAT WILL BE REMOVED IN THE FUTURE
+	go UniPassauBot.UniPassauBot(uniPassauBotToken)
 
 	// Start Glyph Discord Bot
-	go glyphDiscordBot()
+	syncGroup.Add(1)
+	go discord.Init(dataBackend, discordToken).Start(stopSignals[0], syncGroup)
 
 	// Start Glyph Telegram Bot
-	go glyphTelegramBot()
+	syncGroup.Add(1)
+	go telegram.Init(dataBackend, telegramToken).Start(stopSignals[1], syncGroup)
 
-	// Cronjob Definitions
-	// MC Cronjobs
-	//loc, err := time.LoadLocation("Europe/Berlin")
-	//if err != nil {
-	//	mainLog.Warning("[Tasadar] Error loading correct time zone!")
-	//}
-	//c := cron.New(cron.WithLocation(loc))
-	//c.AddFunc("@every 5m", func() { pingMC() })
-	//c.AddFunc("@every 5m", func() { updateMC() })
-	//c.AddFunc("@every 1m", func() { remindChecker() })
-	//c.Start()
-	//defer c.Stop()
+	// Start Glyph Matrix Bot
+	syncGroup.Add(1)
+	go matrix.Init(dataBackend, matrixHomerServer, matrixUserName, matrixPassword).Start(stopSignals[2], syncGroup)
 
-	// Create Default gin router
-	port := os.Getenv("PORT")
-	if port == "" {
-		mainLog.Warning("Failed to detect Port Variable, switching to default :8081")
-		port = defaultPort
-	}
-	apiRouter := gin.Default()
-	//apiRouter.Use(gin.LoggerWithFormatter(ginLogFormatter))
-	apiRouter.Use(gin.Recovery())
-	apiRoutes(apiRouter) // Initialize API Routes
-	corsRouter := gin.Default()
-	corsRoutes(corsRouter)
+	// Start WebServer - this is a blocking operation
+	syncGroup.Add(1)
+	web.Init(isProduction, port).Start(stopSignals[3], syncGroup)
 
-	// Create HostSwitch Handling for Virtual Hosts support
-	hs := make(hostSwitch)
-	if isProduction {
-		hs["api.tasadar.net"] = apiRouter
-		hs["cors.tasadar.net"] = corsRouter
-	} else {
-		hs["api.localhost:"+os.Getenv("PORT")] = apiRouter
-		hs["api.localhost"] = apiRouter
-		hs["cors.localhost:"+os.Getenv("PORT")] = corsRouter
-		hs["cors.localhost"] = corsRouter
-	}
-
-	// Start WebServer
-	mainLog.Fatal(http.ListenAndServe(":"+os.Getenv("PORT"), hs))
+	// Wait until all goroutines have stopped
+	syncGroup.Wait()
 }
 
-/*func ginLogFormatter(param gin.LogFormatterParams) string {
-	return fmt.Sprintf("%s - [%s] \"%s %s %s %d %s \"%s\" %s\"\n",
-		param.ClientIP,
-		param.TimeStamp.Format(time.RFC1123),
-		param.Method,
-		param.Path,
-		param.Request.Proto,
-		param.StatusCode,
-		param.Latency,
-		param.Request.UserAgent(),
-		param.ErrorMessage,
-	)
-}*/
+func stopDetector(stopSignal chan bool) {
+	sc := make(chan os.Signal, 1)
+	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, syscall.SIGQUIT, syscall.SIGHUP)
+	<-sc
+	mainLog.Info("Received stop signal...")
+	stopSignal <- true
+}
 
-// Hostswitch HTTP Handler that enables the use in a standard lib way
-func (hs hostSwitch) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if handler := hs[r.Host]; handler != nil {
-		handler.ServeHTTP(w, r)
-	} else {
-		// Handle host names for which no handler is registered
-		http.Error(w, "Forbidden", http.StatusForbidden)
+// stopMultiPlexer forwars the value of stopSignal to all channels in stopSubSignals when a value is received
+func stopMultiPlexer(stopSignal chan bool, stopSubSignals []chan bool) {
+	value := <-stopSignal
+	length := len(stopSubSignals)
+	for index, item := range stopSubSignals {
+		item <- value
+		mainLog.Debugf("Forwarded stop signal %v/%v...", index+1, length)
 	}
 }

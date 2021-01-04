@@ -17,15 +17,14 @@
 \.vscode/
 .vscode
 .vscode/*
-static/login/loginv4
-static/login/loginv4/*
 
 # Some IDE Stuff to be ignored
 __debug_bin
 
 # Project Specific
-api
+tsdr-api
 .issues
 *.csv
-run.sh
+scripts/run.sh
 docker-compose.dev.yml
+*.ignored

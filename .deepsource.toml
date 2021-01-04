@@ -5,7 +5,7 @@ name = "go"
 enabled = true
 
   [analyzers.meta]
-  import_paths = ["github.com/tionis/api"]
+  import_paths = ["github.com/tionis/tsdr-api"]
 
 [[transformers]]
 name = "gofmt"

@@ -1,4 +1,4 @@
-package main
+package web
 
 import (
 	"net/http"
@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	_ "github.com/heroku/x/hmetrics/onload"
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"
 	UniPassauBot "github.com/tionis/uni-passau-bot/api"
 )
@@ -20,50 +20,49 @@ var apiLog = logging.MustGetLogger("API")
     Groups string `json:"groups,omitempty"`
 }*/
 
-type glyphDiscordMsgAPIObject struct {
-	ChannelID string `form:"channelid" json:"channelid" binding:"required"`
+/*type glyphDiscordMsgAPIObject struct {
+	UserID    string `form:"channelid" json:"channelid" binding:"required"`
 	Message   string `form:"message" json:"message" binding:"required"`
 	Token     string `form:"token" json:"token" binding:"required"`
-}
+}*/
 
-func apiRoutes(router *gin.Engine) {
+func (s *Server) apiRoutes() {
 	// Default Stuff
-	router.GET("/favicon.svg", favicon)
-	router.GET("/", index)
-	router.GET("/glyph", glyphRedirect)
-	router.NoRoute(notFound)
-	router.GET("/echo", httpecho)
+	s.apiRouter.GET("/favicon.svg", favicon)
+	s.apiRouter.GET("/", index)
+	s.apiRouter.GET("/glyph", glyphRedirect)
+	s.apiRouter.NoRoute(notFound)
+	s.apiRouter.GET("/echo", httpecho)
 
 	// Handle short links
-	router.GET("/discord", discordinvite)
-	router.GET("/log/today", logTodayRedirect)
+	s.apiRouter.GET("/discord", discordinvite)
+	s.apiRouter.GET("/log/today", logTodayRedirect)
 
 	// Handle Status Watch
-	router.GET("/onlinecheck", func(c *gin.Context) {
+	s.apiRouter.GET("/onlinecheck", func(c *gin.Context) {
 		c.String(418, "I'm online")
 	})
 
 	// CURL API
-	router.GET("/mensa/today", retFoodToday)
-	router.GET("/mensa/tomorrow", retFoodTomorow)
-	router.GET("/mensa/week", retFoodWeek)
+	s.apiRouter.GET("/mensa/today", retFoodToday)
+	s.apiRouter.GET("/mensa/tomorrow", retFoodTomorow)
+	s.apiRouter.GET("/mensa/week", retFoodWeek)
 
 	// Glyph Communication API
-	router.POST("/glyph/discord/send", glyphDiscordHandler)
-	//router.GET("/glyph/telegram/send", glyphTelegramHandler)
-	//router.GET("/glyph/matrix/send", glyphMatrixHandler)
+	//router.POST("/glyph/message/send", glyphMessageSendHandler)
 }
 
-func glyphDiscordHandler(c *gin.Context) {
+/*func glyphMessageSendHandler(c *gin.Context) {
 	var messageData glyphDiscordMsgAPIObject
 	err := c.Bind(messageData) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
 		apiLog.Error("Error while trying to bind glyph discord message:", err)
-		c.String(401, "Error in your request")
+		c.String(400, "Error in your request")
 		return
 	}
-	c.String(200, messageData.ChannelID)
-}
+	glyphSend <- glyphDiscordMsgObject{messageData.ChannelID, messageData.Message}
+	c.String(200, "Ok")
+}*/
 
 // handle test case
 func httpecho(c *gin.Context) {
@@ -83,7 +82,7 @@ func logTodayRedirect(c *gin.Context) {
 
 // Handle both root thingies
 func favicon(c *gin.Context) {
-	c.File("static/icons/favicon.svg")
+	c.File("web/static/icons/favicon.svg")
 }
 
 func discordinvite(c *gin.Context) {
@@ -91,7 +90,7 @@ func discordinvite(c *gin.Context) {
 }
 
 func index(c *gin.Context) {
-	c.File("static/index.html")
+	c.File("web/static/index.html")
 }
 
 func glyphRedirect(c *gin.Context) {
@@ -99,7 +98,7 @@ func glyphRedirect(c *gin.Context) {
 }
 
 func notFound(c *gin.Context) {
-	c.File("static/error-pages/404.html")
+	c.File("web/static/error-pages/404.html")
 }
 
 // handle simple GET requests for food
@@ -114,8 +113,8 @@ func retFoodWeek(c *gin.Context) {
 }
 
 // Handle Cors Proxy
-func corsRoutes(router *gin.Engine) {
-	router.Any("/*proxyPath", corsProxy)
+func (s *Server) corsRoutes() {
+	s.corsRouter.Any("/*proxyPath", corsProxy)
 }
 
 type corsTransport http.Header
