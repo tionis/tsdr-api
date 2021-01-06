@@ -8,6 +8,24 @@ import (
 	"github.com/tionis/tsdr-api/glyph" // This provides glyph-specific errors
 )
 
+// GetUserDBHandler returns a UserDB Handler object that exposes all function needed to interact woth the userDB
+func (d *GlyphData) GetUserDBHandler() *glyph.UserDB {
+	return &glyph.UserDB{
+		GetUserData:                  d.GetUserData,
+		SetUserData:                  d.SetUserData,
+		DeleteUserData:               d.DeleteUserData,
+		GetUserIDFromValueOfKey:      d.GetUserIDFromValueOfKey,
+		DoesMatrixUserIDExist:        d.DoesUserIDExist,
+		AddAuthSession:               d.AddAuthSession,
+		AddAuthSessionWithAdapterAdd: d.AddAuthSessionWithAdapterAdd,
+		AuthenticateSession:          d.AuthenticateSession,
+		DeauthenticateSession:        d.DeauthenticateSession,
+		DeleteSession:                d.DeleteSession,
+		GetAuthSessions:              d.GetAuthSessions,
+		RegisterNewUser:              d.UserAdd,
+	}
+}
+
 // GetUserIDFromValueOfKey returns the userID where key and value are matched,
 // this is mostly used to map chat platform ids to the main id
 func (d *GlyphData) GetUserIDFromValueOfKey(key, value string) (string, error) {
@@ -173,7 +191,7 @@ func (d *GlyphData) DeleteUserData(userID, key string) error {
 
 // DoesUserIDExist checks if an user with the given (matrix) user id exists
 func (d *GlyphData) DoesUserIDExist(matrixUserID string) (bool, error) {
-	stmt, err := d.db.Prepare(`SELECT userID FROM quotes WHERE userID = $1`)
+	stmt, err := d.db.Prepare(`SELECT userID FROM users WHERE userID = $1`)
 	if err != nil {
 		return false, err
 	}
@@ -181,7 +199,7 @@ func (d *GlyphData) DoesUserIDExist(matrixUserID string) (bool, error) {
 	err = stmt.QueryRow(matrixUserID).Scan(&userID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return false, glyph.ErrUserNotFound
+			return false, nil
 		}
 		return false, err
 	}

@@ -6,7 +6,7 @@ require (
 	github.com/bwmarrin/discordgo v0.22.0
 	github.com/gin-gonic/gin v1.6.3
 	github.com/go-telegram-bot-api/telegram-bot-api v4.6.4+incompatible
-	github.com/google/uuid v1.1.4 // indirect
+	github.com/google/uuid v1.1.4
 	github.com/heroku/x v0.0.26
 	github.com/keybase/go-logging v0.0.0-20200423195923-7a5ab2ef7dec
 	github.com/lib/pq v1.9.0

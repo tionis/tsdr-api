@@ -95,7 +95,7 @@ func (d *GlyphData) initDatabase() {
 	}
 
 	// Mode degfines how the data in key and value should be parse, 0 means directly, 1 means as specified in AddAuthSessionWithAdapterAdd
-	_, err = d.db.Query(`CREATE TABLE IF NOT EXISTS authsessions(authToken text PRIMARY KEY, userID text references users (userID) on delete cascade UNIQUE, key text, value text, validUntil timestamptz, mode number)`)
+	_, err = d.db.Query(`CREATE TABLE IF NOT EXISTS authsessions(authToken text PRIMARY KEY, userID text references users (userID) on delete cascade UNIQUE, key text, value text, validUntil timestamptz, mode integer)`)
 	if err != nil {
 		d.logger.Fatal("Error creating table userdata: ", err)
 	}

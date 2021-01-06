@@ -88,7 +88,7 @@ func (g Bot) handleAddQuoteFinished(message MessageData) {
 }
 
 func (g Bot) handleQuoteOfTheDay(message MessageData) {
-	if qotd, err := g.QuoteDBHandler.GetQuoteOfTheDay(message.AuthorID); err == nil {
+	if qotd, err := g.getQuoteOfTheDay(message.AuthorID); err == nil {
 		if qotd.isValid() {
 			quote := qotd.Quote
 			g.sendMessageDefault(message, quote.Content+"\n- "+quote.Author+" ("+quote.Universe+")")
@@ -147,6 +147,26 @@ func (g Bot) addQuoteToDB(message MessageData) error {
 		Language: language,
 		Universe: universe,
 	})
+}
+
+func (g Bot) getQuoteOfTheDay(authorID string) (QuoteOfTheDay, error) {
+	userID, err := g.UserDBHandler.GetUserIDFromValueOfKey(g.CurrentAdapter+"ID", authorID)
+	if err != nil {
+		return QuoteOfTheDay{}, err
+	}
+	qotd, err := g.QuoteDBHandler.GetQuoteOfTheDay(userID)
+	if err != nil {
+		return QuoteOfTheDay{}, err
+	}
+	return qotd, nil
+}
+
+func (g Bot) setQuoteOfTheDay(authorID string, quoteOfTheDay QuoteOfTheDay) error {
+	userID, err := g.UserDBHandler.GetUserIDFromValueOfKey(g.CurrentAdapter+"ID", authorID)
+	if err != nil {
+		return err
+	}
+	return g.QuoteDBHandler.SetQuoteOfTheDay(userID, quoteOfTheDay)
 }
 
 // parseCommandString takes a string and parses it as string slice using "" and spaces as seperators

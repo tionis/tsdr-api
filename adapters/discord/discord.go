@@ -60,30 +60,14 @@ func Init(data *data.GlyphData, discordToken string) Bot {
 	}
 
 	bot.discordGlyphBot = &glyph.Bot{
-		QuoteDBHandler: &glyph.QuoteDB{
-			AddQuote:         data.AddQuote,
-			GetRandomQuote:   data.GetRandomQuote,
-			GetQuoteOfTheDay: bot.getDiscordGetQuoteOfTheDay(),
-			SetQuoteOfTheDay: bot.getDiscordSetQuoteOfTheDay(),
-		},
-		UserDBHandler: &glyph.UserDB{
-			GetUserData:                  bot.getDiscordGetUserData(),
-			SetUserData:                  bot.getDiscordSetUserData(),
-			DeleteUserData:               bot.getDiscordDeleteUserData(),
-			GetMatrixUserID:              bot.getDiscordGetMatrixUserID(),
-			DoesMatrixUserIDExist:        data.DoesUserIDExist,
-			AddAuthSession:               data.AddAuthSession,
-			AddAuthSessionWithAdapterAdd: data.AddAuthSessionWithAdapterAdd,
-			AuthenticateSession:          data.AuthenticateSession,
-			DeleteSession:                data.DeleteSession,
-			GetAuthSessions:              data.GetAuthSessions,
-			RegisterNewUser:              data.UserAdd,
-		},
+		QuoteDBHandler:        data.GetQuoteDBHandler(),
+		UserDBHandler:         data.GetUserDBHandler(),
 		SetContext:            bot.getDiscordSetContext(),
 		GetContext:            bot.getDiscordGetContext(),
 		SendMessageToChannel:  bot.getDiscordSendMessage(dg),
 		GetMention:            bot.getDiscordGetMention(),
 		SendMessageViaAdapter: bot.getSendMessageViaAdapter(),
+		SendTokenHandler:      data.GetSendTokenHandler(),
 		CurrentAdapter:        adapterID,
 		Logger:                logger,
 		Prefix:                "/",
@@ -239,75 +223,6 @@ func (b Bot) getDiscordSendMessage(dg *discordgo.Session) func(channelID, messag
 func (b Bot) getDiscordGetMention() func(userID string) (string, error) {
 	return func(userID string) (string, error) {
 		return "<@" + userID + ">", nil
-	}
-}
-
-func (b Bot) getDiscordSetUserData() func(discordUserID, key string, value string) error {
-	return func(discordUserID, key string, value string) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
-		if err != nil {
-			return err
-		}
-		err = b.dataBackend.SetUserData(userID, key, value)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-func (b Bot) getDiscordGetUserData() func(discordUserID, key string) (string, error) {
-	return func(discordUserID, key string) (string, error) {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
-		if err != nil {
-			return "", err
-		}
-		value, err := b.dataBackend.GetUserData(userID, key)
-		if err != nil {
-			b.logger.Errorf("error setting user data: %v", err)
-			return "", err
-		}
-		return value, err
-	}
-}
-
-func (b Bot) getDiscordGetQuoteOfTheDay() func(discordUserID string) (glyph.QuoteOfTheDay, error) {
-	return func(discordUserID string) (glyph.QuoteOfTheDay, error) {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
-		if err != nil {
-			return glyph.QuoteOfTheDay{}, err
-		}
-		qotd, err := b.dataBackend.GetQuoteOfTheDayOfUser(userID)
-		if err != nil {
-			return glyph.QuoteOfTheDay{}, err
-		}
-		return qotd, nil
-	}
-}
-
-func (b Bot) getDiscordSetQuoteOfTheDay() func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
-	return func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
-		if err != nil {
-			return err
-		}
-		return b.dataBackend.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
-	}
-}
-
-func (b Bot) getDiscordGetMatrixUserID() func(discordUserID string) (string, error) {
-	return func(discordUserID string) (string, error) {
-		return b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
-	}
-}
-
-func (b Bot) getDiscordDeleteUserData() func(discordUserID, key string) error {
-	return func(discordUserID, key string) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
-		if err != nil {
-			return err
-		}
-		return b.dataBackend.DeleteUserData(userID, key)
 	}
 }
 

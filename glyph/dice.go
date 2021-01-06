@@ -133,7 +133,7 @@ func (g Bot) simpleRollHelper(message MessageData, tokens []string) bool {
 		}
 		return true
 	case "init":
-		initMod, err := g.UserDBHandler.GetUserData(message.AuthorID, "initmod")
+		initMod, err := g.getUserData(message.AuthorID, "initmod")
 		if err != nil {
 			g.Logger.Error("could not get user data for %v: %v", message.AuthorID, err)
 			g.handleGenericError(message)

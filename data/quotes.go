@@ -10,6 +10,17 @@ import (
 	"github.com/tionis/tsdr-api/glyph"      // This provides glyph specific errors
 )
 
+// GetQuoteDBHandler returns a glyph.QuoteDB object that exposes
+// all functions neeeded to interact with the Quote database
+func (d *GlyphData) GetQuoteDBHandler() *glyph.QuoteDB {
+	return &glyph.QuoteDB{
+		AddQuote:         d.AddQuote,
+		GetRandomQuote:   d.GetRandomQuote,
+		GetQuoteOfTheDay: d.GetQuoteOfTheDayOfUser,
+		SetQuoteOfTheDay: d.SetQuoteOfTheDayOfUser,
+	}
+}
+
 // GetRandomQuote gets a random quote with specified parameters. If they are emtpy strings they are ignored
 func (d *GlyphData) GetRandomQuote(byAuthor, inLanguage, inUniverse string) (glyph.Quote, error) {
 	stmt, err := d.db.Prepare(`SELECT id, quote, author, language, universe FROM quotes WHERE (length($1)=0 OR author=$1) AND (length($2)=0 OR language=$2) AND (length($3)=0 OR universe=$3) ORDER BY RANDOM() LIMIT 1`)

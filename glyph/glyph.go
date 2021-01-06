@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
@@ -15,6 +16,8 @@ import (
 
 // Valid letters for an auth session token
 var letters = []rune("abcdefghijklmnopqrstuvwxyz1234567890")
+
+var onlySeedRandSeqOnce sync.Once
 
 // AuthSessionDelay describes how long a session stays valid
 const AuthSessionDelay = time.Hour
@@ -29,6 +32,14 @@ type MessageData struct {
 	IsCommand        bool
 }
 
+// SendTokenData represents the data associated with a send-token
+type SendTokenData struct {
+	Token      string
+	UserID     string
+	Adapters   []string
+	ValidUntil time.Time
+}
+
 // QuoteDB contains all functions to interface with an Database containing quotes
 type QuoteDB struct {
 	GetRandomQuote   func(byAuthor, inLanguage, inUniverse string) (Quote, error) // GetRandomQuote gets a random quote based on parameters
@@ -39,10 +50,10 @@ type QuoteDB struct {
 
 // UserDB contains all function to interface with an Database holding the user data
 type UserDB struct {
-	SetUserData                  func(userID, key string, value string) error                                 // SetUserData saves data to a specific user by key
-	GetUserData                  func(userID, key string) (string, error)                                     // GetUserData gets data to a specific user by key
-	DeleteUserData               func(userID, key string) error                                               // DeleteUserData deletes user data with a given key
-	GetMatrixUserID              func(userID string) (string, error)                                          // GetMatrixUserID gets the MatrixID from the implementation specific userID
+	SetUserData                  func(matrixUserID, key string, value string) error                           // SetUserData saves data to a specific user by key
+	GetUserData                  func(matrixUserID, key string) (string, error)                               // GetUserData gets data to a specific user by key
+	DeleteUserData               func(matrixUserID, key string) error                                         // DeleteUserData deletes user data with a given key
+	GetUserIDFromValueOfKey      func(key, value string) (string, error)                                      // GetUserIDFromValueOfKey gets the MatrixID from the implementation specific userID (for example, in reality it searchs the userID where key and value match)
 	DoesMatrixUserIDExist        func(matrixUserID string) (bool, error)                                      // DoesMatrixUserIDExist checks if a user with given matrixID is already registered (this is used with a hardcoded transformation from tasadar user to matrix id)
 	AddAuthSession               func(key, value, userID string) (string, error)                              // AddAuthSession adds an auth session with an key and value which will be set in the userdb when the login was successful
 	AddAuthSessionWithAdapterAdd func(adapter, adapterUserID, matrixUserID string) (string, error)            // AddAuthSessionWithAdapterAdd dds an auth session and adapterID, adapter-specific userID and a general matrixUserID. When the auth succeeds the adapter-specific userID will be written to the adapterID+"ID" userdata field and the adapter is added to the adapters userdata field as part of the json array.
@@ -51,6 +62,15 @@ type UserDB struct {
 	DeleteSession                func(authSessionID string) error                                             // DeleteSession deletes the session with given ID
 	GetAuthSessions              func(matrixID string) ([]string, error)                                      // GetAuthSessions return the state of all sessions registered to the user
 	RegisterNewUser              func(matrixID, email string, isAdmin bool, preferredAdapters []string) error // RegisterNewUser add a new user to the database
+}
+
+// SendTokenHandlerFuncs exposes functions to interact with a send-token data store
+type SendTokenHandlerFuncs struct {
+	GetSendTokenByID      func(sendTokenID string) (SendTokenData, error)
+	GetSendTokensByUserID func(userID string) ([]SendTokenData, error)
+	DeleteSendToken       func(token string) error
+	AddSendToken          func(userID, adapters []string, validUntil time.Time) (string, error)
+	UpdateSendToken       func(token SendTokenData) error
 }
 
 // Quote represents a Quote
@@ -81,6 +101,7 @@ type Bot struct {
 	SendMessageViaAdapter func(matrixUserID, message string) error                            // Sends a message to a users favored adapter
 	CurrentAdapter        string                                                              // Specifies the id of the currently used adapter
 	Logger                *logging.Logger                                                     // A Logger implementation to send logs to
+	SendTokenHandler      SendTokenHandlerFuncs
 }
 
 // HandleAll takes a MessageData object and parses it for the glyph bot, calling callback functions as needed
@@ -171,11 +192,11 @@ func (g Bot) handleNonCommandMessage(message MessageData) {
 		g.handleAddQuoteUniverse(message)
 		g.handleAddQuoteFinished(message)
 	case "registerIDRequired":
-		// TODO get id, transform it to a valid one and save it then ask if they want to add an email to the account
+		g.handleRegisterIDRequired(message)
 	case "registerEmailWanted":
-		// TODO get answer and parse it, if (yes) set context to below, if not set finish register user process and
+		g.handleRegisterEmailWanted(message)
 	case "registerEmailRequired":
-		// TODO check if mail is valid, then finish register user process
+		g.handleRegisterEmailRequired(message)
 	default: // If the context is set to something unknown reset the context and print a message that the command is not known
 		g.SetContext(message.AuthorID, message.ChannelID, "ctx", "", time.Second)
 		g.handleInvalidCommand(message)
@@ -245,7 +266,7 @@ func (g Bot) handleAuth(message MessageData, tokens []string) {
 		g.sendMessageDefault(message, "Authenticate to the bot. Use this command with an Auth-ID to authorize a login.")
 	} else {
 		authID := tokens[1]
-		matrixID, err := g.UserDBHandler.GetMatrixUserID(message.AuthorID)
+		matrixID, err := g.getMatrixUserID(message.AuthorID)
 		if err != nil {
 			g.Logger.Warning("error getting matrixID from userID: ", err)
 			g.handleGenericError(message)
@@ -294,32 +315,98 @@ func (g Bot) handleUser(message MessageData, tokens []string) {
 						g.handleGenericError(message)
 					}
 				}
-				g.sendMessageDefault(message, "Login process started. To login please write me following command on platform on which you are logged in.\n/auth "+authCode)
+				g.sendMessageDefault(message, "Login process started. To login please write me following command on a platform on which you are logged in:\n/auth "+authCode)
 			}
 		case "logout":
-			// TODO delete adapterID+"ID" from userdata and update "adapters" userdata to remove adapterID from json array
+			if len(tokens) < 3 {
+				userID, err := g.getMatrixUserID(message.AuthorID)
+				if err != nil {
+					if err == ErrNoMappingFound {
+						g.sendMessageDefault(message, "You are not logged in!")
+					} else {
+						g.Logger.Error("error getting matrix ID: ", err)
+						g.handleGenericError(message)
+					}
+				}
+				err = g.UserDBHandler.DeauthenticateSession(userID, g.CurrentAdapter)
+				if err != nil {
+					g.handleGenericError(message)
+					g.Logger.Error("error deauthenticating session: ", err)
+				} else {
+					g.sendMessageDefault(message, "You were logged out!")
+				}
+			} else {
+				userID, err := g.getMatrixUserID(message.AuthorID)
+				if err != nil {
+					if err == ErrNoMappingFound {
+						g.sendMessageDefault(message, "You are not logged in!")
+					} else {
+						g.Logger.Error("error getting matrix ID: ", err)
+						g.handleGenericError(message)
+					}
+				}
+				err = g.UserDBHandler.DeauthenticateSession(userID, tokens[2])
+				if err != nil {
+					g.handleGenericError(message)
+					g.Logger.Error("error deauthenticating session: ", err)
+				} else {
+					g.sendMessageDefault(message, "You were logged out!")
+				}
+			}
 		case "register":
 			g.SetContext(message.AuthorID, message.ChannelID, "ctx", "registerIDRequired", standardContextDelay)
 			g.sendMessageDefault(message, "The register process was started. To cancel it write me /cancel.\nPlease specify your desired username (or use your existing matrixID if you have one.)")
+		case "set-adapters":
+			// TODO
+			g.handleGenericError(message)
 		case "send-token":
 			if len(tokens) < 3 {
 				g.sendMessageDefault(message, "Manage your send-tokens. Currently available:\n - /user send-token generate - Generate a new send token\n - /user send-token list - List all your current send-tokens\n - /user send-token delete {send-token} - Delete specified send-token\n - /user send-token help - Get more info about send-tokens")
 			} else {
 				switch tokens[2] {
 				case "generate", "new":
-					// TODO generate a new UUID-V4 token and save it to db. Also output it to user
-				case "list":
-					// TODO list all tokens and when they were last used
+					// TODO send-token
+				case "list": // ToDo in the future: show when token was last used
+					userID, err := g.getMatrixUserID(message.AuthorID)
+					if err != nil {
+						g.Logger.Warning("error getting userID for adapter %v and adapterID %v: %v", g.CurrentAdapter, message.AuthorID, err)
+						g.handleGenericError(message)
+						return
+					}
+					tokens, err := g.SendTokenHandler.GetSendTokensByUserID(userID)
+					if err != nil {
+						g.Logger.Warning("error getting send tokens userID %v: %v", userID, err)
+						g.handleGenericError(message)
+						return
+					}
+					var out strings.Builder
+					out.WriteString("Current send-tokens:")
+					for _, item := range tokens {
+						adaptersJSON, err := json.Marshal(item.Adapters)
+						if err != nil {
+							g.Logger.Warning("error marshalling adapters for userID %v: %v", userID, err)
+							g.handleGenericError(message)
+							return
+						}
+						out.WriteString(item.Token + " - " + string(adaptersJSON))
+					}
+					g.sendMessageDefault(message, out.String())
 				case "delete":
 					// TODO search in list for token with UID and delete it.
+				case "changeAdapters":
+					// TODO send-token
 				default:
-					g.sendMessageDefault(message, "Unknown Command! Please chek your spelling!")
+					g.sendMessageDefault(message, "Unknown Command, please chek your spelling!")
 				}
 			}
 		default:
 			g.sendMessageDefault(message, "Unknown Command! Please chek your spelling!")
 		}
 	}
+}
+
+func (g Bot) getMatrixUserID(adapterUserID string) (string, error) {
+	return g.UserDBHandler.GetUserIDFromValueOfKey(g.CurrentAdapter+"ID", adapterUserID)
 }
 
 func (g Bot) handleConfig(message MessageData, tokens []string) {
@@ -339,7 +426,7 @@ func (g Bot) handleConfig(message MessageData, tokens []string) {
 
 func (g Bot) configInitmodHandler(message MessageData, tokens []string) {
 	if len(tokens) < 3 {
-		g.UserDBHandler.DeleteUserData(message.AuthorID, "initmod")
+		g.deleteUserData(message.AuthorID, "initmod")
 		g.sendMessageDefault(message, "Your init modifier was reset.")
 
 	} else if len(tokens) == 3 {
@@ -353,7 +440,7 @@ func (g Bot) configInitmodHandler(message MessageData, tokens []string) {
 				g.handleGenericError(message)
 				return
 			}
-			err = g.UserDBHandler.SetUserData(message.AuthorID, "initmod", string(jsonBytes))
+			err = g.setUserData(message.AuthorID, "initmod", string(jsonBytes))
 			if err != nil {
 				if err == ErrNoMappingFound {
 					g.handleNoMappingFound(message)
@@ -380,9 +467,21 @@ func (g Bot) configInitmodHandler(message MessageData, tokens []string) {
 			g.handleGenericError(message)
 			return
 		}
-		g.UserDBHandler.SetUserData(message.AuthorID, "initmod", string(jsonBytes))
+		g.setUserData(message.AuthorID, "initmod", string(jsonBytes))
 		g.sendMessageDefault(message, "Your init modifier was set to following values: ["+string(jsonBytes)+"].")
 	}
+}
+
+func (g Bot) handleRegisterIDRequired(message MessageData) {
+	// TODO get id, transform it to a valid one and save it then ask if they want to add an email to the account
+}
+
+func (g Bot) handleRegisterEmailWanted(message MessageData) {
+	// TODO get answer and parse it, if (yes) set context to below, if not set finish register user process and
+}
+
+func (g Bot) handleRegisterEmailRequired(message MessageData) {
+	// TODO check if mail is valid, then finish register user process
 }
 
 func (g Bot) handleGenericError(message MessageData) {
@@ -393,6 +492,38 @@ func (g Bot) handleNoMappingFound(message MessageData) {
 	sendString := "This account is not connected to an valid matrix or tasadar user id.\nUse the " + g.Prefix +
 		"config uid YOUR_ID option to set it or use the " + g.Prefix + "uid command to get more information"
 	g.sendMessageDefault(message, sendString)
+}
+
+func (g Bot) getUserData(adapterUserID, key string) (string, error) {
+	userID, err := g.UserDBHandler.GetUserIDFromValueOfKey(g.CurrentAdapter+"ID", adapterUserID)
+	if err != nil {
+		return "", err
+	}
+	value, err := g.UserDBHandler.GetUserData(userID, key)
+	if err != nil {
+		return "", err
+	}
+	return value, nil
+}
+
+func (g Bot) setUserData(adapterUserID, key, value string) error {
+	userID, err := g.UserDBHandler.GetUserIDFromValueOfKey(g.CurrentAdapter+"ID", adapterUserID)
+	if err != nil {
+		return err
+	}
+	err = g.UserDBHandler.SetUserData(userID, key, value)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (g Bot) deleteUserData(adapterUserID, key string) error {
+	userID, err := g.UserDBHandler.GetUserIDFromValueOfKey(g.CurrentAdapter+"ID", adapterUserID)
+	if err != nil {
+		return err
+	}
+	return g.UserDBHandler.DeleteUserData(userID, key)
 }
 
 func (g Bot) handleInvalidCommand(message MessageData) {
@@ -436,6 +567,7 @@ func GenerateAuthSessionID() string {
 }
 
 func randSeq(n int) string {
+	onlySeedRandSeqOnce.Do(func() { rand.Seed(time.Now().Unix()) })
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letters[rand.Intn(len(letters))]

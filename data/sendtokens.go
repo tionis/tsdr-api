@@ -10,70 +10,74 @@ import (
 	"github.com/tionis/tsdr-api/glyph"
 )
 
-// SendTokenData represents the data associated with a send-token
-type SendTokenData struct {
-	Token      string
-	UserID     string
-	Adapters   []string
-	ValidUntil time.Time
+// GetSendTokenHandler returns a SendTokenHandlerFuncs object that implements
+// the function the glyph bot needs to interact with the SendToken DB
+func (d *GlyphData) GetSendTokenHandler() glyph.SendTokenHandlerFuncs {
+	return glyph.SendTokenHandlerFuncs{
+		GetSendTokenByID:      d.GetSendTokenByID,
+		GetSendTokensByUserID: d.GetSendTokensByUserID,
+		DeleteSendToken:       d.DeleteSendToken,
+		AddSendToken:          d.AddSendToken,
+		UpdateSendToken:       d.UpdateSendToken,
+	}
 }
 
 // GetSendTokenByID takes a sendTokenID and returns all data regarding the token if found
-func (d *GlyphData) GetSendTokenByID(sendTokenID string) (SendTokenData, error) {
+func (d *GlyphData) GetSendTokenByID(sendTokenID string) (glyph.SendTokenData, error) {
 	stmt, err := d.db.Prepare(`SELECT userID, adapters, validUntil FROM sendtokens WHERE sendToken = $1`)
 	if err != nil {
-		return SendTokenData{}, err
+		return glyph.SendTokenData{}, err
 	}
 	rows, err := stmt.Query(sendTokenID)
 	if err != nil {
-		return SendTokenData{}, err
+		return glyph.SendTokenData{}, err
 	}
 	var userID, adapters string
 	var validUntil time.Time
 	err = rows.Scan(&userID, &adapters, &validUntil)
 	if err != nil {
-		return SendTokenData{}, err
+		return glyph.SendTokenData{}, err
 	}
 	var adaptersArray []string
 	err = json.Unmarshal([]byte(adapters), &adaptersArray)
 	if err != nil {
-		return SendTokenData{}, err
+		return glyph.SendTokenData{}, err
 	}
 	if validUntil.Before(time.Now()) {
 		go d.DeleteSendToken(sendTokenID)
-		return SendTokenData{}, glyph.ErrSendTokenInvalid
+		return glyph.SendTokenData{}, glyph.ErrSendTokenInvalid
 	}
-	return SendTokenData{sendTokenID, userID, adaptersArray, validUntil}, nil
+	return glyph.SendTokenData{Token: sendTokenID, UserID: userID, Adapters: adaptersArray, ValidUntil: validUntil}, nil
 }
 
 // GetSendTokensByUserID takes an userID and return all data to all tokens registered to this user if found
-func (d *GlyphData) GetSendTokensByUserID(userID string) ([]SendTokenData, error) {
+func (d *GlyphData) GetSendTokensByUserID(userID string) ([]glyph.SendTokenData, error) {
 	stmt, err := d.db.Prepare(`SELECT sendToken, adapters, validUntil FROM sendtokens WHERE userID = $1`)
 	if err != nil {
-		return []SendTokenData{}, err
+		return []glyph.SendTokenData{}, err
 	}
 	rows, err := stmt.Query(userID)
 	if err != nil {
-		return []SendTokenData{}, err
+		return []glyph.SendTokenData{}, err
 	}
 	var sendToken, adapters string
 	var validUntil time.Time
-	var sendTokens []SendTokenData
+	var sendTokens []glyph.SendTokenData
 	for rows.Next() {
 		err = rows.Scan(&sendToken, &adapters, &validUntil)
 		if err != nil {
-			return []SendTokenData{}, err
+			return []glyph.SendTokenData{}, err
 		}
 		var adaptersArray []string
 		err = json.Unmarshal([]byte(adapters), &adaptersArray)
 		if err != nil {
-			return []SendTokenData{}, err
+			return []glyph.SendTokenData{}, err
 		}
 		if validUntil.Before(time.Now()) {
 			go d.DeleteSendToken(sendToken)
 			continue
 		}
-		sendTokens = append(sendTokens, SendTokenData{sendToken, userID, adaptersArray, validUntil})
+		sendTokens = append(sendTokens, glyph.SendTokenData{Token: sendToken, UserID: userID, Adapters: adaptersArray, ValidUntil: validUntil})
 	}
 	return sendTokens, nil
 }
@@ -108,8 +112,8 @@ func (d *GlyphData) AddSendToken(userID, adapters []string, validUntil time.Time
 	return token, stmt.QueryRow(token, userID, adaptersString, validUntil).Err()
 }
 
-// UpdateSendToken takes SendTokenData and updates the database so it is stored, overwriting existing ones
-func (d *GlyphData) UpdateSendToken(token SendTokenData) error {
+// UpdateSendToken takes glyph.SendTokenData and updates the database so it is stored, overwriting existing ones
+func (d *GlyphData) UpdateSendToken(token glyph.SendTokenData) error {
 	stmt, err := d.db.Prepare(`INSERT INTO sendtokens (sendToken, userID, adapters, validUntil) VALUES ($1, $2, $3) ON CONFLICT (sendToken) DO UPDATE SET userID = $2, adapters = $3, validUntil = $4 ;`)
 	if err != nil {
 		return err

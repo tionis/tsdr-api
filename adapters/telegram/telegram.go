@@ -50,30 +50,14 @@ func Init(data *data.GlyphData, telegramToken string) Bot {
 	}
 
 	out.telegramGlyphBot = &glyph.Bot{
-		QuoteDBHandler: &glyph.QuoteDB{
-			AddQuote:         data.AddQuote,
-			GetRandomQuote:   data.GetRandomQuote,
-			GetQuoteOfTheDay: out.getTelegramGetQuoteOfTheDay(),
-			SetQuoteOfTheDay: out.getTelegramSetQuoteOfTheDay(),
-		},
-		UserDBHandler: &glyph.UserDB{
-			GetUserData:                  out.getTelegramGetUserData(),
-			SetUserData:                  out.getTelegramSetUserData(),
-			DeleteUserData:               out.getTelegramDeleteUserData(),
-			GetMatrixUserID:              out.getTelegramGetMatrixUserID(),
-			DoesMatrixUserIDExist:        data.DoesUserIDExist,
-			AddAuthSession:               data.AddAuthSession,
-			AddAuthSessionWithAdapterAdd: data.AddAuthSessionWithAdapterAdd,
-			AuthenticateSession:          data.AuthenticateSession,
-			DeleteSession:                data.DeleteSession,
-			GetAuthSessions:              data.GetAuthSessions,
-			RegisterNewUser:              data.UserAdd,
-		},
+		QuoteDBHandler:        data.GetQuoteDBHandler(),
+		UserDBHandler:         data.GetUserDBHandler(),
 		SetContext:            out.getTelegramSetContext(),
 		GetContext:            out.getTelegramGetContext(),
 		SendMessageToChannel:  out.getTelegramSendMessage(),
 		GetMention:            out.getTelegramGetMention(),
 		SendMessageViaAdapter: out.getSendMessageViaAdapter(),
+		SendTokenHandler:      data.GetSendTokenHandler(),
 		CurrentAdapter:        adapterID,
 		Logger:                out.logger,
 		Prefix:                "/",
@@ -156,7 +140,7 @@ func (b Bot) updateChatIDFromTelegramID(telegramID string, chatID int64) {
 		b.dataBackend.SetTmp("glyph", "tg:"+telegramID+"|DM-ChatID", fmt.Sprint(chatID), 24*time.Hour)
 		matrixID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramID)
 		if err != nil {
-			b.logger.Debugf("Could not get matrix id for telegram user %v: %v", telegramID, err)
+			//b.logger.Debugf("Could not get matrix id for telegram user %v: %v", telegramID, err)
 			return
 		}
 		err = b.dataBackend.SetUserData(matrixID, "telegram-DM-ChatID", fmt.Sprint(chatID))
@@ -200,33 +184,6 @@ func (b Bot) getTelegramSendMessage() func(channelID, message string) error {
 	}
 }
 
-func (b Bot) getTelegramSetUserData() func(telegramUserID, key string, value string) error {
-	return func(telegramUserID, key string, value string) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
-		if err != nil {
-			return err
-		}
-		err = b.dataBackend.SetUserData(userID, key, value)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-func (b Bot) getTelegramGetUserData() func(telegramUserID, key string) (string, error) {
-	return func(telegramUserID, key string) (string, error) {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
-		if err != nil {
-			return "", err
-		}
-		value, err := b.dataBackend.GetUserData(userID, key)
-		if err != nil {
-			return "", err
-		}
-		return value, nil
-	}
-}
 func (b Bot) getTelegramSetContext() func(userID, channelID, key, value string, ttl time.Duration) error {
 	return func(userID, channelID, key, value string, ttl time.Duration) error {
 		b.dataBackend.SetTmp("glyph:tg:"+channelID+":"+userID, key, value, ttl)
@@ -247,46 +204,6 @@ func (b Bot) getTelegramGetMention() func(userID string) (string, error) {
 			friendlyName = userID
 		}
 		return "[" + friendlyName + "](tg://user?id=" + userID + ")", nil
-	}
-}
-
-func (b Bot) getTelegramGetQuoteOfTheDay() func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
-	return func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
-		if err != nil {
-			return glyph.QuoteOfTheDay{}, err
-		}
-		qotd, err := b.dataBackend.GetQuoteOfTheDayOfUser(userID)
-		if err != nil {
-			return glyph.QuoteOfTheDay{}, err
-		}
-		return qotd, nil
-	}
-}
-
-func (b Bot) getTelegramSetQuoteOfTheDay() func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
-	return func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
-		if err != nil {
-			return err
-		}
-		return b.dataBackend.SetQuoteOfTheDayOfUser(userID, quoteOfTheDay)
-	}
-}
-
-func (b Bot) getTelegramGetMatrixUserID() func(telegramUserID string) (string, error) {
-	return func(telegramUserID string) (string, error) {
-		return b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
-	}
-}
-
-func (b Bot) getTelegramDeleteUserData() func(telegramUserID, key string) error {
-	return func(telegramUserID, key string) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
-		if err != nil {
-			return err
-		}
-		return b.dataBackend.DeleteUserData(userID, key)
 	}
 }
 
