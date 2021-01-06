@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"              // This provides the web framework
 	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
 	"github.com/keybase/go-logging"         // This unifies logging across the application
+	"github.com/tionis/tsdr-api/data"
 )
 
 // This map contains the data for the switch enabling virtual host integration
@@ -15,16 +16,17 @@ type hostSwitch map[string]http.Handler
 
 // Server represents a web server configutaion
 type Server struct {
-	logger     *logging.Logger
-	apiRouter  *gin.Engine
-	corsRouter *gin.Engine
-	hs         hostSwitch
-	port       string
+	logger      *logging.Logger
+	apiRouter   *gin.Engine
+	corsRouter  *gin.Engine
+	hs          hostSwitch
+	port        string
+	dataBackend *data.GlyphData
 }
 
 // Init initializes the web server and returns a Server that can be started
-func Init(isProduction bool, port string) *Server {
-	s := Server{logging.MustGetLogger("web"), nil, nil, make(hostSwitch), port}
+func Init(isProduction bool, port string, data *data.GlyphData) *Server {
+	s := Server{logging.MustGetLogger("web"), nil, nil, make(hostSwitch), port, data}
 
 	s.apiRouter = gin.Default()
 	s.apiRouter.Use(gin.Recovery())

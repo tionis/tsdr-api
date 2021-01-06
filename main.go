@@ -114,7 +114,7 @@ func main() {
 	go matrix.Init(dataBackend, matrixHomerServer, matrixUserName, matrixPassword).Start(stopSignals[2], syncGroup)
 
 	// Start WebServer - this is a blocking operation
-	web.Init(isProduction, port).Start(stopSignals[3], syncGroup)
+	web.Init(isProduction, port, dataBackend).Start(stopSignals[3], syncGroup)
 
 	// Wait until all goroutines have stopped
 	syncGroup.Wait()

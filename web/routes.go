@@ -20,11 +20,10 @@ var apiLog = logging.MustGetLogger("API")
     Groups string `json:"groups,omitempty"`
 }*/
 
-/*type glyphDiscordMsgAPIObject struct {
-	UserID    string `form:"channelid" json:"channelid" binding:"required"`
-	Message   string `form:"message" json:"message" binding:"required"`
-	Token     string `form:"token" json:"token" binding:"required"`
-}*/
+type glyphMsgAPIObject struct {
+	Message string `form:"message" json:"message" binding:"required"`
+	Token   string `form:"token" json:"token" binding:"required"`
+}
 
 func (s *Server) apiRoutes() {
 	// Default Stuff
@@ -49,20 +48,21 @@ func (s *Server) apiRoutes() {
 	s.apiRouter.GET("/mensa/week", retFoodWeek)
 
 	// Glyph Communication API
-	//router.POST("/glyph/message/send", glyphMessageSendHandler)
+	s.apiRouter.POST("/glyph/send", s.glyphMessageSendHandler)
 }
 
-/*func glyphMessageSendHandler(c *gin.Context) {
-	var messageData glyphDiscordMsgAPIObject
+func (s *Server) glyphMessageSendHandler(c *gin.Context) {
+	var messageData glyphMsgAPIObject
 	err := c.Bind(messageData) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
 		apiLog.Error("Error while trying to bind glyph discord message:", err)
 		c.String(400, "Error in your request")
 		return
 	}
-	glyphSend <- glyphDiscordMsgObject{messageData.ChannelID, messageData.Message}
+	// TODO
+	// get preferred adapters and userID from data and then get adapter chans from data and pipe the message into them
 	c.String(200, "Ok")
-}*/
+}
 
 // handle test case
 func httpecho(c *gin.Context) {

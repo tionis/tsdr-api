@@ -39,16 +39,17 @@ type QuoteDB struct {
 
 // UserDB contains all function to interface with an Database holding the user data
 type UserDB struct {
-	SetUserData           func(userID, key string, value string) error                                 // SetUserData saves data to a specific user by key
-	GetUserData           func(userID, key string) (string, error)                                     // GetUserData gets data to a specific user by key
-	DeleteUserData        func(userID, key string) error                                               // DeleteUserData deletes user data with a given key
-	GetMatrixUserID       func(userID string) (string, error)                                          // GetMatrixUserID gets the MatrixID from the implementation specific userID
-	DoesMatrixUserIDExist func(matrixUserID string) (bool, error)                                      // DoesMatrixUserIDExist checks if a user with given matrixID is already registered (this is used with a hardcoded transformation from tasadar user to matrix id)
-	AddAuthSession        func(key, value, userID string) (string, error)                              // AddAuthSession adds an auth session with an key and value which will be set in the userdb when the login was successful
-	AuthenticateSession   func(matrixUserID, authSessionID string) error                               // AuthenticateSession sets the session with given ID as authenticated
-	DeleteSession         func(authSessionID string) error                                             // DeleteSession deletes the session with given ID
-	GetAuthSessions       func(matrixID string) ([]string, error)                                      // GetAuthSessions return the state of all sessions registered to the user
-	RegisterNewUser       func(matrixID, email string, isAdmin bool, preferredAdapters []string) error // RegisterNewUser add a new user to the database
+	SetUserData                  func(userID, key string, value string) error                                 // SetUserData saves data to a specific user by key
+	GetUserData                  func(userID, key string) (string, error)                                     // GetUserData gets data to a specific user by key
+	DeleteUserData               func(userID, key string) error                                               // DeleteUserData deletes user data with a given key
+	GetMatrixUserID              func(userID string) (string, error)                                          // GetMatrixUserID gets the MatrixID from the implementation specific userID
+	DoesMatrixUserIDExist        func(matrixUserID string) (bool, error)                                      // DoesMatrixUserIDExist checks if a user with given matrixID is already registered (this is used with a hardcoded transformation from tasadar user to matrix id)
+	AddAuthSession               func(key, value, userID string) (string, error)                              // AddAuthSession adds an auth session with an key and value which will be set in the userdb when the login was successful
+	AddAuthSessionWithAdapterAdd func(adapter, adapterUserID, matrixUserID string) (string, error)            // AddAuthSessionWithAdapterAdd dds an auth session and adapterID, adapter-specific userID and a general matrixUserID. When the auth succeeds the adapter-specific userID will be written to the adapterID+"ID" userdata field and the adapter is added to the adapters userdata field as part of the json array.
+	AuthenticateSession          func(matrixUserID, authSessionID string) error                               // AuthenticateSession sets the session with given ID as authenticated
+	DeleteSession                func(authSessionID string) error                                             // DeleteSession deletes the session with given ID
+	GetAuthSessions              func(matrixID string) ([]string, error)                                      // GetAuthSessions return the state of all sessions registered to the user
+	RegisterNewUser              func(matrixID, email string, isAdmin bool, preferredAdapters []string) error // RegisterNewUser add a new user to the database
 }
 
 // Quote represents a Quote
@@ -286,7 +287,7 @@ func (g Bot) handleUser(message MessageData, tokens []string) {
 				}
 				authCode := GenerateAuthSessionID()
 				if doesExist {
-					authCode, err = g.UserDBHandler.AddAuthSession(g.CurrentAdapter, message.AuthorID, userID)
+					authCode, err = g.UserDBHandler.AddAuthSessionWithAdapterAdd(g.CurrentAdapter, message.AuthorID, userID)
 					if err != nil {
 						g.Logger.Warning("could not add auth session: ", err)
 						g.handleGenericError(message)
@@ -294,6 +295,8 @@ func (g Bot) handleUser(message MessageData, tokens []string) {
 				}
 				g.sendMessageDefault(message, "Login process started. To login please write me following command on platform on which you are logged in.\n/auth "+authCode)
 			}
+		case "logout":
+			// TODO delete adapterID+"ID" from userdata and update "adapters" userdata to remove adapterID from json array
 		case "register":
 			g.SetContext(message.AuthorID, message.ChannelID, "ctx", "registerIDRequired", standardContextDelay)
 			g.sendMessageDefault(message, "The register process was started. To cancel it write me /cancel.\nPlease specify your desired username (or use your existing matrixID if you have one.)")

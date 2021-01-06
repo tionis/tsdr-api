@@ -22,3 +22,9 @@ var ErrMatrixIDInvalid = errors.New("matrix id not valid")
 
 // ErrAdapterNotRegistered is thrown if the given adapter is not currently registered in registry
 var ErrAdapterNotRegistered = errors.New("adapter not registered")
+
+// ErrSendTokenInvalid is thrown if the given or searched token is invalid
+var ErrSendTokenInvalid = errors.New("send token not valid")
+
+// ErrNoSuchToken is thrown if the given or searched token was not found
+var ErrNoSuchToken = errors.New("no send token found")

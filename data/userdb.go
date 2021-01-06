@@ -3,6 +3,7 @@ package data
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"time"
 
 	"github.com/tionis/tsdr-api/glyph" // This provides glyph-specific errors
@@ -206,6 +207,15 @@ func (d *GlyphData) AddAuthSession(key, value, matrixUserID string) (string, err
 		i++
 	}
 	return authToken, err
+}
+
+// AddAuthSessionWithAdapterAdd dds an auth session and adapterID, adapter-specific userID and
+// a general matrixUserID. When the auth succeeds the adapter-specific userID will be written
+// to the adapterID+"ID" userdata field and the adapter is added to the adapters userdata field
+// as part of the json array
+func (d *GlyphData) AddAuthSessionWithAdapterAdd(adapter, adapterID, matrixUserID string) (string, error) {
+	//TODO
+	return "", errors.New("not implemented yet")
 }
 
 // AuthenticateSession sets the session with given ID as authenticated
