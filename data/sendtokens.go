@@ -3,7 +3,6 @@ package data
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"strings"
 	"time"
 
@@ -13,10 +12,10 @@ import (
 
 // SendTokenData represents the data associated with a send-token
 type SendTokenData struct {
-	token      string
-	userID     string
-	adapters   []string
-	validUntil time.Time
+	Token      string
+	UserID     string
+	Adapters   []string
+	ValidUntil time.Time
 }
 
 // GetSendTokenByID takes a sendTokenID and returns all data regarding the token if found
@@ -111,13 +110,15 @@ func (d *GlyphData) AddSendToken(userID, adapters []string, validUntil time.Time
 
 // UpdateSendToken takes SendTokenData and updates the database so it is stored, overwriting existing ones
 func (d *GlyphData) UpdateSendToken(token SendTokenData) error {
-	return errors.New("not implemented yet") // TODO
-
-	stmt, err := d.db.Prepare(`INSERT INTO userdata (userID, key, value) VALUES ($1, $2, $3) ON CONFLICT (userID) DO UPDATE SET value = $3;`)
+	stmt, err := d.db.Prepare(`INSERT INTO sendtokens (sendToken, userID, adapters, validUntil) VALUES ($1, $2, $3) ON CONFLICT (sendToken) DO UPDATE SET userID = $2, adapters = $3, validUntil = $4 ;`)
 	if err != nil {
 		return err
 	}
-	row := stmt.QueryRow(userID, key, value)
+	adapterString, err := json.Marshal(token.Adapters)
+	if err != nil {
+		return err
+	}
+	row := stmt.QueryRow(token.Token, token.UserID, adapterString, token.ValidUntil)
 	err = row.Err()
 	if err != nil {
 		return err
@@ -125,6 +126,7 @@ func (d *GlyphData) UpdateSendToken(token SendTokenData) error {
 	return nil
 }
 
+// genereateSendToken returns a generated randomly unique token to use for send-tokens
 func generateSendToken() string {
 	return strings.ReplaceAll(uuid.New().String(), "-", "")
 }

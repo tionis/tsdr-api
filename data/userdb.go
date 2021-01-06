@@ -3,7 +3,6 @@ package data
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/tionis/tsdr-api/glyph" // This provides glyph-specific errors
@@ -192,9 +191,22 @@ func (d *GlyphData) DoesUserIDExist(matrixUserID string) (bool, error) {
 // AddAuthSession adds an auth session with an authWorker that is executed when the session is authenticated.
 // The functions returns an error and the ID of the auth session
 func (d *GlyphData) AddAuthSession(key, value, matrixUserID string) (string, error) {
+	return d.authSessionAddGeneral(key, value, matrixUserID, 0)
+}
+
+// AddAuthSessionWithAdapterAdd dds an auth session and adapterID, adapter-specific userID and
+// a general matrixUserID. When the auth succeeds the adapter-specific userID will be written
+// to the adapterID+"ID" userdata field and the adapter is added to the adapters userdata field
+// as part of the json array
+func (d *GlyphData) AddAuthSessionWithAdapterAdd(adapter, adapterID, matrixUserID string) (string, error) {
+	return d.authSessionAddGeneral(adapter, adapterID, matrixUserID, 1)
+}
+
+// authSessionAddGeneral is a general abstraction above the insert into authSession statement
+func (d *GlyphData) authSessionAddGeneral(key, value, userID string, mode int) (string, error) {
 	authToken := ""
 	validUntil := time.Now().Add(glyph.AuthSessionDelay)
-	stmt, err := d.db.Prepare(`INSERT INTO authsessions (authToken, userID, key, value, validUntil) VALUES ($1, $2, $3, $4, $5)`)
+	stmt, err := d.db.Prepare(`INSERT INTO authsessions (authToken, userID, key, value, validUntil, mode) VALUES ($1, $2, $3, $4, $5, $6)`)
 	if err != nil {
 		return authToken, err
 	}
@@ -203,25 +215,16 @@ func (d *GlyphData) AddAuthSession(key, value, matrixUserID string) (string, err
 		//var res sql.Result
 		// Try again 5 times on error then return it
 		authToken := glyph.GenerateAuthSessionID()
-		_, err = stmt.Exec(authToken, matrixUserID, key, value, validUntil)
+		_, err = stmt.Exec(authToken, userID, key, value, validUntil, mode)
 		i++
 	}
 	return authToken, err
 }
 
-// AddAuthSessionWithAdapterAdd dds an auth session and adapterID, adapter-specific userID and
-// a general matrixUserID. When the auth succeeds the adapter-specific userID will be written
-// to the adapterID+"ID" userdata field and the adapter is added to the adapters userdata field
-// as part of the json array
-func (d *GlyphData) AddAuthSessionWithAdapterAdd(adapter, adapterID, matrixUserID string) (string, error) {
-	//TODO
-	return "", errors.New("not implemented yet")
-}
-
 // AuthenticateSession sets the session with given ID as authenticated
 func (d *GlyphData) AuthenticateSession(matrixUserID, authToken string) error {
 	// First get the values to set
-	stmt, err := d.db.Prepare(`SELECT key, value, validUntil FROM authsessions WHERE userID = $1 AND authToken = $2`)
+	stmt, err := d.db.Prepare(`SELECT key, value, validUntil, mode FROM authsessions WHERE userID = $1 AND authToken = $2`)
 	if err != nil {
 		return nil
 	}
@@ -233,17 +236,44 @@ func (d *GlyphData) AuthenticateSession(matrixUserID, authToken string) error {
 		return nil
 	}
 	var key, value string
+	var mode int
 	var validUntil time.Time
-	rows.Scan(&key, &value, &validUntil)
+	rows.Scan(&key, &value, &validUntil, &mode)
 	if validUntil.Before(time.Now()) {
 		go d.DeleteSession(authToken)
 		return glyph.ErrNoSuchSession
 	}
-	err = d.SetUserData(matrixUserID, key, value)
-	if err != nil {
-		return err
+	switch mode {
+	case 0:
+		err = d.SetUserData(matrixUserID, key, value)
+		if err != nil {
+			return err
+		}
+		go d.DeleteSession(authToken)
+	case 1:
+		// Add adapter specific user ID to User Data
+		err = d.SetUserData(matrixUserID, key+"ID", value)
+		if err != nil {
+			return err
+		}
+		go d.DeleteSession(authToken)
+		// Add adapter to list of available adapters by reading, converting, appending, converting and writing
+		value, err := d.GetUserData(matrixUserID, "adapters")
+		if err != nil {
+			return err
+		}
+		var adapters []string
+		err = json.Unmarshal([]byte(value), &adapters)
+		if err != nil {
+			return err
+		}
+		adapters = append(adapters, key)
+		adapterJSON, err := json.Marshal(adapters)
+		if err != nil {
+			return err
+		}
+		return d.SetUserData(matrixUserID, "adapters", string(adapterJSON))
 	}
-	go d.DeleteSession(authToken)
 	return nil
 }
 

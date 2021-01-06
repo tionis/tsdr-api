@@ -258,7 +258,7 @@ func (g Bot) handleAuth(message MessageData, tokens []string) {
 			g.sendMessageDefault(message, "Auth Session "+authID+" was authenticated!")
 		default: // Another error occurred
 			g.Logger.Warningf("error authenticating %v with %v: %v", matrixID, authID, err)
-			g.handleGenericError(message)
+			g.sendMessageDefault(message, "There was an internal error, please restart the authentication process on the platform you wanted to authenticate at.")
 			return
 		}
 	}

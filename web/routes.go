@@ -7,9 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"                          // This provides the web framework
-	_ "github.com/heroku/x/hmetrics/onload"             // Heroku advanced go metrics
-	"github.com/keybase/go-logging"                     // This unifies logging across components of the application
+	"github.com/gin-gonic/gin"              // This provides the web framework
+	_ "github.com/heroku/x/hmetrics/onload" // Heroku advanced go metrics
+	"github.com/keybase/go-logging"         // This unifies logging across components of the application
+	"github.com/tionis/tsdr-api/data"
 	UniPassauBot "github.com/tionis/uni-passau-bot/api" // This provides logic to get the current food of the uni passau
 )
 
@@ -55,13 +56,24 @@ func (s *Server) glyphMessageSendHandler(c *gin.Context) {
 	var messageData glyphMsgAPIObject
 	err := c.Bind(messageData) // This will infer what binder to use depending on the content-type header.
 	if err != nil {
-		apiLog.Error("Error while trying to bind glyph discord message:", err)
-		c.String(400, "Error in your request")
+		apiLog.Error("Error while trying to bind glyph discord message: ", err)
+		c.JSON(400, err)
 		return
 	}
-	// TODO
-	// get preferred adapters and userID from data and then get adapter chans from data and pipe the message into them
-	c.String(200, "Ok")
+	tokenData, err := s.dataBackend.GetSendTokenByID(messageData.Token)
+	if err != nil {
+		c.JSON(500, err)
+		return
+	}
+	for _, item := range tokenData.Adapters {
+		adapterChannel, err := s.dataBackend.GetAdapterChannel(item)
+		if err != nil {
+			apiLog.Errorf("Error while getting adapter channel for %v: %v", item, err)
+		} else {
+			adapterChannel <- data.AdapterMessage{UserID: tokenData.UserID, Message: messageData.Message}
+		}
+	}
+	c.String(200, `{status: "ok"}`)
 }
 
 // handle test case
