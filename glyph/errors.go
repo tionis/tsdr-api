@@ -28,3 +28,6 @@ var ErrSendTokenInvalid = errors.New("send token not valid")
 
 // ErrNoSuchToken is thrown if the given or searched token was not found
 var ErrNoSuchToken = errors.New("no send token found")
+
+// ErrImmutableMatrixID is thrown if someone tries to change the matrix-id in any way
+var ErrImmutableMatrixID = errors.New("matrix-ids are immutable")

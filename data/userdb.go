@@ -277,6 +277,50 @@ func (d *GlyphData) AuthenticateSession(matrixUserID, authToken string) error {
 	return nil
 }
 
+// DeauthenticateSession removes the connection between a chat platform account and the matrixAccount
+// Notice: this does not work on the matrixAccount as they are linked by default
+func (d *GlyphData) DeauthenticateSession(userID, adapterID string) error {
+	if adapterID == "matrix" {
+		return glyph.ErrImmutableMatrixID
+	}
+	// Remove adapter specific user ID to User Data
+	err := d.DeleteUserData(userID, adapterID+"ID")
+	if err != nil {
+		return err
+	}
+
+	// Remove adapter from adapters list
+	value, err := d.GetUserData(userID, "adapters")
+	if err != nil {
+		return err
+	}
+	var adapters []string
+	err = json.Unmarshal([]byte(value), &adapters)
+	if err != nil {
+		return err
+	}
+	for i, item := range adapters {
+		if item == adapterID {
+			adapters = removeFromStringSliceIgnoringOrder(adapters, i)
+			break
+		}
+	}
+	if len(adapters) == 0 {
+		return d.DeleteUserData(userID, "adapters")
+	}
+	adapterJSON, err := json.Marshal(adapters)
+	if err != nil {
+		return err
+	}
+	return d.SetUserData(userID, "adapters", string(adapterJSON))
+}
+
+func removeFromStringSliceIgnoringOrder(s []string, i int) []string {
+	s[i] = s[len(s)-1]
+	// We do not need to put s[i] at the end, as it will be discarded anyway
+	return s[:len(s)-1]
+}
+
 // DeleteSession deletes the session with given ID
 func (d *GlyphData) DeleteSession(authToken string) error {
 	stmt, err := d.db.Prepare(`DELETE FROM authsessions WHERE authToken = $1`)

@@ -47,6 +47,7 @@ type UserDB struct {
 	AddAuthSession               func(key, value, userID string) (string, error)                              // AddAuthSession adds an auth session with an key and value which will be set in the userdb when the login was successful
 	AddAuthSessionWithAdapterAdd func(adapter, adapterUserID, matrixUserID string) (string, error)            // AddAuthSessionWithAdapterAdd dds an auth session and adapterID, adapter-specific userID and a general matrixUserID. When the auth succeeds the adapter-specific userID will be written to the adapterID+"ID" userdata field and the adapter is added to the adapters userdata field as part of the json array.
 	AuthenticateSession          func(matrixUserID, authSessionID string) error                               // AuthenticateSession sets the session with given ID as authenticated
+	DeauthenticateSession        func(matrixUserID, adapterID string) error                                   // DeauthenticateSession removes the connection between the platform specified by adapter and the matrixID
 	DeleteSession                func(authSessionID string) error                                             // DeleteSession deletes the session with given ID
 	GetAuthSessions              func(matrixID string) ([]string, error)                                      // GetAuthSessions return the state of all sessions registered to the user
 	RegisterNewUser              func(matrixID, email string, isAdmin bool, preferredAdapters []string) error // RegisterNewUser add a new user to the database

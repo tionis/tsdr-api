@@ -22,5 +22,3 @@ Listed below you'll find all requisites that are needed.
  - reminder functionality
    - catching up if rebooted
    - sending of events in minute intervals
- - auth logic [partly depends on matrix adapter]
- - keep a list of adapters a user has registered in userdata?
