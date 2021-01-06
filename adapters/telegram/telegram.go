@@ -63,10 +63,10 @@ func Init(data *data.GlyphData, telegramToken string) Bot {
 			GetMatrixUserID:       out.getTelegramGetMatrixUserID(),
 			DoesMatrixUserIDExist: data.DoesUserIDExist,
 			AddAuthSession:        data.AddAuthSession,
-			GetAuthSessionStatus:  data.GetAuthSessionStatus,
 			AuthenticateSession:   data.AuthenticateSession,
 			DeleteSession:         data.DeleteSession,
 			GetAuthSessions:       data.GetAuthSessions,
+			RegisterNewUser:       data.UserAdd,
 		},
 		SetContext:            out.getTelegramSetContext(),
 		GetContext:            out.getTelegramGetContext(),
@@ -153,7 +153,7 @@ func (b Bot) updateChatIDFromTelegramID(telegramID string, chatID int64) {
 	gottenChatID := b.dataBackend.GetTmp("glyph", "tg:"+telegramID+"|DM-ChatID")
 	if gottenChatID == "" {
 		b.dataBackend.SetTmp("glyph", "tg:"+telegramID+"|DM-ChatID", fmt.Sprint(chatID), 24*time.Hour)
-		matrixID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramID)
+		matrixID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramID)
 		if err != nil {
 			b.logger.Debugf("Could not get matrix id for telegram user %v: %v", telegramID, err)
 			return
@@ -167,7 +167,7 @@ func (b Bot) updateChatIDFromTelegramID(telegramID string, chatID int64) {
 }
 
 func (b Bot) getChatIDFromMatrixUserID(userID string) (int64, error) {
-	telegramID, err := b.dataBackend.GetUserData(userID, "telegramID")
+	telegramID, err := b.dataBackend.GetUserData(userID, adapterID+"ID")
 	if err != nil {
 		return 0, err
 	}
@@ -201,7 +201,7 @@ func (b Bot) getTelegramSendMessage() func(channelID, message string) error {
 
 func (b Bot) getTelegramSetUserData() func(telegramUserID, key string, value string) error {
 	return func(telegramUserID, key string, value string) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
 		if err != nil {
 			return err
 		}
@@ -215,7 +215,7 @@ func (b Bot) getTelegramSetUserData() func(telegramUserID, key string, value str
 
 func (b Bot) getTelegramGetUserData() func(telegramUserID, key string) (string, error) {
 	return func(telegramUserID, key string) (string, error) {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
 		if err != nil {
 			return "", err
 		}
@@ -251,7 +251,7 @@ func (b Bot) getTelegramGetMention() func(userID string) (string, error) {
 
 func (b Bot) getTelegramGetQuoteOfTheDay() func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
 	return func(telegramUserID string) (glyph.QuoteOfTheDay, error) {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
 		if err != nil {
 			return glyph.QuoteOfTheDay{}, err
 		}
@@ -265,7 +265,7 @@ func (b Bot) getTelegramGetQuoteOfTheDay() func(telegramUserID string) (glyph.Qu
 
 func (b Bot) getTelegramSetQuoteOfTheDay() func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
 	return func(telegramUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
 		if err != nil {
 			return err
 		}
@@ -275,13 +275,13 @@ func (b Bot) getTelegramSetQuoteOfTheDay() func(telegramUserID string, quoteOfTh
 
 func (b Bot) getTelegramGetMatrixUserID() func(telegramUserID string) (string, error) {
 	return func(telegramUserID string) (string, error) {
-		return b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		return b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
 	}
 }
 
 func (b Bot) getTelegramDeleteUserData() func(telegramUserID, key string) error {
 	return func(telegramUserID, key string) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey("telegramID", telegramUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", telegramUserID)
 		if err != nil {
 			return err
 		}

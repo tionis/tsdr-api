@@ -2,6 +2,7 @@ package glyph
 
 import (
 	"encoding/json"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -11,6 +12,12 @@ import (
 
 	UniPassauBot "github.com/tionis/uni-passau-bot/api" // This provides the uni passau food functionality
 )
+
+// Valid letters for an auth session token
+var letters = []rune("abcdefghijklmnopqrstuvwxyz1234567890")
+
+// AuthSessionDelay describes how long a session stays valid
+const AuthSessionDelay = time.Hour
 
 // MessageData represents an message the bot can act on with callback functions
 type MessageData struct {
@@ -32,16 +39,16 @@ type QuoteDB struct {
 
 // UserDB contains all function to interface with an Database holding the user data
 type UserDB struct {
-	SetUserData           func(userID, key string, value string) error                 // SetUserData saves data to a specific user by key
-	GetUserData           func(userID, key string) (string, error)                     // GetUserData gets data to a specific user by key
-	DeleteUserData        func(userID, key string) error                               // DeleteUserData deletes user data with a given key
-	GetMatrixUserID       func(userID string) (string, error)                          // GetMatrixUserID gets the MatrixID from the implementation specific userID
-	DoesMatrixUserIDExist func(matrixUserID string) (bool, error)                      // DoesMatrixUserIDExist checks if a user with given matrixID is already registered (this is used with a hardcoded transformation from tasadar user to matrix id)
-	AddAuthSession        func(authWorker func() error, userID string) (string, error) // AddAuthSession adds an auth session with an authWorker that is executed when the session is authenticated. The functions returns an error and the ID of the auth session
-	GetAuthSessionStatus  func(authSessionID string) (string, error)                   // GetAuthSessionStatus is used to get the status of an auth session with the ID
-	AuthenticateSession   func(matrixUserID, authSessionID string) error               // AuthenticateSession sets the session with given ID as authenticated
-	DeleteSession         func(authSessionID string) error                             // DeleteSession deletes the session with given ID
-	GetAuthSessions       func(matrixID string) ([]string, error)                      // GetAuthSessions return the state of all sessions registered to the user
+	SetUserData           func(userID, key string, value string) error                                 // SetUserData saves data to a specific user by key
+	GetUserData           func(userID, key string) (string, error)                                     // GetUserData gets data to a specific user by key
+	DeleteUserData        func(userID, key string) error                                               // DeleteUserData deletes user data with a given key
+	GetMatrixUserID       func(userID string) (string, error)                                          // GetMatrixUserID gets the MatrixID from the implementation specific userID
+	DoesMatrixUserIDExist func(matrixUserID string) (bool, error)                                      // DoesMatrixUserIDExist checks if a user with given matrixID is already registered (this is used with a hardcoded transformation from tasadar user to matrix id)
+	AddAuthSession        func(key, value, userID string) (string, error)                              // AddAuthSession adds an auth session with an key and value which will be set in the userdb when the login was successful
+	AuthenticateSession   func(matrixUserID, authSessionID string) error                               // AuthenticateSession sets the session with given ID as authenticated
+	DeleteSession         func(authSessionID string) error                                             // DeleteSession deletes the session with given ID
+	GetAuthSessions       func(matrixID string) ([]string, error)                                      // GetAuthSessions return the state of all sessions registered to the user
+	RegisterNewUser       func(matrixID, email string, isAdmin bool, preferredAdapters []string) error // RegisterNewUser add a new user to the database
 }
 
 // Quote represents a Quote
@@ -161,6 +168,12 @@ func (g Bot) handleNonCommandMessage(message MessageData) {
 	case "universeRequired":
 		g.handleAddQuoteUniverse(message)
 		g.handleAddQuoteFinished(message)
+	case "registerIDRequired":
+		// TODO get id, transform it to a valid one and save it then ask if they want to add an email to the account
+	case "registerEmailWanted":
+		// TODO get answer and parse it, if (yes) set context to below, if not set finish register user process and
+	case "registerEmailRequired":
+		// TODO check if mail is valid, then finish register user process
 	default: // If the context is set to something unknown reset the context and print a message that the command is not known
 		g.SetContext(message.AuthorID, message.ChannelID, "ctx", "", time.Second)
 		g.handleInvalidCommand(message)
@@ -238,9 +251,7 @@ func (g Bot) handleAuth(message MessageData, tokens []string) {
 		}
 		err = g.UserDBHandler.AuthenticateSession(matrixID, authID)
 		switch err {
-		case ErrNoMappingFound: // No auth session found
-			g.sendMessageDefault(message, "Auth ID invalid!")
-		case ErrSessionNotOfUser: // Auth session does not belong to user
+		case ErrNoSuchSession: // No auth session found
 			g.sendMessageDefault(message, "Auth ID invalid!")
 		case nil: // Auth was successfull
 			g.sendMessageDefault(message, "Auth Session "+authID+" was authenticated!")
@@ -253,13 +264,58 @@ func (g Bot) handleAuth(message MessageData, tokens []string) {
 }
 
 func (g Bot) handleUser(message MessageData, tokens []string) {
-	// TODO handle login or registering of "virtual matrix account"
-	// TODO logging into existing id (use /auth authCode to authorize a login to an existing account)
-	// TODO regarding registering: checking if userid is available and warning if its not
-	// if id is taken (only if not virtual matrix account) start auth process
-	// i will need to think about that -> login flow where? -> solved by using callback functions
-	// TODO allow creation and managment of tokens that allow someone to send messages to the user via the API
-	g.sendMessageDefault(message, "not implemented yet")
+	if len(tokens) < 2 {
+		g.sendMessageDefault(message, "Interact with your user account. Currently available:\n - /user login {userID} - Log into your account\n - /user register - Register an new account\n - /user send-token - Configure tokens allowing sending of messages to you over the API.")
+	} else {
+		switch tokens[1] {
+		case "login":
+			if len(tokens) < 3 {
+				g.sendMessageDefault(message, "Please specify your userID to log in.")
+			} else {
+				var userID string
+				if IsValidMatrixID.MatchString(tokens[2]) {
+					userID = tokens[2]
+				} else {
+					userID = "@" + tokens[2] + "_virtual:tasadar.net"
+				}
+
+				doesExist, err := g.UserDBHandler.DoesMatrixUserIDExist(userID)
+				if err != nil {
+					g.Logger.Warning("error checking if user ID exists: ", err)
+					g.handleGenericError(message)
+				}
+				authCode := GenerateAuthSessionID()
+				if doesExist {
+					authCode, err = g.UserDBHandler.AddAuthSession(g.CurrentAdapter, message.AuthorID, userID)
+					if err != nil {
+						g.Logger.Warning("could not add auth session: ", err)
+						g.handleGenericError(message)
+					}
+				}
+				g.sendMessageDefault(message, "Login process started. To login please write me following command on platform on which you are logged in.\n/auth "+authCode)
+			}
+		case "register":
+			g.SetContext(message.AuthorID, message.ChannelID, "ctx", "registerIDRequired", standardContextDelay)
+			g.sendMessageDefault(message, "The register process was started. To cancel it write me /cancel.\nPlease specify your desired username (or use your existing matrixID if you have one.)")
+		case "send-token":
+			if len(tokens) < 3 {
+				g.sendMessageDefault(message, "Manage your send-tokens. Currently available:\n - /user send-token generate - Generate a new send token\n - /user send-token list - List all your current send-tokens\n - /user send-token delete {send-token} - Delete specified send-token\n - /user send-token help - Get more info about send-tokens")
+			} else {
+				switch tokens[2] {
+				case "generate", "new":
+					// TODO generate a new UUID-V4 token and save it to db. Also output it to user
+				case "list":
+					// TODO list all tokens and when they were last used
+				case "delete":
+					// TODO search in list for token with UID and delete it.
+				default:
+					g.sendMessageDefault(message, "Unknown Command! Please chek your spelling!")
+				}
+			}
+		default:
+			g.sendMessageDefault(message, "Unknown Command! Please chek your spelling!")
+		}
+	}
 }
 
 func (g Bot) handleConfig(message MessageData, tokens []string) {
@@ -366,4 +422,19 @@ func (g Bot) sendMessageDefault(messageToParse MessageData, textToSend string) {
 			return
 		}
 	}
+}
+
+// GenerateAuthSessionID generates a random ID for an auth session
+func GenerateAuthSessionID() string {
+	// This small number of characters leads to ~50% probability of collision when generating 54562 tokens.
+	// -> checking of duplicate tokens may be necessary, leaving it as is to make user facing tokens simpler
+	return randSeq(6)
+}
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }

@@ -73,10 +73,10 @@ func Init(data *data.GlyphData, discordToken string) Bot {
 			GetMatrixUserID:       bot.getDiscordGetMatrixUserID(),
 			DoesMatrixUserIDExist: data.DoesUserIDExist,
 			AddAuthSession:        data.AddAuthSession,
-			GetAuthSessionStatus:  data.GetAuthSessionStatus,
 			AuthenticateSession:   data.AuthenticateSession,
 			DeleteSession:         data.DeleteSession,
 			GetAuthSessions:       data.GetAuthSessions,
+			RegisterNewUser:       data.UserAdd,
 		},
 		SetContext:            bot.getDiscordSetContext(),
 		GetContext:            bot.getDiscordGetContext(),
@@ -166,7 +166,7 @@ func (b Bot) startMessageSendService() {
 
 	for {
 		message := <-messageChannel
-		discordID, err := b.dataBackend.GetUserData(message.UserID, "discordID")
+		discordID, err := b.dataBackend.GetUserData(message.UserID, adapterID+"ID")
 		if err != nil {
 			b.logger.Warningf("failed to get discordID of user %v: %v", message.UserID, err)
 			continue
@@ -243,7 +243,7 @@ func (b Bot) getDiscordGetMention() func(userID string) (string, error) {
 
 func (b Bot) getDiscordSetUserData() func(discordUserID, key string, value string) error {
 	return func(discordUserID, key string, value string) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
 		if err != nil {
 			return err
 		}
@@ -257,7 +257,7 @@ func (b Bot) getDiscordSetUserData() func(discordUserID, key string, value strin
 
 func (b Bot) getDiscordGetUserData() func(discordUserID, key string) (string, error) {
 	return func(discordUserID, key string) (string, error) {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
 		if err != nil {
 			return "", err
 		}
@@ -272,7 +272,7 @@ func (b Bot) getDiscordGetUserData() func(discordUserID, key string) (string, er
 
 func (b Bot) getDiscordGetQuoteOfTheDay() func(discordUserID string) (glyph.QuoteOfTheDay, error) {
 	return func(discordUserID string) (glyph.QuoteOfTheDay, error) {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
 		if err != nil {
 			return glyph.QuoteOfTheDay{}, err
 		}
@@ -286,7 +286,7 @@ func (b Bot) getDiscordGetQuoteOfTheDay() func(discordUserID string) (glyph.Quot
 
 func (b Bot) getDiscordSetQuoteOfTheDay() func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
 	return func(discordUserID string, quoteOfTheDay glyph.QuoteOfTheDay) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
 		if err != nil {
 			return err
 		}
@@ -296,13 +296,13 @@ func (b Bot) getDiscordSetQuoteOfTheDay() func(discordUserID string, quoteOfTheD
 
 func (b Bot) getDiscordGetMatrixUserID() func(discordUserID string) (string, error) {
 	return func(discordUserID string) (string, error) {
-		return b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		return b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
 	}
 }
 
 func (b Bot) getDiscordDeleteUserData() func(discordUserID, key string) error {
 	return func(discordUserID, key string) error {
-		userID, err := b.dataBackend.GetUserIDFromValueOfKey("discordID", discordUserID)
+		userID, err := b.dataBackend.GetUserIDFromValueOfKey(adapterID+"ID", discordUserID)
 		if err != nil {
 			return err
 		}

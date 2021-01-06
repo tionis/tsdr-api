@@ -3,7 +3,7 @@ package data
 import (
 	"database/sql"
 	"encoding/json"
-	"errors"
+	"time"
 
 	"github.com/tionis/tsdr-api/glyph" // This provides glyph-specific errors
 )
@@ -30,15 +30,19 @@ func (d *GlyphData) GetUserIDFromValueOfKey(key, value string) (string, error) {
 
 // UserAdd adds an user with given userID, email and isAdmin parameters,
 // preferredAdapters is a json string array containing the adapter the user wants to be notified on.
-func (d *GlyphData) UserAdd(userID, email string, isAdmin bool, preferredAdaptersJSON string) error {
+func (d *GlyphData) UserAdd(userID, email string, isAdmin bool, preferredAdapters []string) error {
 	if !glyph.IsValidMatrixID.MatchString(userID) {
 		return glyph.ErrMatrixIDInvalid
+	}
+	data, err := json.Marshal(preferredAdapters)
+	if err != nil {
+		return nil
 	}
 	stmt, err := d.db.Prepare(`INSERT INTO users (userID, email, isAdmin, preferredAdapters) VALUES ($1, $2, $3, $4)`)
 	if err != nil {
 		return err
 	}
-	return stmt.QueryRow(userID, email, isAdmin, preferredAdaptersJSON).Err()
+	return stmt.QueryRow(userID, email, isAdmin, string(data)).Err()
 }
 
 // UserIsAdmin return true if the user with given userID is an tasadar admin
@@ -186,38 +190,105 @@ func (d *GlyphData) DoesUserIDExist(matrixUserID string) (bool, error) {
 
 // AddAuthSession adds an auth session with an authWorker that is executed when the session is authenticated.
 // The functions returns an error and the ID of the auth session
-func (d *GlyphData) AddAuthSession(authWorker func() error, userID string) (string, error) {
-	// TODO this will need a new in memory store
-	// this will also add it to the list of sessions of userID
-	return "", errors.New("not implemented yet")
-}
-
-// GetAuthSessionStatus is used to get the status of an auth session with the ID
-func (d *GlyphData) GetAuthSessionStatus(authSessionID string) (string, error) {
-	// TODO this will interface with the in memory store
-	// if no session with ID found glyph.ErrNoSuchSession
-	return "", errors.New("not implemented yet")
+func (d *GlyphData) AddAuthSession(key, value, matrixUserID string) (string, error) {
+	authToken := ""
+	validUntil := time.Now().Add(glyph.AuthSessionDelay)
+	stmt, err := d.db.Prepare(`INSERT INTO authsessions (authToken, userID, key, value, validUntil) VALUES ($1, $2, $3, $4, $5)`)
+	if err != nil {
+		return authToken, err
+	}
+	i := 0
+	for err != nil && i < 5 {
+		//var res sql.Result
+		// Try again 5 times on error then return it
+		authToken := glyph.GenerateAuthSessionID()
+		_, err = stmt.Exec(authToken, matrixUserID, key, value, validUntil)
+		i++
+	}
+	return authToken, err
 }
 
 // AuthenticateSession sets the session with given ID as authenticated
-func (d *GlyphData) AuthenticateSession(matrixUserID, authSessionID string) error {
-	// TODO this will delete the session and execute the function attached to it
-	// if no session with ID found glyph.ErrNoSuchSession
-	// if session does not belong to user glyph.ErrSessionNotOfUser
-	return errors.New("not implemented yet")
+func (d *GlyphData) AuthenticateSession(matrixUserID, authToken string) error {
+	// First get the values to set
+	stmt, err := d.db.Prepare(`SELECT key, value, validUntil FROM authsessions WHERE userID = $1 AND authToken = $2`)
+	if err != nil {
+		return nil
+	}
+	rows, err := stmt.Query(matrixUserID, authToken)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return glyph.ErrNoSuchSession
+		}
+		return nil
+	}
+	var key, value string
+	var validUntil time.Time
+	rows.Scan(&key, &value, &validUntil)
+	if validUntil.Before(time.Now()) {
+		go d.DeleteSession(authToken)
+		return glyph.ErrNoSuchSession
+	}
+	err = d.SetUserData(matrixUserID, key, value)
+	if err != nil {
+		return err
+	}
+	go d.DeleteSession(authToken)
+	return nil
 }
 
 // DeleteSession deletes the session with given ID
-func (d *GlyphData) DeleteSession(authSessionID string) error {
-	// TODO this will delete the session from the in memory store
-	// if no session with ID found glyph.ErrNoSuchSession
-	// this will also delete it from the list of sessions of userID
-	return errors.New("not implemented yet")
+func (d *GlyphData) DeleteSession(authToken string) error {
+	stmt, err := d.db.Prepare(`DELETE FROM authsessions WHERE authToken = $1`)
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(authToken)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return glyph.ErrNoSuchSession
+		}
+		return err
+	}
+	return nil
 }
 
 // GetAuthSessions return the state of all sessions registered to the user
 func (d *GlyphData) GetAuthSessions(matrixID string) ([]string, error) {
-	// TODO this will get all session IDs from the session list by userID and
-	// then aggregates all states of the found sessions
-	return []string{}, errors.New("not implemented yet")
+	stmt, err := d.db.Prepare(`DELETE FROM userdata WHERE userID = $1`)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := stmt.Query(matrixID)
+	if err != nil {
+		return nil, err
+	}
+	cols, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	// Result is your slice string.
+	rawResult := make([][]byte, len(cols))
+	result := make([]string, len(cols))
+
+	dest := make([]interface{}, len(cols)) // A temporary interface{} slice
+	for i := range rawResult {
+		dest[i] = &rawResult[i] // Put pointers to each string in the interface slice
+	}
+
+	for rows.Next() {
+		err = rows.Scan(dest...)
+		if err != nil {
+			return nil, err
+		}
+
+		for i, raw := range rawResult {
+			if raw == nil {
+				result[i] = "\\N"
+			} else {
+				result[i] = string(raw)
+			}
+		}
+	}
+	return result, nil
 }

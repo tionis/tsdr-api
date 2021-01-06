@@ -90,12 +90,27 @@ func (d *GlyphData) initDatabase() {
 	if err != nil {
 		d.logger.Fatal("Error creating table userdata: ", err)
 	}
+
+	_, err = d.db.Query(`CREATE TABLE IF NOT EXISTS authsessions(authToken text PRIMARY KEY, userID text references users (userID) on delete cascade UNIQUE, key text, value text, validUntil timestamptz)`)
+	if err != nil {
+		d.logger.Fatal("Error creating table userdata: ", err)
+	}
+
+	go d.startAuthSessionDBCleaner(time.Hour)
 }
 
 // startCacheCleaner cleans the cache and then waits the specified time until it cleans the cache again
 func (d *GlyphData) startCacheCleaner(waitingTime time.Duration) {
 	for {
 		d.cleanCache()
+		time.Sleep(waitingTime)
+	}
+}
+
+// startAuthSessionDBCleaner cleans the authSessionDB and then waits the specified time until it cleans the DB again
+func (d *GlyphData) startAuthSessionDBCleaner(waitingTime time.Duration) {
+	for {
+		d.cleanAuthSessionDB()
 		time.Sleep(waitingTime)
 	}
 }
@@ -110,6 +125,20 @@ func (d *GlyphData) cleanCache() {
 				delete(bucket, key)
 			}
 		}
+	}
+}
+
+// cleanAuthSessionDB cleans the DB by telling it to delete all values that are stale
+func (d *GlyphData) cleanAuthSessionDB() {
+	stmt, err := d.db.Prepare(`DELETE FROM authsessions WHERE validUntil < $1`)
+	if err != nil {
+		d.logger.Error("cleaning authSessionDB failed: ", err)
+		return
+	}
+	_, err = stmt.Exec(time.Now())
+	if err != nil {
+		d.logger.Error("cleaning authSessionDB failed: ", err)
+		return
 	}
 }
 

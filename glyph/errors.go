@@ -17,9 +17,6 @@ var ErrNoMappingFound = errors.New("no mapping between 3PID and userID found")
 // ErrNoSuchSession is thrown if no auth session with the given ID could be founc
 var ErrNoSuchSession = errors.New("no session with given ID could be found")
 
-// ErrSessionNotOfUser is thrown if a given session exists but does not belong to a given user
-var ErrSessionNotOfUser = errors.New("session exists but does not belong to user")
-
 // ErrMatrixIDInvalid is thrown if the given matrix ID does not follow the rules of the matrix convention
 var ErrMatrixIDInvalid = errors.New("matrix id not valid")
 
