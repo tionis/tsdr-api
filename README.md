@@ -22,3 +22,5 @@ Listed below you'll find all requisites that are needed.
  - reminder functionality
    - catching up if rebooted
    - sending of events in minute intervals
+
+For reaction reminders: save adapter+messageID in database to reminder

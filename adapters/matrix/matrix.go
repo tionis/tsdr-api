@@ -21,8 +21,9 @@ func Init(data *data.GlyphData, homeServer, userName, password string) Bot {
 
 // Start starts the bot adapter with the given data backend
 func (b Bot) Start(stop chan bool, syncGroup *sync.WaitGroup) {
-	// TODO boilerplate
-	// TODO encryption with DB backend
+	// TODO create channel for receiving messages to send and register it in the dataLayer -> startMessageSendService()
+	// TODO pass crypto store db object (sql.db) for crypto store
+	// TODO encryption with DB backend, see https://gist.github.com/tionis/be4fb04952dddfcac93398b5747060f6
 	// TODO message send channel
 	<-stop
 	syncGroup.Add(1)

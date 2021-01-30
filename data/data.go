@@ -107,6 +107,11 @@ func (d *GlyphData) initDatabase() {
 		d.logger.Fatal("Error creating table userdata: ", err)
 	}
 
+	_, err = d.db.Query(`CREATE TABLE IF NOT EXISTS reminders(content text PRIMARY KEY, userID text references users (userID) on delete cascade UNIQUE, adapter text, adapterMessageID text, triggerDate timestamptz)`)
+	if err != nil {
+		d.logger.Fatal("Error creating table reminders: ", err)
+	}
+
 	go d.startSendTokenDBCleaner(time.Hour)
 }
 
@@ -219,4 +224,12 @@ func (d *GlyphData) DelTmp(bucket, key string) {
 		return
 	}
 	delete(d.tmpData[bucket], key)
+}
+
+// TODO replace with matrix specific crypto store implementation? --> integrate Matrix specific features directly into stack?
+
+// ExposeDB returns the internally used sql database connection
+// CAUTION: this allow direct and unrestricted Access to the underlying database!
+func (d *GlyphData) ExposeDB() *sql.DB {
+	return d.db
 }

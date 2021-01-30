@@ -127,9 +127,7 @@ func (g Bot) HandleAll(message MessageData) {
 
 	// Food commands
 	case "food":
-		go g.handleFoodToday(message)
-	case "food tomorrow":
-		go g.handleFoodTomorrow(message)
+		go g.handleFood(message, tokens)
 
 	// User data commands
 	case "config":
@@ -139,7 +137,7 @@ func (g Bot) HandleAll(message MessageData) {
 	case "auth":
 		go g.handleAuth(message, tokens)
 
-	// MISC & META commands
+	// MISC & META Commands
 	case "ping":
 		go g.handlePing(message)
 	case "id":
@@ -148,6 +146,10 @@ func (g Bot) HandleAll(message MessageData) {
 		go g.handleIsDM(message)
 	case "cancel":
 		go g.handleCancelContext(message)
+
+	// Reminder Commands
+	case "remindeme":
+		// TODO reminder functionality with custom adapters and mention support
 
 	// Quotator Commands
 	case "getquote":
@@ -208,6 +210,28 @@ func (g Bot) handleHelp(message MessageData) {
 		g.sendMessageDefault(message, "# Available Command Categories:\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
 	} else {
 		g.sendMessageDefault(message, "Available Command Categories:\n - Uni Passau - /unip help\n - PnP Tools - /pnp help")
+	}
+}
+
+func (g Bot) handleFood(message MessageData, tokens []string) {
+	if len(tokens) < 2 {
+		g.handleFoodToday(message)
+	} else {
+		switch tokens[1] {
+		case "today":
+			g.handleFoodToday(message)
+		case "tomorrow":
+			g.handleFoodTomorrow(message)
+		case "help":
+			messageString := "Available Commands:\n - /food or /food today - Food for today\n - /food tomorrow - Food for tomorrow"
+			if message.SupportsMarkdown {
+				g.sendMessageDefault(message, "# "+messageString)
+			} else {
+				g.sendMessageDefault(message, messageString)
+			}
+		default:
+			g.sendMessageDefault(message, "Unknown Command, please check /food help")
+		}
 	}
 }
 
@@ -394,6 +418,8 @@ func (g Bot) handleUser(message MessageData, tokens []string) {
 				case "delete":
 					// TODO search in list for token with UID and delete it.
 				case "changeAdapters":
+					// Check if len(tokens) > 4 if true use tokens - for parsing check below
+					// if len(tokens) = 3 help -> /user send-token changeAdapters {token} {comma-seperated-adapter-list}
 					// TODO send-token
 				default:
 					g.sendMessageDefault(message, "Unknown Command, please chek your spelling!")
