@@ -310,7 +310,7 @@ func (g Bot) handleConstructRoll(message MessageData, tokens []string) {
 	output.WriteString("Results for " + mention + ": ")
 	for i := range retSlice {
 		output.WriteString("[")
-		for j := range retSlice[i] {
+		for j, i := range retSlice[i] {
 			output.WriteString(strconv.Itoa(retSlice[i][j]))
 			if j != len(retSlice[i])-1 {
 				output.WriteString(" ❯ ")
@@ -318,8 +318,11 @@ func (g Bot) handleConstructRoll(message MessageData, tokens []string) {
 			switch retSlice[i][j] {
 			case 8, 9, 10:
 				successes++
-			case 1, 2:
-				critfails++
+			case 1: // Only count ones as potential crit fails components
+				// Only count fails in inital throw
+				if i == 0 {
+					critfails++
+				}
 			}
 		}
 		output.WriteString("] ")
@@ -328,6 +331,8 @@ func (g Bot) handleConstructRoll(message MessageData, tokens []string) {
 	critfailTreshold := int(math.Round(float64(throwCount) / 2))
 	if critfails >= critfailTreshold && successes == 0 {
 		output.WriteString("\nWell that's a **critical failure!**")
+	} else if critfails >= critfailTreshold {
+		output.WriteString("\nThat's an unexpected **fail**! My condolences.")
 	} else {
 		if successes > 0 {
 			if successes >= 5 {
