@@ -1,5 +1,5 @@
 # Tasadar-API
-[![DeepSource](https://deepsource.io/gh/tionis/api.svg/?label=active+issues&show_trend=true&token=zajw9kzTw_hnN54R-UBD4pjP)](https://deepsource.io/gh/tionis/api/?ref=repository-badge)
+[![DeepSource](https://deepsource.io/gh/tionis/tsdr-api.svg/?label=active+issues&show_trend=true&token=zajw9kzTw_hnN54R-UBD4pjP)](https://deepsource.io/gh/tionis/api/?ref=repository-badge)
 Tasadar API and Bot network, designed to be run on Heroku Platform, but should run on any Linux Platform, where a https load balancer is loaded, the dns record of api.tasadar.net points to the load balancer, and the load balancers addressed port is specified on $PORT together with the tokens.
 
 # Things needed for Operation
