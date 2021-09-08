@@ -24,7 +24,7 @@ static/login/loginv4/*
 __debug_bin
 
 # Project Specific
-api
+tsdr-api
 .issues
 *.csv
 run.sh
