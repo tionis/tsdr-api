@@ -51,7 +51,7 @@ func main() {
 	// Start Uni-Passau-Bot
 	go UniPassauBot.UniPassauBot(os.Getenv("UNIPASSAUBOT_TOKEN"))
 
-	// Start Glyph Discord Bot
+	// Start Glyph Discord Bot // deactivated in favor of github.com/tionis/glyph
 	// go glyphDiscordBot()
 
 	// Start Glyph Telegram Bot
